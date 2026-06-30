@@ -170,7 +170,13 @@ def main():
             # 從 geocoding 結果查找坐標（使用此記錄的地址）
             addr_norm = normalize_addr(addr_raw)
             coord = addr_to_coord.get(addr_norm)
-            if not coord and place_name in ["衛生局", "澳門公共醫療機構"]:
+            
+            # 針對特定的高德 geocoding 偏差或大廈坐標進行手動精準修正
+            if "土地廟里" in addr_raw:
+                coord = {"lng": 113.5398, "lat": 22.2001}
+            elif "望德樓" in addr_raw or "望德樓" in place_name:
+                coord = {"lng": 113.5516, "lat": 22.2071}
+            elif not coord and place_name in ["衛生局", "澳門公共醫療機構"]:
                 coord = {"lng": 113.5467, "lat": 22.1942}
             
             if coord:
