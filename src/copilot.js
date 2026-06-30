@@ -1,5 +1,13 @@
 /* ============================================================
-   AI 智能助理 (Copilot)：支援對話歷史記憶 (Memory) 及多端點智能路由
+   AI 智能助理 (Copilot) v2 — 薄代理架構
+   ============================================================
+   v2 設計：
+   - 預設「免 Key」：直接呼叫自家 /api/copilot 薄代理（Vercel
+     serverless function 代管 DEEPSEEK_API_KEY），使用者無需設定任何金鑰。
+   - 進階「自帶 Key」：使用者可在設定面板填入自己的 Deepseek Key，
+     瀏覽器直連 Deepseek，不經代理。
+   - Agent loop + 9 個工具 + 工具執行全在瀏覽器；代理只代轉請求。
+   - 支援短期對話記憶（chatHistory 滾動窗口）。
    ============================================================ */
 
 import { CATEGORIES } from './config.js';
@@ -10,10 +18,10 @@ let controls = {};
 // 記憶模組：儲存短期對話歷史
 let chatHistory = [];
 
+// 設定：useOwnKey 為 true 時走「自帶 Key 直連」，否則走「自家薄代理（免 Key）」
 const settings = {
-  provider: localStorage.getItem('copilot_provider') || 'gemini',
+  useOwnKey: localStorage.getItem('copilot_use_own_key') === 'true',
   apiKey: localStorage.getItem('copilot_api_key') || '',
-  baseUrl: localStorage.getItem('copilot_base_url') || '',
   model: localStorage.getItem('copilot_model') || ''
 };
 
@@ -60,41 +68,36 @@ function setupDom() {
       </div>
       <div class="chat-panel__header-actions">
         <button id="chat-clear-btn" class="chat-panel__clear-btn" title="清除對話歷史">🗑️</button>
-        <button id="chat-settings-btn" class="chat-panel__settings-btn" title="設定 API 服務商">⚙️</button>
+        <button id="chat-settings-btn" class="chat-panel__settings-btn" title="進階設定">⚙️</button>
         <button id="chat-close" class="chat-panel__close" aria-label="關閉助理">&times;</button>
       </div>
     </div>
 
-    <!-- 設定面板 -->
+    <!-- 進階設定面板 -->
     <div id="chat-settings" class="chat-settings" hidden>
-      <div class="chat-settings__field">
-        <label class="chat-settings__label">AI 服務商：</label>
-        <select id="ai-provider-select" class="chat-settings__select">
-          <option value="gemini" ${settings.provider === 'gemini' ? 'selected' : ''}>Google Gemini</option>
-          <option value="deepseek" ${settings.provider === 'deepseek' ? 'selected' : ''}>Deepseek 官方</option>
-          <option value="custom" ${settings.provider === 'custom' ? 'selected' : ''}>OpenAI 相容 API (自訂)</option>
-        </select>
-      </div>
-
-      <div id="settings-base-url-group" class="chat-settings__field" ${settings.provider === 'custom' ? '' : 'hidden'}>
-        <label class="chat-settings__label">API 端點 (Base URL)：</label>
-        <input type="text" id="ai-base-url-input" placeholder="https://api.deepseek.com/v1" class="chat-settings__input" value="${settings.baseUrl}">
-      </div>
+      <p class="chat-settings__hint">
+        💡 預設已透過站台伺服器代為呼叫 AI，您<strong>無需任何設定</strong>即可直接使用。
+        若您有自己的 Deepseek API 金鑰，可在此切換為「自帶金鑰」模式（瀏覽器直連，不經本站伺服器）。
+      </p>
 
       <div class="chat-settings__field">
-        <label class="chat-settings__label">模型名稱 (Model)：</label>
-        <input type="text" id="ai-model-input" placeholder="自動預設" class="chat-settings__input" value="${settings.model}">
+        <label class="chat-settings__label">
+          <input type="checkbox" id="use-own-key-toggle" ${settings.useOwnKey ? 'checked' : ''}>
+          使用自帶 API 金鑰（進階）
+        </label>
       </div>
 
-      <div class="chat-settings__field">
+      <div id="own-key-group" class="chat-settings__field" ${settings.useOwnKey ? '' : 'hidden'}>
         <label class="chat-settings__label">API 金鑰 (API Key)：</label>
-        <input type="password" id="ai-key-input" placeholder="輸入 API 金鑰" class="chat-settings__input" value="${settings.apiKey}">
+        <input type="password" id="ai-key-input" placeholder="輸入您的 Deepseek API 金鑰" class="chat-settings__input" value="${settings.apiKey}">
+
+        <label class="chat-settings__label" style="margin-top:8px">模型名稱 (Model)：</label>
+        <input type="text" id="ai-model-input" placeholder="deepseek-chat" class="chat-settings__input" value="${settings.model}">
       </div>
 
       <div style="display:flex; justify-content:flex-end; margin-top:8px">
         <button id="save-key-btn" class="btn btn--primary" style="padding:6px 12px;font-size:11px">儲存設定</button>
       </div>
-      <p class="chat-settings__hint">💡 金鑰僅存在您的本地瀏覽器，直接呼叫 AI 官方端點。</p>
     </div>
 
     <!-- 對話記錄 -->
@@ -139,11 +142,10 @@ function bindEvents() {
   const clearBtn = document.getElementById('chat-clear-btn');
   const settingsBtn = document.getElementById('chat-settings-btn');
   const settingsPanel = document.getElementById('chat-settings');
-  const providerSelect = document.getElementById('ai-provider-select');
-  const baseUrlGroup = document.getElementById('settings-base-url-group');
-  const baseUrlInput = document.getElementById('ai-base-url-input');
-  const modelInput = document.getElementById('ai-model-input');
+  const useOwnKeyToggle = document.getElementById('use-own-key-toggle');
+  const ownKeyGroup = document.getElementById('own-key-group');
   const keyInput = document.getElementById('ai-key-input');
+  const modelInput = document.getElementById('ai-model-input');
   const saveKeyBtn = document.getElementById('save-key-btn');
   const sendBtn = document.getElementById('chat-send');
   const chatInput = document.getElementById('chat-input');
@@ -171,47 +173,31 @@ function bindEvents() {
     addMessage('system', '🧹 已清除對話歷史，助理記憶已重置。');
   });
 
-  // 切換金鑰設定
+  // 切換進階設定
   settingsBtn?.addEventListener('click', () => {
     settingsPanel.hidden = !settingsPanel.hidden;
     settingsBtn.classList.toggle('is-active');
   });
 
-  // AI 服務商切換連動
-  providerSelect?.addEventListener('change', (e) => {
-    const val = e.target.value;
-    if (val === 'custom') {
-      baseUrlGroup.hidden = false;
-    } else {
-      baseUrlGroup.hidden = true;
-    }
-    // 自動填入預設 Placeholder
-    if (val === 'gemini') {
-      modelInput.placeholder = 'gemini-1.5-flash';
-    } else if (val === 'deepseek') {
-      modelInput.placeholder = 'deepseek-chat';
-    } else {
-      modelInput.placeholder = '自訂模型，如 gpt-4o';
-    }
+  // 「自帶金鑰」勾選連動
+  useOwnKeyToggle?.addEventListener('change', () => {
+    ownKeyGroup.hidden = !useOwnKeyToggle.checked;
   });
 
-  // 儲存金鑰
+  // 儲存設定
   saveKeyBtn?.addEventListener('click', () => {
-    settings.provider = providerSelect.value;
+    settings.useOwnKey = useOwnKeyToggle.checked;
     settings.apiKey = keyInput.value.trim();
-    settings.baseUrl = baseUrlInput.value.trim();
     settings.model = modelInput.value.trim();
 
-    localStorage.setItem('copilot_provider', settings.provider);
+    localStorage.setItem('copilot_use_own_key', String(settings.useOwnKey));
     localStorage.setItem('copilot_api_key', settings.apiKey);
-    localStorage.setItem('copilot_base_url', settings.baseUrl);
     localStorage.setItem('copilot_model', settings.model);
 
-    let providerName = 'Gemini AI';
-    if (settings.provider === 'deepseek') providerName = 'Deepseek AI';
-    if (settings.provider === 'custom') providerName = '自訂 OpenAI 相容 API';
-
-    addMessage('system', settings.apiKey ? `🔑 設定已儲存，正式啟用 <strong>${providerName}</strong> 智能助理！` : '🔑 金鑰已清除，切換回本地規則引導。');
+    addMessage('system', settings.useOwnKey
+      ? (settings.apiKey ? '🔑 已切換為自帶金鑰模式（瀏覽器直連 Deepseek）。' : '⚠ 已勾選自帶金鑰但未填入 Key，將仍使用站台預設模式。')
+      : '✅ 已切換回站台預設模式（免設定金鑰）。'
+    );
     settingsPanel.hidden = true;
     settingsBtn.classList.remove('is-active');
   });
@@ -281,25 +267,19 @@ async function handleUserMsg(text) {
 
   try {
     let result = null;
-    if (settings.apiKey) {
-      if (settings.provider === 'gemini') {
-        result = await requestGeminiAgent(text);
-      } else {
-        result = await requestOpenAIAgent(text);
-      }
-      
-      // 成功獲得 API 回應後，將當前對話輪次寫入 Memory (歷史記錄)
-      chatHistory.push({ role: 'user', content: text });
-      chatHistory.push({ role: 'assistant', content: JSON.stringify(result) });
-      
-      // 限制記憶深度，保留最新 10 條訊息 (5 個完整往返) 以防 Token 溢出
-      if (chatHistory.length > 10) {
-        chatHistory.shift();
-        chatHistory.shift();
-      }
-    } else {
-      result = parseLocalAgent(text);
-      result.reply += '<br><small style="color:#94a3b8;display:block;margin-top:4px">💡（目前為本地離線模式，可點擊上方 ⚙️ 設定金鑰以解鎖完整 AI 語意理解能力）</small>';
+
+    // 嘗試 AI（自家代理或自帶 Key 直連）
+    result = await runDeepseekAgentLoop(text);
+
+    // 成功獲得 API 回應後，將當前對話輪次寫入 Memory (歷史記錄)
+    // 為避免記憶膨脹，只存純文字回覆（reply）
+    chatHistory.push({ role: 'user', content: text });
+    chatHistory.push({ role: 'assistant', content: result.reply });
+
+    // 限制記憶深度，保留最新 10 條訊息 (5 個完整往返) 以防 Token 溢出
+    if (chatHistory.length > 10) {
+      chatHistory.shift();
+      chatHistory.shift();
     }
 
     loader.remove();
@@ -308,7 +288,7 @@ async function handleUserMsg(text) {
   } catch (err) {
     console.error('Agent 執行失敗:', err);
     loader.remove();
-    addMessage('assistant', `❌ 處理請求時發生錯誤：${escapeHtml(err.message)}<br><small style="color:#94a3b8;display:block;margin-top:4px">請確認您的 API 金鑰、端點及模型名稱是否正確，或是否網路連線異常。</small>`);
+    addMessage('assistant', `❌ 處理請求時發生錯誤：${escapeHtml(err.message)}<br><small style="color:#94a3b8;display:block;margin-top:4px">AI 服務暫時無法使用。您仍可使用地圖的搜尋與篩選功能查找資料。</small>`);
   }
 }
 
@@ -324,7 +304,7 @@ function parseLocalAgent(text) {
   }
 
   if (t.includes('統計') || t.includes('人數') || t.includes('多少人') || t.includes('多少位') || t.includes('規模')) {
-    const stats = database.meta?.stats || { therapists: 90, locations: 41, practices: 108 };
+    const stats = database.meta?.stats || { therapists: database.therapists.length, locations: database.locations.length, practices: database.practices.length };
     result.reply = `📊 目前地圖共收錄了 <strong>${stats.therapists}</strong> 位完全註冊的心理治療師（不計實習生），分佈在 <strong>${stats.locations}</strong> 個執業地點，共有 <strong>${stats.practices}</strong> 個執業關聯。`;
     return result;
   }
@@ -368,6 +348,229 @@ function parseLocalAgent(text) {
   return result;
 }
 
+/* ============================================================
+   原生函數調用 (Native Function Calling) 工具定義與調度器
+   ─ 用於 Deepseek 的 Agentic 模式：LLM 可多步調用工具並觀察結果
+   ============================================================ */
+
+/**
+ * Deepseek 原生函數調用可用的工具清單。
+ * 分為兩類：
+ *   - 資料查詢工具：回傳結構化資料給 LLM 觀察（不直接操控 UI）
+ *   - UI 行動工具：收集成 actions，最後統一執行
+ */
+const TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'get_dataset_overview',
+      description: '取得整個資料庫的統計概覽：治療師總數、地點總數、各分類的地點數量、執業關聯總數。用於回答「有多少」「統計」「規模」等問題。',
+      parameters: { type: 'object', properties: {}, required: [] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_locations',
+      description: '以關鍵字搜尋執業地點（比對機構名稱與地址），回傳符合的地點清單（含 id、名稱、地址、分類）。用於查詢特定機構資訊。',
+      parameters: {
+        type: 'object',
+        properties: {
+          keyword: { type: 'string', description: '搜尋關鍵字（機構名稱或地址片段）' }
+        },
+        required: ['keyword']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_therapists',
+      description: '以關鍵字搜尋心理治療師（比對中文姓名、外文姓名、牌照號），回傳符合的治療師及其執業地點。',
+      parameters: {
+        type: 'object',
+        properties: {
+          keyword: { type: 'string', description: '搜尋關鍵字（姓名或牌照號）' }
+        },
+        required: ['keyword']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_location_detail',
+      description: '以地點 id 查詢某地點的完整資訊：名稱、地址、電話、診症時間、分類，以及在此執業的所有治療師清單。',
+      parameters: {
+        type: 'object',
+        properties: {
+          location_id: { type: 'string', description: '地點 id（如 loc_189fe1c5）' }
+        },
+        required: ['location_id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_therapist_detail',
+      description: '以治療師 id 查詢某治療師的完整資訊：姓名、牌照號、外文名，以及其所有執業地點清單。',
+      parameters: {
+        type: 'object',
+        properties: {
+          therapist_id: { type: 'string', description: '治療師 id（如 T_be324e50）' }
+        },
+        required: ['therapist_id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'filter_category',
+      description: '【UI 行動】在介面上篩選特定機構分類並高亮對應篩選鈕。可選值：hospital、med_center、psych_center、social、university、gov、all。',
+      parameters: {
+        type: 'object',
+        properties: {
+          category: { type: 'string', enum: ['hospital', 'med_center', 'psych_center', 'social', 'university', 'gov', 'all'], description: '要篩選的分類 key' }
+        },
+        required: ['category']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_map',
+      description: '【UI 行動】在搜尋欄填入關鍵字，對機構名稱、地址、治療師姓名進行模糊過濾並更新地圖。',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: '要填入搜尋欄的關鍵字' }
+        },
+        required: ['query']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'select_location',
+      description: '【UI 行動】讓地圖平滑飛越至指定地點，並開啟該地點的詳細資訊面板。需先以 search_locations 或 get_location_detail 確認 id。',
+      parameters: {
+        type: 'object',
+        properties: {
+          location_id: { type: 'string', description: '要選取的地點 id' }
+        },
+        required: ['location_id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'reset_filters',
+      description: '【UI 行動】清除所有搜尋字詞與分類篩選，重置地圖視角，還原全部打點。',
+      parameters: { type: 'object', properties: {}, required: [] }
+    }
+  }
+];
+
+/**
+ * 執行單一工具呼叫。
+ * - 查詢類工具：回傳 JSON 字串供 LLM 觀察。
+ * - UI 行動類工具：將 action 推入 pendingActions，回傳確認訊息。
+ */
+function dispatchTool(name, args, pendingActions) {
+  const a = args || {};
+  switch (name) {
+    case 'get_dataset_overview': {
+      const stats = database.meta?.stats || {
+        therapists: database.therapists.length,
+        locations: database.locations.length,
+        practices: database.practices.length
+      };
+      const byCategory = {};
+      for (const loc of database.locations) {
+        byCategory[loc.category] = (byCategory[loc.category] || 0) + 1;
+      }
+      return JSON.stringify({
+        therapists: stats.therapists,
+        locations: stats.locations,
+        practices: stats.practices,
+        locationsByCategory: byCategory,
+        collectedAt: database.meta?.collectedAt || '未知'
+      });
+    }
+    case 'search_locations': {
+      const kw = (a.keyword || '').trim().toLowerCase();
+      if (!kw) return JSON.stringify({ results: [], note: '未提供關鍵字' });
+      const results = database.locations
+        .filter(l =>
+          (l.name || '').toLowerCase().includes(kw) ||
+          (l.addressZh || '').toLowerCase().includes(kw)
+        )
+        .map(l => ({ id: l.id, name: l.name, address: l.addressZh, category: l.category }));
+      return JSON.stringify({ results });
+    }
+    case 'search_therapists': {
+      const kw = (a.keyword || '').trim().toLowerCase();
+      if (!kw) return JSON.stringify({ results: [], note: '未提供關鍵字' });
+      const results = database.therapists
+        .filter(t =>
+          (t.nameZh || '').toLowerCase().includes(kw) ||
+          (t.nameEn || '').toLowerCase().includes(kw) ||
+          (t.licenseNo || '').toLowerCase().includes(kw)
+        )
+        .map(t => {
+          const locs = database.getLocationsByTherapist(t.id).map(l => ({ id: l.id, name: l.name }));
+          return { id: t.id, nameZh: t.nameZh, nameEn: t.nameEn, licenseNo: t.licenseNo, locations: locs };
+        });
+      return JSON.stringify({ results });
+    }
+    case 'get_location_detail': {
+      const loc = database.getLocationById(a.location_id);
+      if (!loc) return JSON.stringify({ error: '找不到此地點 id' });
+      const therapists = database.getTherapistsByLocation(loc.id).map(t => ({
+        nameZh: t.nameZh, nameEn: t.nameEn, licenseNo: t.licenseNo
+      }));
+      return JSON.stringify({
+        id: loc.id, name: loc.name, address: loc.addressZh,
+        category: loc.category, phone: loc.phone || '', hours: loc.hours || '',
+        therapistCount: therapists.length, therapists
+      });
+    }
+    case 'get_therapist_detail': {
+      const t = database.getTherapistById(a.therapist_id);
+      if (!t) return JSON.stringify({ error: '找不到此治療師 id' });
+      const locs = database.getLocationsByTherapist(t.id).map(l => ({
+        id: l.id, name: l.name, address: l.addressZh, category: l.category
+      }));
+      return JSON.stringify({
+        id: t.id, nameZh: t.nameZh, nameEn: t.nameEn,
+        licenseNo: t.licenseNo, status: t.status, locations: locs
+      });
+    }
+    case 'filter_category':
+      pendingActions.push({ type: 'filter_category', value: a.category });
+      return JSON.stringify({ confirmed: true, action: 'filter_category', category: a.category });
+    case 'search_map':
+      pendingActions.push({ type: 'search', value: a.query });
+      return JSON.stringify({ confirmed: true, action: 'search', query: a.query });
+    case 'select_location': {
+      const loc = database.getLocationById(a.location_id);
+      if (!loc) return JSON.stringify({ error: '找不到此地點 id，無法選取' });
+      pendingActions.push({ type: 'select_location', value: a.location_id });
+      return JSON.stringify({ confirmed: true, action: 'select_location', locationId: a.location_id, name: loc.name });
+    }
+    case 'reset_filters':
+      pendingActions.push({ type: 'reset', value: true });
+      return JSON.stringify({ confirmed: true, action: 'reset' });
+    default:
+      return JSON.stringify({ error: `未知工具：${name}` });
+  }
+}
+
 function getSystemInstruction() {
   const locationsBrief = database.locations.map(l => ({
     id: l.id,
@@ -376,6 +579,13 @@ function getSystemInstruction() {
     category: l.category
   }));
 
+  // v2：統計數字動態讀取，避免資料更新後硬編碼過時
+  const stats = database.meta?.stats || {
+    therapists: database.therapists.length,
+    locations: database.locations.length,
+    practices: database.practices.length
+  };
+
   return `
 你現在是澳門心理治療師地圖 (Macau Psychotherapist Map) 的 AI 智能助理。
 你的目標是協助使用者解答疑問，並通過發送指令來控制地圖界面與過濾診所。
@@ -383,9 +593,10 @@ function getSystemInstruction() {
 你擁有「對話歷史記憶」，能看到先前的對話歷史與執行的指令。
 
 【資料庫現狀】
-- 完全註冊心理治療師：90位（無實習生，所有牌照都是 PI 開頭）
-- 地點數量：41處
-- 總執業關聯數：108個
+- 完全註冊心理治療師：${stats.therapists}位（無實習生，所有牌照都是 PI 開頭）
+- 地點數量：${stats.locations}處
+- 總執業關聯數：${stats.practices}個
+- 資料採集日期：${database.meta?.collectedAt || '未知'}
 - 地點列表：
 ${JSON.stringify(locationsBrief)}
 
@@ -411,103 +622,106 @@ ${JSON.stringify(locationsBrief)}
 `;
 }
 
-async function requestGeminiAgent(userMsg) {
-  const modelName = settings.model || 'gemini-1.5-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${settings.apiKey}`;
-  
-  const systemInstruction = getSystemInstruction();
+/**
+ * Deepseek 原生函數調用 Agentic 迴圈。
+ *
+ * 這是真正的 Agent 模式：LLM 可多步調用工具、觀察工具回傳的資料，
+ * 再決定下一步。流程：
+ *   1. 組裝 messages（system + 歷史記憶 + 最新使用者訊息）
+ *   2. 呼叫 Deepseek（經自家薄代理 /api/copilot，或自帶 Key 直連），帶上 tools 定義
+ *   3. 若回應含 tool_calls → 逐一執行工具（查詢類回傳資料、UI 類收集 action），
+ *      把工具結果以 role=tool 附加回 messages，回到步驟 2（最多 MAX_STEPS 輪）
+ *   4. 若回應為最終文字 → 取出 reply，連同收集到的 actions 一併回傳
+ *
+ * v2 端點切換：
+ *   - 預設（免 Key）：POST /api/copilot（薄代理代管 Key）
+ *   - 自帶 Key：POST https://api.deepseek.com/v1/chat/completions（瀏覽器直連）
+ *
+ * 記憶（chatHistory）只參與「使用者意圖」的上下文連貫；工具呼叫的
+ * 中間過程（tool_calls / tool results）不寫入長期記憶，避免記憶膨脹。
+ */
+async function runDeepseekAgentLoop(userMsg) {
+  const MAX_STEPS = 6; // 最多 6 輪工具調用，防止無限迴圈
+  const modelName = settings.model || 'deepseek-chat';
 
-  // 將通用記憶 (Memory) 格式化成 Gemini 的 contents 格式
-  const contents = chatHistory.map(h => ({
-    role: h.role === 'user' ? 'user' : 'model',
-    parts: [{ text: h.content }]
-  }));
-  
-  // 加上最新的一輪 User 訊息
-  contents.push({
-    role: 'user',
-    parts: [{ text: userMsg }]
-  });
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      contents: contents,
-      systemInstruction: {
-        parts: [{ text: systemInstruction }]
-      },
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.1
-      }
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Gemini API 請求失敗 (HTTP ${response.status})`);
-  }
-
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("無效的 Gemini API 回應");
-
-  return JSON.parse(text);
-}
-
-async function requestOpenAIAgent(userMsg) {
-  let url = '';
-  let modelName = settings.model;
-
-  if (settings.provider === 'deepseek') {
-    url = 'https://api.deepseek.com/v1/chat/completions';
-    modelName = modelName || 'deepseek-chat';
-  } else {
-    const base = settings.baseUrl.replace(/\/+$/, '');
-    url = `${base}/chat/completions`;
-    modelName = modelName || 'deepseek-chat';
+  // v2：根據是否自帶 Key 決定端點與 Authorization
+  const useOwnKey = settings.useOwnKey && settings.apiKey;
+  const endpoint = useOwnKey
+    ? 'https://api.deepseek.com/v1/chat/completions'
+    : '/api/copilot';
+  const headers = { 'Content-Type': 'application/json' };
+  if (useOwnKey) {
+    headers['Authorization'] = `Bearer ${settings.apiKey}`;
   }
 
   const systemInstruction = getSystemInstruction();
 
-  // 將通用記憶 (Memory) 格式化為 OpenAI/Deepseek 的 messages 格式
+  // 以「歷史記憶 + 當前訊息」為起點；工具中間結果會動態附加在此陣列
   const messages = [
     { role: 'system', content: systemInstruction },
-    ...chatHistory.map(h => ({
-      role: h.role,
-      content: h.content
-    })),
+    ...chatHistory.map(h => ({ role: h.role, content: h.content })),
     { role: 'user', content: userMsg }
   ];
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${settings.apiKey}`
-    },
-    body: JSON.stringify({
-      model: modelName,
-      messages: messages,
-      response_format: {
-        type: 'json_object'
-      },
-      temperature: 0.1
-    })
-  });
+  const pendingActions = [];
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`AI API 請求失敗 (HTTP ${response.status}): ${errorText}`);
+  for (let step = 0; step < MAX_STEPS; step++) {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: modelName,
+        messages,
+        tools: TOOLS,
+        tool_choice: 'auto',
+        temperature: 0.2
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`AI 服務請求失敗 (HTTP ${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+    const choice = data.choices?.[0];
+    if (!choice) throw new Error('無效的 AI 服務回應');
+
+    const msg = choice.message;
+    // 將這一輪的 assistant 訊息（含可能的 tool_calls）納入上下文
+    messages.push(msg);
+
+    // 沒有 tool_calls → 最終回覆，結束迴圈
+    if (!msg.tool_calls || msg.tool_calls.length === 0) {
+      const reply = msg.content || '（已為您處理完畢。）';
+      return { reply, actions: pendingActions };
+    }
+
+    // 有 tool_calls → 逐一執行工具，並把結果以 role=tool 回填
+    for (const call of msg.tool_calls) {
+      const fnName = call.function?.name;
+      let fnArgs = {};
+      try {
+        fnArgs = call.function?.arguments ? JSON.parse(call.function.arguments) : {};
+      } catch (e) {
+        fnArgs = {};
+      }
+      const toolResult = dispatchTool(fnName, fnArgs, pendingActions);
+      messages.push({
+        role: 'tool',
+        tool_call_id: call.id,
+        content: toolResult
+      });
+    }
+    // 繼續下一輪，讓 LLM 觀察工具結果後決定是否再呼叫工具或給出最終回覆
   }
 
-  const data = await response.json();
-  const text = data.choices?.[0]?.message?.content;
-  if (!text) throw new Error("無效的 API 回應");
-
-  return JSON.parse(text);
+  // 超過最大步數仍未給出最終回覆：回傳已收集的行動 + 提示
+  return {
+    reply: '已完成查詢與操作（達到工具調用步數上限）。' +
+      (pendingActions.length ? ' 已執行的操作將顯示於地圖上。' : ''),
+    actions: pendingActions
+  };
 }
 
 function executeAgentActions(actions) {

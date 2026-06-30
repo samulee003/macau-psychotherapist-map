@@ -1,6 +1,6 @@
 {
   "name": "macau-psychotherapist-map",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "description": "澳門註冊心理治療師執業地址分布地圖",
   "type": "module",
   "scripts": {

@@ -133,7 +133,8 @@ open scripts/preview.html        # 人工校驗座標
 
 ## 不做（YAGNI）
 
-- 後端伺服器／資料庫（~67 筆資料，靜態 JSON 足夠）
+- **1.0 為純靜態，無 AI Agent 功能**（避免「使用者自貼 API Key」的不合理體驗）。Agent 功能規劃於 **v2**，採 Vercel 薄代理代管 Key，詳見 `docs/roadmap-v2.md`。
+- 後端伺服器／資料庫（~67 筆資料，靜態 JSON 足夠）。v2 僅放寬至「無狀態 serverless 薄代理」，仍不做資料庫。
 - 評分/評論、使用者帳號、離線/推播
 - 「以治療師為 pin」的地圖視角切換
 
