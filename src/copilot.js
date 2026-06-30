@@ -268,18 +268,28 @@ async function handleUserMsg(text) {
   try {
     let result = null;
 
-    // 嘗試 AI（自家代理或自帶 Key 直連）
-    result = await runDeepseekAgentLoop(text);
+    try {
+      // 嘗試 AI（自家代理或自帶 Key 直連）
+      result = await runDeepseekAgentLoop(text);
 
-    // 成功獲得 API 回應後，將當前對話輪次寫入 Memory (歷史記錄)
-    // 為避免記憶膨脹，只存純文字回覆（reply）
-    chatHistory.push({ role: 'user', content: text });
-    chatHistory.push({ role: 'assistant', content: result.reply });
+      // 成功獲得 API 回應後，將當前對話輪次寫入 Memory (歷史記錄)
+      // 為避免記憶膨脹，只存純文字回覆（reply）
+      chatHistory.push({ role: 'user', content: text });
+      chatHistory.push({ role: 'assistant', content: result.reply });
 
-    // 限制記憶深度，保留最新 10 條訊息 (5 個完整往返) 以防 Token 溢出
-    if (chatHistory.length > 10) {
-      chatHistory.shift();
-      chatHistory.shift();
+      // 限制記憶深度，保留最新 10 條訊息 (5 個完整往返) 以防 Token 溢出
+      if (chatHistory.length > 10) {
+        chatHistory.shift();
+        chatHistory.shift();
+      }
+    } catch (apiErr) {
+      console.warn('AI API 呼叫失敗，將降級為本地規則引擎:', apiErr);
+      // 降級為本地規則引擎作為 Fallback
+      const localResult = parseLocalAgent(text);
+      result = {
+        reply: `${localResult.reply}<br><small style="color:#94a3b8;display:block;margin-top:4px">⚠️ 已切換至本地離線搜尋模式（AI 服務目前不可用）</small>`,
+        actions: localResult.actions
+      };
     }
 
     loader.remove();
@@ -588,7 +598,7 @@ function getSystemInstruction() {
 
   return `
 你現在是澳門心理治療師地圖 (Macau Psychotherapist Map) 的 AI 智能助理。
-你的目標是協助使用者解答疑問，並通過發送指令來控制地圖界面與過濾診所。
+你的目標是協助使用者解答疑問，並通過調用工具來控制地圖界面與過濾診所。
 你必須只使用繁體中文(zh-Hant)回答。
 你擁有「對話歷史記憶」，能看到先前的對話歷史與執行的指令。
 
@@ -600,24 +610,19 @@ function getSystemInstruction() {
 - 地點列表：
 ${JSON.stringify(locationsBrief)}
 
-【你可以執行的指令（行動）】
-你可以通過在 JSON 的 "actions" 欄位中添加以下結構來控制前端 UI：
-1. 分類過濾：{"type": "filter_category", "value": "hospital" | "med_center" | "psych_center" | "social" | "university" | "gov" | "all"}
-2. 文字搜尋：{"type": "search", "value": "搜尋關鍵字"}
-3. 選取地點並開起詳情與定位：{"type": "select_location", "value": "地點的 id（例如：loc_189fe1c5）"}
-4. 重置篩選條件：{"type": "reset", "value": true}
+【操作地圖與 UI 的指南】
+當你需要進行以下操作時，請務必調用對應的工具：
+1. 篩選某個機構分類：調用 filter_category
+2. 模糊搜尋地圖上的文字：調用 search_map
+3. 在地圖上選取特定地點、開啟詳情抽屜並定位：調用 select_location（需要提供地點 id，你可以先以 search_locations 查詢 id）
+4. 重置篩選條件、還原全部打點：調用 reset_filters
 
 【回傳格式要求】
-你必須且只能回傳一個符合 JSON 規格的字串，格式如下：
-{
-  "reply": "你的繁體中文回答，簡要說明你執行了什麼操作，或是回覆先前的連貫提問。",
-  "actions": [
-    // 這裡放入你想要執行的指令列表（可以為空，也可以有多個，順序執行）
-  ]
-}
+請以友善、自然的繁體中文回覆使用者，**不要回傳任何 JSON 格式的內容**。你的最終回覆會直接以 HTML/Markdown 形式在聊天視窗中展示給使用者看。
+當你調用了 UI 行動工具（例如 select_location）後，請在最終回覆中親切地告訴使用者你已經在畫面上為他們選取或篩選了該地點。
 
 【行為規範】
-- 如果使用者在上一次提問之後問「它的電話是多少」或「在哪裡」，請根據對話歷史判斷指的是哪一家機構，並執行 "select_location"！
+- 如果使用者在上一次提問之後問「它的電話是多少」或「在哪裡」，請根據對話歷史判斷指的是哪一家機構，並調用 "select_location"！
 - 不要虛構任何不存在的醫療機構，始終基於事實回覆。
 `;
 }
@@ -693,7 +698,26 @@ async function runDeepseekAgentLoop(userMsg) {
 
     // 沒有 tool_calls → 最終回覆，結束迴圈
     if (!msg.tool_calls || msg.tool_calls.length === 0) {
-      const reply = msg.content || '（已為您處理完畢。）';
+      let reply = msg.content || '（已為您處理完畢。）';
+
+      // JSON 解析 Fallback 確保相容性
+      try {
+        const trimmed = reply.trim();
+        if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+          const parsed = JSON.parse(trimmed);
+          if (parsed.reply) {
+            reply = parsed.reply;
+            if (Array.isArray(parsed.actions)) {
+              for (const act of parsed.actions) {
+                pendingActions.push(act);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // 解析失敗，保留原始 reply 內容
+      }
+
       return { reply, actions: pendingActions };
     }
 
