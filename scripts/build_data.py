@@ -157,6 +157,12 @@ def main():
 
         if loc_key_norm in place_to_locid:
             loc_id = place_to_locid[loc_key_norm]
+            # 補足先前已建立地點但缺失的電話與時間
+            existing_loc = locations[loc_id]
+            if not existing_loc.get("phone") and rec.get("phone"):
+                existing_loc["phone"] = rec["phone"]
+            if not existing_loc.get("hours") and rec.get("hours"):
+                existing_loc["hours"] = rec["hours"]
         else:
             loc_id = make_id("loc", loc_key_norm)
             loc = {
@@ -164,8 +170,8 @@ def main():
                 "name": place_name or "（未知名稱）",
                 "addressZh": addr_raw,
                 "category": classify(place_name + " " + addr_raw),
-                "phone": "",
-                "hours": "",
+                "phone": rec.get("phone", ""),
+                "hours": rec.get("hours", ""),
             }
             # 從 geocoding 結果查找坐標（使用此記錄的地址）
             addr_norm = normalize_addr(addr_raw)

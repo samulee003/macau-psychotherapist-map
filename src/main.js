@@ -4,8 +4,8 @@
 
 import { loadData } from './data-loader.js';
 import { initMap, renderMarkers, onMarkerClick, highlightMarker, closeInfoWindow, fitToMarkers } from './map.js';
-import { initFilters, setQuery, applyFilters } from './search.js';
-import { initDetail, showLocationDetail, hideDetail } from './detail.js';
+import { initFilters, setQuery, selectCategoryProgrammatic, resetFiltersProgrammatic } from './search.js';
+import { initDetail, showLocationDetail } from './detail.js';
 import { CATEGORIES } from './config.js';
 
 let db = null;
@@ -92,10 +92,10 @@ async function main() {
         setQuery(query, db);
       },
       selectCategory: (catKey) => {
-        import('./search.js').then((sm) => sm.selectCategoryProgrammatic(catKey, db));
+        selectCategoryProgrammatic(catKey, db);
       },
       resetFilters: () => {
-        import('./search.js').then((sm) => sm.resetFiltersProgrammatic(db));
+        resetFiltersProgrammatic(db);
       },
     });
   });
@@ -151,6 +151,14 @@ function renderLocationList(locations) {
       showLocationDetail(loc, db);
       highlightMarker(loc.id, db);
       setActiveListItem(loc.id);
+      
+      // 在行動裝置上，點擊列表地點後自動摺疊側欄，以防重疊並顯現地圖與抽屜
+      if (window.innerWidth <= 768) {
+        const sidebar = document.getElementById('sidebar');
+        const openBtn = document.getElementById('sidebar-open');
+        sidebar?.classList.add('is-collapsed');
+        if (openBtn) openBtn.hidden = false;
+      }
     });
     ul.appendChild(li);
   }

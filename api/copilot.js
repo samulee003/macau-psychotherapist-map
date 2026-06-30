@@ -17,6 +17,19 @@ const ipHits = new Map(); // 僅在單一函式實例生命週期內有效
 
 function rateLimited(ip) {
   const now = Date.now();
+  
+  // Periodic global cache cleanup if it grows too large to prevent memory leaks
+  if (ipHits.size > 1000) {
+    for (const [key, hits] of ipHits.entries()) {
+      const validHits = hits.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+      if (validHits.length === 0) {
+        ipHits.delete(key);
+      } else {
+        ipHits.set(key, validHits);
+      }
+    }
+  }
+
   const hits = ipHits.get(ip) || [];
   const recent = hits.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
   recent.push(now);
@@ -47,6 +60,9 @@ export default async function handler(req, res) {
 
   // 代轉請求至 Deepseek
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
     const upstream = await fetch(DEEPSEEK_URL, {
       method: 'POST',
       headers: {
@@ -54,11 +70,17 @@ export default async function handler(req, res) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(req.body),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     const data = await upstream.text();
-    res.status(upstream.status).setHeader('Content-Type', 'application/json').send(data);
+    const contentType = upstream.headers.get('content-type') || 'application/json';
+    res.status(upstream.status).setHeader('Content-Type', contentType).send(data);
   } catch (err) {
-    res.status(502).json({ error: `無法連線至 Deepseek：${err.message}` });
+    const isTimeout = err.name === 'AbortError';
+    res.status(isTimeout ? 504 : 502).json({
+      error: isTimeout ? 'Deepseek API 請求超時（10 秒）' : `無法連線至 Deepseek：${err.message}`
+    });
   }
 }

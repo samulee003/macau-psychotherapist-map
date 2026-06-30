@@ -137,7 +137,7 @@ async def scrape_data():
                 phone = clean_phone(phone_raw)
                 
                 hours_parts = [p.strip() for p in hours_raw.split("\n") if p.strip()]
-                hours = hours_parts[0] if len(hours_parts) > 0 else ""
+                hours = " / ".join(hours_parts) if hours_parts else ""
                 
                 records.append({
                     "licenseNo": lic_no,

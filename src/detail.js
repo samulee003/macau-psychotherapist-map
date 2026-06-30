@@ -2,7 +2,7 @@
    詳情面板：顯示地點完整資訊 + 治療師列表 + 導航
    ============================================================ */
 
-import { CATEGORIES, CATEGORY_LABELS } from './config.js';
+import { CATEGORIES } from './config.js';
 
 const drawer = () => document.getElementById('detail-drawer');
 const content = () => document.getElementById('detail-content');
@@ -51,9 +51,20 @@ export function showLocationDetail(loc, db) {
   const copyBtn = document.getElementById('copy-addr-btn');
   if (copyBtn) {
     copyBtn.addEventListener('click', () => {
-      navigator.clipboard?.writeText(loc.addressZh || loc.name);
-      copyBtn.textContent = '✓ 已複製';
-      setTimeout(() => (copyBtn.textContent = '📋 複製地址'), 1500);
+      const textToCopy = loc.addressZh || loc.name;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(textToCopy)
+          .then(() => {
+            copyBtn.textContent = '✓ 已複製';
+            setTimeout(() => (copyBtn.textContent = '📋 複製地址'), 1500);
+          })
+          .catch(err => {
+            console.error('Failed to copy via Clipboard API: ', err);
+            fallbackCopy(textToCopy);
+          });
+      } else {
+        fallbackCopy(textToCopy);
+      }
     });
   }
 }
@@ -146,6 +157,27 @@ export function hideDetail() {
 export function initDetail() {
   const closeBtn = document.getElementById('drawer-close');
   if (closeBtn) closeBtn.addEventListener('click', hideDetail);
+}
+
+function fallbackCopy(text) {
+  try {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    const successful = document.execCommand('copy');
+    document.body.removeChild(textArea);
+    
+    const copyBtn = document.getElementById('copy-addr-btn');
+    if (copyBtn && successful) {
+      copyBtn.textContent = '✓ 已複製';
+      setTimeout(() => (copyBtn.textContent = '📋 複製地址'), 1500);
+    }
+  } catch (err) {
+    console.error('Fallback copy failed: ', err);
+  }
 }
 
 function escapeHtml(s) {

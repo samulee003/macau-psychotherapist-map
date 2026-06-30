@@ -67,8 +67,9 @@ def clean_address_for_geocoding(address: str) -> str:
         "WE POINT", "FUNG HONG", "ISTMO", "ROOM", "MACAU",
     ]
     earliest_pt = None
+    addr_upper = addr.upper()
     for kw in pt_keywords:
-        idx = addr.find(kw)
+        idx = addr_upper.find(kw)
         if idx != -1 and (earliest_pt is None or idx < earliest_pt):
             earliest_pt = idx
     if earliest_pt is not None:
@@ -96,8 +97,8 @@ def simplify_address(addr: str) -> str:
     """
     if not addr:
         return ""
-    # 去除門牌號的 -X 後綴
-    s = re.sub(r"(\d+)-[A-Z]", r"\1", addr)
+    # 去除門牌號的 -X 後綴 (不區分大小寫)
+    s = re.sub(r"(\d+)-[a-zA-Z]", r"\1", addr)
     return s.strip()
 
 

@@ -3,7 +3,7 @@
    ============================================================ */
 
 import AMapLoader from '@amap/amap-jsapi-loader';
-import { AMAP_CONFIG, MACAO_VIEW, CATEGORIES, CATEGORY_LABELS } from './config.js';
+import { AMAP_CONFIG, MACAO_VIEW, CATEGORIES } from './config.js';
 
 let map = null;
 let AMap = null;

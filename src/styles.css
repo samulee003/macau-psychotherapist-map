@@ -1211,6 +1211,12 @@ html, body {
     width: 44px;
     height: 44px;
     box-shadow: var(--shadow-md);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .chat-toggle.is-active {
+    opacity: 0;
+    pointer-events: none;
   }
   
   .chat-panel {
@@ -1219,6 +1225,7 @@ html, body {
     bottom: 0;
     width: 100%;
     height: 75vh;
+    height: 75dvh;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     border: none;
     border-top: 1px solid var(--color-border);

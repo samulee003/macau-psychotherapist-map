@@ -2,7 +2,7 @@
    搜尋與篩選：依關鍵字 + 分類過濾地點，並與地圖/列表聯動
    ============================================================ */
 
-import { CATEGORIES, CATEGORY_LABELS } from './config.js';
+import { CATEGORIES } from './config.js';
 
 /** 目前生效的篩選狀態 */
 const state = {

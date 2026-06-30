@@ -88,11 +88,11 @@ function setupDom() {
       </div>
 
       <div id="own-key-group" class="chat-settings__field" ${settings.useOwnKey ? '' : 'hidden'}>
-        <label class="chat-settings__label">API 金鑰 (API Key)：</label>
-        <input type="password" id="ai-key-input" placeholder="輸入您的 Deepseek API 金鑰" class="chat-settings__input" value="${settings.apiKey}">
+        <label class="chat-settings__label" for="ai-key-input">API 金鑰 (API Key)：</label>
+        <input type="password" id="ai-key-input" placeholder="輸入您的 Deepseek API 金鑰" class="chat-settings__input">
 
-        <label class="chat-settings__label" style="margin-top:8px">模型名稱 (Model)：</label>
-        <input type="text" id="ai-model-input" placeholder="deepseek-chat" class="chat-settings__input" value="${settings.model}">
+        <label class="chat-settings__label" for="ai-model-input" style="margin-top:8px">模型名稱 (Model)：</label>
+        <input type="text" id="ai-model-input" placeholder="deepseek-chat" class="chat-settings__input">
       </div>
 
       <div style="display:flex; justify-content:flex-end; margin-top:8px">
@@ -121,7 +121,7 @@ function setupDom() {
 
     <!-- 輸入區域 -->
     <div class="chat-panel__input-area">
-      <input type="text" id="chat-input" placeholder="輸入您的問題...（例如：找大學）" class="chat-input">
+      <input type="text" id="chat-input" placeholder="輸入您的問題...（例如：找大學）" class="chat-input" aria-label="輸入 AI 智能助理問題">
       <button id="chat-send" class="chat-send-btn" aria-label="傳送">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -133,6 +133,12 @@ function setupDom() {
 
   app.appendChild(toggleBtn);
   app.appendChild(panel);
+
+  // 用程式碼動態邏輯賦值，以防從 localStorage 讀取受污染的設定產生 DOM XSS 漏洞
+  const keyInput = document.getElementById('ai-key-input');
+  if (keyInput) keyInput.value = settings.apiKey;
+  const modelInput = document.getElementById('ai-model-input');
+  if (modelInput) modelInput.value = settings.model;
 }
 
 function bindEvents() {
@@ -244,6 +250,17 @@ function clearChatMemory() {
   }
 }
 
+export function formatAssistantMessage(text) {
+  if (!text) return '';
+  // 1. 先對原始輸入進行 HTML 跳脫以完全阻斷 XSS 漏洞
+  let escaped = escapeHtml(text);
+  // 2. 安全地支援 **粗體** Markdown
+  escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  // 3. 安全地支援換行
+  escaped = escaped.replace(/\n/g, '<br>');
+  return escaped;
+}
+
 function addMessage(sender, text) {
   const container = document.getElementById('chat-messages');
   if (!container) return;
@@ -256,6 +273,7 @@ function addMessage(sender, text) {
 }
 
 async function handleUserMsg(text) {
+  // 對使用者提問進行跳脫後顯示
   addMessage('user', escapeHtml(text));
 
   const container = document.getElementById('chat-messages');
@@ -282,12 +300,16 @@ async function handleUserMsg(text) {
         chatHistory.shift();
         chatHistory.shift();
       }
+      
+      // 格式化 AI 回覆（XSS 防護 + Markdown 解析）
+      result.reply = formatAssistantMessage(result.reply);
     } catch (apiErr) {
       console.warn('AI API 呼叫失敗，將降級為本地規則引擎:', apiErr);
       // 降級為本地規則引擎作為 Fallback
       const localResult = parseLocalAgent(text);
+      const formattedLocal = formatAssistantMessage(localResult.reply);
       result = {
-        reply: `${localResult.reply}<br><small style="color:#94a3b8;display:block;margin-top:4px">⚠️ 已切換至本地離線搜尋模式（AI 服務目前不可用）</small>`,
+        reply: `${formattedLocal}<br><small style="color:#94a3b8;display:block;margin-top:4px">⚠️ 已切換至本地離線搜尋模式（AI 服務目前不可用）</small>`,
         actions: localResult.actions
       };
     }
