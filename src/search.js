@@ -100,3 +100,36 @@ function emit(db) {
   const filtered = applyFilters(db);
   if (onFilterChangeCb) onFilterChangeCb(filtered, db);
 }
+
+/**
+ * 程式化選擇分類（用於 Copilot 連動）
+ */
+export function selectCategoryProgrammatic(catKey, db) {
+  state.activeCategories.clear();
+  if (catKey && catKey !== 'all') {
+    state.activeCategories.add(catKey);
+  }
+  // 同步 UI 上的 chips
+  const chips = document.querySelectorAll('.filter-chip');
+  chips.forEach((chip) => {
+    if (chip.dataset.category === catKey) {
+      chip.classList.add('is-active');
+    } else {
+      chip.classList.remove('is-active');
+    }
+  });
+  emit(db);
+}
+
+/**
+ * 程式化重置篩選（用於 Copilot 連動）
+ */
+export function resetFiltersProgrammatic(db) {
+  state.query = '';
+  state.activeCategories.clear();
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) searchInput.value = '';
+  const chips = document.querySelectorAll('.filter-chip');
+  chips.forEach((chip) => chip.classList.remove('is-active'));
+  emit(db);
+}

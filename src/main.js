@@ -77,6 +77,28 @@ async function main() {
   // 首次渲染：顯示全部
   currentLocations = db.getGeocodedLocations();
   renderAll(currentLocations);
+
+  // 初始化 Copilot 智能助理 (Agentic Chatbot)
+  import('./copilot.js').then((m) => {
+    m.initCopilot(db, {
+      showLocationDetail: (loc) => {
+        showLocationDetail(loc, db);
+        highlightMarker(loc.id, db);
+        setActiveListItem(loc.id);
+      },
+      setQuery: (query) => {
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) searchInput.value = query;
+        setQuery(query, db);
+      },
+      selectCategory: (catKey) => {
+        import('./search.js').then((sm) => sm.selectCategoryProgrammatic(catKey, db));
+      },
+      resetFilters: () => {
+        import('./search.js').then((sm) => sm.resetFiltersProgrammatic(db));
+      },
+    });
+  });
 }
 
 /**
