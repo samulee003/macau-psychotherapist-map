@@ -121,23 +121,23 @@ function setupDom() {
     <!-- 對話記錄 -->
     <div id="chat-messages" class="chat-messages">
       <div class="chat-message chat-message--system">
-        👋 你好！我是心理地圖 AI 智能助理。我可以幫您搜尋與定位澳門註冊心理治療師的執業地點。
+        你好！我是心理地圖 AI 智能助理。您可以直接在此提問，我會為您解答澳門註冊心理治療師的執業地點，並在地圖上進行選取定位。
         <div style="margin-top: 8px; font-weight: 600;">您可以試著問我：</div>
-        <ul style="margin: 4px 0 0 16px; padding: 0; font-size:11.5px; line-height:1.65">
-          <li>“澳門哪裡有免費的心理諮詢服務？”</li>
-          <li>“有沒有星期六或假日開診的治療中心？”</li>
-          <li>“下班後（晚上六點後）有哪些診所提供服務？”</li>
-          <li>“大學生或青少年可以去哪裡尋求心理支援？”</li>
+        <ul style="margin: 4px 0 0 16px; padding: 0; font-size:11.5px; line-height:1.65; color: var(--color-text-muted);">
+          <li>澳門哪裡有免費的心理諮詢服務？</li>
+          <li>有沒有星期六或假日開診的治療中心？</li>
+          <li>下班後（晚上六點後）有哪些診所提供服務？</li>
+          <li>大學生或青少年可以去哪裡尋求心理支援？</li>
         </ul>
       </div>
     </div>
 
     <!-- 快捷按鈕 -->
     <div class="chat-suggestions">
-      <button class="chat-suggest-btn" data-input="澳門哪裡有免費或公立的心理諮詢服務？">🆓 免費/公立服務</button>
-      <button class="chat-suggest-btn" data-input="有沒有星期六或假日開診的心理治療中心？">📅 週末/假日開診</button>
-      <button class="chat-suggest-btn" data-input="下班後（晚上六點後）有哪些診所提供心理治療服務？">🌙 晚間/夜間預約</button>
-      <button class="chat-suggest-btn" data-input="大學生或青少年可以去哪裡尋求心理支援？">🎓 學生/青少年支援</button>
+      <button class="chat-suggest-btn" data-input="澳門哪裡有免費或公立的心理諮詢服務？">免費/公立服務</button>
+      <button class="chat-suggest-btn" data-input="有沒有星期六或假日開診的心理治療中心？">週末/假日開診</button>
+      <button class="chat-suggest-btn" data-input="下班後（晚上六點後）有哪些診所提供心理治療服務？">晚間/夜間預約</button>
+      <button class="chat-suggest-btn" data-input="大學生或青少年可以去哪裡尋求心理支援？">學生/青少年支援</button>
     </div>
     
     <!-- 搜尋結果筆數 -->
@@ -237,11 +237,13 @@ function clearChatMemory() {
   if (container) {
     container.innerHTML = `
       <div class="chat-message chat-message--system">
-        👋 你好！我是心理地圖 AI 智能助理。您可以直接在此對話、搜尋或進行篩選。
-        <ul style="margin: 8px 0 0 16px; padding: 0; font-size:11.5px; line-height:1.6">
-          <li>“幫我找培甯心理治療中心”</li>
-          <li>“顯示所有社會服務機構”</li>
-          <li>“現在地圖上共有多少位治療師？”</li>
+        你好！我是心理地圖 AI 智能助理。您可以直接在此提問，我會為您解答澳門註冊心理治療師的執業地點，並在地圖上進行選取定位。
+        <div style="margin-top: 8px; font-weight: 600;">您可以試著問我：</div>
+        <ul style="margin: 4px 0 0 16px; padding: 0; font-size:11.5px; line-height:1.65; color: var(--color-text-muted);">
+          <li>澳門哪裡有免費的心理諮詢服務？</li>
+          <li>有沒有星期六或假日開診的治療中心？</li>
+          <li>下班後（晚上六點後）有哪些診所提供服務？</li>
+          <li>大學生或青少年可以去哪裡尋求心理支援？</li>
         </ul>
       </div>
     `;
@@ -646,6 +648,7 @@ ${JSON.stringify(locationsBrief)}
 【行為規範】
 - 如果使用者在上一次提問之後問「它的電話是多少」或「在哪裡」，請根據對話歷史判斷指的是哪一家機構，並調用 "select_location"！
 - 不要虛構任何不存在的醫療機構，始終基於事實回覆。
+- **禁止過度使用 Emoji**：為了保持醫療諮詢的專業度與介面的高級感（Anti-Slop），請不要在每一句或每個列表項目前都加上表情符號（嚴禁如「🏥 醫療中心」、「🧠 心理中心」等排列）。僅在回覆尾端最合適、最自然的地方使用極少量的溫和表情符號（如 😊）進行點綴，回覆主體以簡潔、專業的文字與排版呈現。
 
 【常見市民查詢解答指引】
 1. **免費/公立心理諮詢**：
@@ -657,6 +660,7 @@ ${JSON.stringify(locationsBrief)}
    - 檢查 \`hours\` 中的開診時間。例如「婦聯心理治療中心」營業至 19:30、「泰迪治療中心」營業至 20:00 等。向使用者列出並推薦。
 4. **學生/青少年支援**：
    - 大專院校（category: university，如澳門大學等）設有學生專屬的心理輔導中心。社會服務機構（category: social，如「薈穗社」）也針對青少年藥物依賴或心理健康提供支援。
+
 `;
 }
 
