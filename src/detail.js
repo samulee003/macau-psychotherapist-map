@@ -79,10 +79,12 @@ function row(label, value) {
 
 /**
  * 構建高德導航 URI。
+ * 由於 data.json 中的坐標已是由高德 API 產出的 GCJ-02 坐標，
+ * 導航時不能指定 coordinate=wgs84，否則高德會進行二次偏移導致導航不準。
  */
 function buildAmapNavUrl(loc) {
   if (loc.lng != null && loc.lat != null) {
-    return `https://uri.amap.com/navigation?to=${loc.lng},${loc.lat},${encodeURIComponent(loc.name)}&mode=walk&coordinate=wgs84&callnative=1`;
+    return `https://uri.amap.com/navigation?to=${loc.lng},${loc.lat},${encodeURIComponent(loc.name)}&mode=walk&callnative=1`;
   }
   if (loc.addressZh) {
     return `https://uri.amap.com/navigation?to=${encodeURIComponent(loc.addressZh)}&mode=walk&callnative=1`;
@@ -92,13 +94,29 @@ function buildAmapNavUrl(loc) {
 
 /**
  * 構建 Google Maps 導航 URI。
+ * 由於高德坐標 (GCJ-02) 與 Google 澳門地圖使用的 WGS-84 存在偏差，
+ * 直接傳遞座標會導致偏差。因此優先使用「機構名稱 + 地址」進行關鍵字檢索，
+ * 這樣 Google Maps 能精準匹配其 POI 數據，且能直接展示該機構的地標卡片，體驗最佳。
  */
 function buildGoogleNavUrl(loc) {
-  if (loc.lng != null && loc.lat != null) {
-    return `https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`;
+  const queryParts = [];
+  if (loc.name && loc.name !== '（未知名稱）') {
+    queryParts.push(loc.name);
   }
   if (loc.addressZh) {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.addressZh)}`;
+    // 移除地址中可能干擾 Google 搜索的詳細門牌室號
+    const cleanAddr = loc.addressZh.split('二樓')[0].split('2樓')[0].split('地下')[0].trim();
+    if (cleanAddr) queryParts.push(cleanAddr);
+  }
+  
+  if (queryParts.length > 0) {
+    // 加上「澳門」前綴限制範圍
+    const q = '澳門 ' + queryParts.join(' ');
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+  }
+  
+  if (loc.lng != null && loc.lat != null) {
+    return `https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`;
   }
   return '';
 }
