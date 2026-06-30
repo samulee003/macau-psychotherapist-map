@@ -1,5 +1,5 @@
 /* ============================================================
-   AI 智能助理 (Copilot)：支援本地規則引擎、Gemini、Deepseek 及 OpenAI 相容端點
+   AI 智能助理 (Copilot)：支援對話歷史記憶 (Memory) 及多端點智能路由
    ============================================================ */
 
 import { CATEGORIES } from './config.js';
@@ -7,7 +7,9 @@ import { CATEGORIES } from './config.js';
 let database = null;
 let controls = {};
 
-// 從 localStorage 載入設定，並提供預設值
+// 記憶模組：儲存短期對話歷史
+let chatHistory = [];
+
 const settings = {
   provider: localStorage.getItem('copilot_provider') || 'gemini',
   apiKey: localStorage.getItem('copilot_api_key') || '',
@@ -57,6 +59,7 @@ function setupDom() {
         <span class="chat-panel__sparkle">✨</span> AI 智能助理
       </div>
       <div class="chat-panel__header-actions">
+        <button id="chat-clear-btn" class="chat-panel__clear-btn" title="清除對話歷史">🗑️</button>
         <button id="chat-settings-btn" class="chat-panel__settings-btn" title="設定 API 服務商">⚙️</button>
         <button id="chat-close" class="chat-panel__close" aria-label="關閉助理">&times;</button>
       </div>
@@ -97,9 +100,9 @@ function setupDom() {
     <!-- 對話記錄 -->
     <div id="chat-messages" class="chat-messages">
       <div class="chat-message chat-message--system">
-        👋 你好！我是心理地圖的 AI 智能助理。您可以直接使用自然語言問我：
+        👋 你好！我是心理地圖的 AI 智能助理（支援記憶上下文功能）。您可以直接問我：
         <ul style="margin: 8px 0 0 16px; padding: 0; font-size:12px; line-height:1.6">
-          <li>“幫我找培甯心理治療中心在哪”</li>
+          <li>“幫我找培甯心理治療中心”</li>
           <li>“顯示所有社會服務機構”</li>
           <li>“現在地圖上共有多少位治療師？”</li>
         </ul>
@@ -133,6 +136,7 @@ function bindEvents() {
   const toggleBtn = document.getElementById('chat-toggle');
   const panel = document.getElementById('chat-panel');
   const closeBtn = document.getElementById('chat-close');
+  const clearBtn = document.getElementById('chat-clear-btn');
   const settingsBtn = document.getElementById('chat-settings-btn');
   const settingsPanel = document.getElementById('chat-settings');
   const providerSelect = document.getElementById('ai-provider-select');
@@ -159,6 +163,12 @@ function bindEvents() {
   closeBtn?.addEventListener('click', () => {
     panel.hidden = true;
     toggleBtn.classList.remove('is-active');
+  });
+
+  // 清除對話歷史 (Memory)
+  clearBtn?.addEventListener('click', () => {
+    clearChatMemory();
+    addMessage('system', '🧹 已清除對話歷史，助理記憶已重置。');
   });
 
   // 切換金鑰設定
@@ -231,6 +241,23 @@ function bindEvents() {
   });
 }
 
+function clearChatMemory() {
+  chatHistory = [];
+  const container = document.getElementById('chat-messages');
+  if (container) {
+    container.innerHTML = `
+      <div class="chat-message chat-message--system">
+        👋 你好！我是心理地圖的 AI 智能助理（支援記憶上下文功能）。您可以直接問我：
+        <ul style="margin: 8px 0 0 16px; padding: 0; font-size:12px; line-height:1.6">
+          <li>“幫我找培甯心理治療中心”</li>
+          <li>“顯示所有社會服務機構”</li>
+          <li>“現在地圖上共有多少位治療師？”</li>
+        </ul>
+      </div>
+    `;
+  }
+}
+
 function addMessage(sender, text) {
   const container = document.getElementById('chat-messages');
   if (!container) return;
@@ -258,8 +285,17 @@ async function handleUserMsg(text) {
       if (settings.provider === 'gemini') {
         result = await requestGeminiAgent(text);
       } else {
-        // deepseek / custom
         result = await requestOpenAIAgent(text);
+      }
+      
+      // 成功獲得 API 回應後，將當前對話輪次寫入 Memory (歷史記錄)
+      chatHistory.push({ role: 'user', content: text });
+      chatHistory.push({ role: 'assistant', content: JSON.stringify(result) });
+      
+      // 限制記憶深度，保留最新 10 條訊息 (5 個完整往返) 以防 Token 溢出
+      if (chatHistory.length > 10) {
+        chatHistory.shift();
+        chatHistory.shift();
       }
     } else {
       result = parseLocalAgent(text);
@@ -283,6 +319,7 @@ function parseLocalAgent(text) {
   if (t.includes('全部') || t.includes('清除') || t.includes('重置') || t.includes('還原')) {
     result.reply = '已為您重置所有篩選條件，展示全部執業地點。';
     result.actions.push({ type: 'reset', value: true });
+    chatHistory = []; // 清空記憶
     return result;
   }
 
@@ -343,6 +380,7 @@ function getSystemInstruction() {
 你現在是澳門心理治療師地圖 (Macau Psychotherapist Map) 的 AI 智能助理。
 你的目標是協助使用者解答疑問，並通過發送指令來控制地圖界面與過濾診所。
 你必須只使用繁體中文(zh-Hant)回答。
+你擁有「對話歷史記憶」，能看到先前的對話歷史與執行的指令。
 
 【資料庫現狀】
 - 完全註冊心理治療師：90位（無實習生，所有牌照都是 PI 開頭）
@@ -361,19 +399,15 @@ ${JSON.stringify(locationsBrief)}
 【回傳格式要求】
 你必須且只能回傳一個符合 JSON 規格的字串，格式如下：
 {
-  "reply": "你的繁體中文回答，簡要說明你執行了什麼操作。",
+  "reply": "你的繁體中文回答，簡要說明你執行了什麼操作，或是回覆先前的連貫提問。",
   "actions": [
     // 這裡放入你想要執行的指令列表（可以為空，也可以有多個，順序執行）
   ]
 }
 
 【行為規範】
-- 如果使用者詢問某個機構，請從地點列表中找出最匹配的 id，並發送 "select_location" 指令！
-- 如果使用者想尋找某個大類（如「醫院」、「社會服務機構」），請使用 "filter_category" 進行過濾！
-- 如果使用者想要搜尋特定的個人（如「曾蔚然」）或特定字詞，請使用 "search" 指令！
-- 如果使用者想要查看全部或重置，請使用 "reset" 指令！
-- 不要與資料庫以外的事實發生衝突，請僅基於提供的列表進行分析。
-- 始終保持親切、專業的口氣，並用繁體中文回答。
+- 如果使用者在上一次提問之後問「它的電話是多少」或「在哪裡」，請根據對話歷史判斷指的是哪一家機構，並執行 "select_location"！
+- 不要虛構任何不存在的醫療機構，始終基於事實回覆。
 `;
 }
 
@@ -383,17 +417,25 @@ async function requestGeminiAgent(userMsg) {
   
   const systemInstruction = getSystemInstruction();
 
+  // 將通用記憶 (Memory) 格式化成 Gemini 的 contents 格式
+  const contents = chatHistory.map(h => ({
+    role: h.role === 'user' ? 'user' : 'model',
+    parts: [{ text: h.content }]
+  }));
+  
+  // 加上最新的一輪 User 訊息
+  contents.push({
+    role: 'user',
+    parts: [{ text: userMsg }]
+  });
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      contents: [
-        {
-          parts: [{ text: userMsg }]
-        }
-      ],
+      contents: contents,
       systemInstruction: {
         parts: [{ text: systemInstruction }]
       },
@@ -430,6 +472,16 @@ async function requestOpenAIAgent(userMsg) {
 
   const systemInstruction = getSystemInstruction();
 
+  // 將通用記憶 (Memory) 格式化為 OpenAI/Deepseek 的 messages 格式
+  const messages = [
+    { role: 'system', content: systemInstruction },
+    ...chatHistory.map(h => ({
+      role: h.role,
+      content: h.content
+    })),
+    { role: 'user', content: userMsg }
+  ];
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -438,10 +490,7 @@ async function requestOpenAIAgent(userMsg) {
     },
     body: JSON.stringify({
       model: modelName,
-      messages: [
-        { role: 'system', content: systemInstruction },
-        { role: 'user', content: userMsg }
-      ],
+      messages: messages,
       response_format: {
         type: 'json_object'
       },

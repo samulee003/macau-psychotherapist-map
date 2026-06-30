@@ -961,6 +961,22 @@ html, body {
   transform: rotate(30deg);
 }
 
+.chat-panel__clear-btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.2s, transform 0.2s;
+  padding: 2px;
+}
+
+.chat-panel__clear-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
 .chat-panel__close {
   background: transparent;
   border: none;
