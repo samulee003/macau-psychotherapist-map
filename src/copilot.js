@@ -121,20 +121,23 @@ function setupDom() {
     <!-- 對話記錄 -->
     <div id="chat-messages" class="chat-messages">
       <div class="chat-message chat-message--system">
-        👋 你好！我是心理地圖 AI 智能助理。您可以直接在此對話、搜尋或進行篩選。
-        <ul style="margin: 8px 0 0 16px; padding: 0; font-size:11.5px; line-height:1.6">
-          <li>“幫我找培甯心理治療中心”</li>
-          <li>“顯示所有社會服務機構”</li>
-          <li>“現在地圖上共有多少位治療師？”</li>
+        👋 你好！我是心理地圖 AI 智能助理。我可以幫您搜尋與定位澳門註冊心理治療師的執業地點。
+        <div style="margin-top: 8px; font-weight: 600;">您可以試著問我：</div>
+        <ul style="margin: 4px 0 0 16px; padding: 0; font-size:11.5px; line-height:1.65">
+          <li>“澳門哪裡有免費的心理諮詢服務？”</li>
+          <li>“有沒有星期六或假日開診的治療中心？”</li>
+          <li>“下班後（晚上六點後）有哪些診所提供服務？”</li>
+          <li>“大學生或青少年可以去哪裡尋求心理支援？”</li>
         </ul>
       </div>
     </div>
 
     <!-- 快捷按鈕 -->
     <div class="chat-suggestions">
-      <button class="chat-suggest-btn" data-input="找醫院">🏥 醫院</button>
-      <button class="chat-suggest-btn" data-input="顯示所有心理治療中心">🧠 心理中心</button>
-      <button class="chat-suggest-btn" data-input="統計治療師人數">📊 統計人數</button>
+      <button class="chat-suggest-btn" data-input="澳門哪裡有免費或公立的心理諮詢服務？">🆓 免費/公立服務</button>
+      <button class="chat-suggest-btn" data-input="有沒有星期六或假日開診的心理治療中心？">📅 週末/假日開診</button>
+      <button class="chat-suggest-btn" data-input="下班後（晚上六點後）有哪些診所提供心理治療服務？">🌙 晚間/夜間預約</button>
+      <button class="chat-suggest-btn" data-input="大學生或青少年可以去哪裡尋求心理支援？">🎓 學生/青少年支援</button>
     </div>
     
     <!-- 搜尋結果筆數 -->
@@ -603,7 +606,9 @@ function getSystemInstruction() {
     id: l.id,
     name: l.name,
     address: l.addressZh,
-    category: l.category
+    category: l.category,
+    phone: l.phone || '',
+    hours: l.hours || ''
   }));
 
   // v2：統計數字動態讀取，避免資料更新後硬編碼過時
@@ -624,23 +629,34 @@ function getSystemInstruction() {
 - 地點數量：${stats.locations}處
 - 總執業關聯數：${stats.practices}個
 - 資料採集日期：${database.meta?.collectedAt || '未知'}
-- 地點列表：
+- 地點列表（含電話與開診時間）：
 ${JSON.stringify(locationsBrief)}
 
 【操作地圖與 UI 的指南】
 當你需要進行以下操作時，請務必調用對應的工具：
 1. 篩選某個機構分類：調用 filter_category
 2. 模糊搜尋地圖上的文字：調用 search_map
-3. 在地圖上選取特定地點、開啟詳情抽屜並定位：調用 select_location（需要提供地點 id，你可以先以 search_locations 查詢 id）
+3. 在地圖上選取特定地點、開啟詳情抽屜並定位：調用 select_location（需要提供地點 id）
 4. 重置篩選條件、還原全部打點：調用 reset_filters
 
 【回傳格式要求】
-請以友善、自然的繁體中文回覆使用者，**不要回傳任何 JSON 格式的內容**。你的最終回覆會直接以 HTML/Markdown 形式在聊天視窗中展示給使用者看。
+請以友善、自然的繁體中文回覆使用者，**不要回傳 any JSON 格式的內容**。你的最終回覆會直接以 HTML/Markdown 形式在聊天視窗中展示給使用者看。
 當你調用了 UI 行動工具（例如 select_location）後，請在最終回覆中親切地告訴使用者你已經在畫面上為他們選取或篩選了該地點。
 
 【行為規範】
 - 如果使用者在上一次提問之後問「它的電話是多少」或「在哪裡」，請根據對話歷史判斷指的是哪一家機構，並調用 "select_location"！
 - 不要虛構任何不存在的醫療機構，始終基於事實回覆。
+
+【常見市民查詢解答指引】
+1. **免費/公立心理諮詢**：
+   - 澳門衛生局公立醫療體系（如各社區衛生中心）提供免費心理諮詢服務給澳門居民，地圖上的「澳門公共醫療機構」（位於若憲馬路）即代表公立服務，其關聯了多位註冊心理治療師。
+   - 社會服務機構（category: social，例如「婦聯心理治療中心」）也常提供低收費或特定免費服務，請積極向使用者推薦並使用 \`select_location\` 工具為他們在地圖上定位。
+2. **週末/假日開診**：
+   - 仔細檢查地點列表中的 \`hours\` 欄位。找出含有「星期六」、「星期日」或「六」或「日」的機構（例如「婦聯心理治療中心」星期六有開診，「泰迪治療中心」星期六下午開診等）。向使用者列出這些機構，並主動調用 \`select_location\` 幫使用者定位其中一間。
+3. **夜間服務（晚上 18:00 後）**：
+   - 檢查 \`hours\` 中的開診時間。例如「婦聯心理治療中心」營業至 19:30、「泰迪治療中心」營業至 20:00 等。向使用者列出並推薦。
+4. **學生/青少年支援**：
+   - 大專院校（category: university，如澳門大學等）設有學生專屬的心理輔導中心。社會服務機構（category: social，如「薈穗社」）也針對青少年藥物依賴或心理健康提供支援。
 `;
 }
 
