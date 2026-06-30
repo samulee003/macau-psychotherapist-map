@@ -67,6 +67,7 @@ async function main() {
 
   // 側欄開合
   bindSidebarToggle();
+  bindSidebarResizer();
 
   // 首次渲染：顯示全部
   currentLocations = db.getGeocodedLocations();
@@ -161,7 +162,11 @@ function renderLocationList(locations) {
 
 function setActiveListItem(locationId) {
   document.querySelectorAll('.list__item').forEach((li) => {
-    li.classList.toggle('is-active', li.dataset.locationId === locationId);
+    const isActive = li.dataset.locationId === locationId;
+    li.classList.toggle('is-active', isActive);
+    if (isActive) {
+      li.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   });
 }
 
@@ -191,6 +196,46 @@ function bindSidebarToggle() {
     sidebar.classList.remove('is-collapsed');
     openBtn.hidden = true;
   });
+}
+
+/**
+ * 側欄寬度拖動調整邏輯 (Resizable Sidebar)。
+ */
+function bindSidebarResizer() {
+  const resizer = document.getElementById('sidebar-resizer');
+  const sidebar = document.getElementById('sidebar');
+  if (!resizer || !sidebar) return;
+
+  let startX, startWidth;
+
+  resizer.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    startX = e.clientX;
+    startWidth = sidebar.getBoundingClientRect().width;
+    
+    resizer.classList.add('is-dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  });
+
+  function handleMouseMove(e) {
+    const width = startWidth + (e.clientX - startX);
+    if (width >= 280 && width <= 600) {
+      document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
+    }
+  }
+
+  function handleMouseUp() {
+    resizer.classList.remove('is-dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  }
 }
 
 /* ---------- 載入狀態 ---------- */

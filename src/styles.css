@@ -94,6 +94,23 @@ html, body {
   margin-left: calc(-1 * var(--sidebar-width));
 }
 
+.sidebar__resizer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 1010;
+  transition: background-color 0.2s;
+}
+
+.sidebar__resizer:hover,
+.sidebar__resizer.is-dragging {
+  background-color: var(--color-primary-glow);
+  border-right: 2px solid var(--color-primary);
+}
+
 .sidebar__header {
   display: flex;
   align-items: center;
@@ -810,6 +827,10 @@ html, body {
   .sidebar.is-collapsed {
     margin-left: 0;
     transform: translateX(-100%);
+  }
+
+  .sidebar__resizer {
+    display: none !important;
   }
 
   /* 行動版詳情抽屜轉換為底部抽屜 (Bottom Sheet) */
