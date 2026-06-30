@@ -65,14 +65,6 @@ async function main() {
     setActiveListItem(locationId);
   });
 
-  // 搜尋與 AI 助理連動：打字時即時過濾，Enter 或傳送鍵送出 AI 指令
-  const chatInput = document.getElementById('chat-input');
-  if (chatInput) {
-    chatInput.addEventListener('input', (e) => {
-      setQuery(e.target.value, db);
-    });
-  }
-
   // 側欄開合
   bindSidebarToggle();
 
@@ -100,6 +92,7 @@ async function main() {
         resetFiltersProgrammatic(db);
       },
     });
+
   });
 }
 

@@ -148,7 +148,10 @@ function bindEvents() {
   const sendBtn = document.getElementById('chat-send');
   const chatInput = document.getElementById('chat-input');
   const suggestions = document.querySelectorAll('.chat-suggest-btn');
-
+  // 搜尋與 AI 助理連動：打字時即時過濾
+  chatInput?.addEventListener('input', (e) => {
+    controls.setQuery(e.target.value);
+  });
   // 清除對話歷史 (Memory)
   clearBtn?.addEventListener('click', () => {
     clearChatMemory();
