@@ -33,10 +33,10 @@ CATEGORY_RULES = [
                 "工聯", "基督教", "團契", "特奧", "復康", "康復",
                 "聖類斯", "聖路濟亞", "聖瑪嘉烈", "主教山", "旭日中心",
                 "associação", "federação", "social", "lar "]),
-    ("psych_center", ["心理治療中心", "心理中心", "心理", "心理輔導",
-                      "治療中心", "診療所", "治療所",
+    ("psych_center", ["心理治療中心", "心理中心", "心理輔導", "心理",
                       "centro de psicoterapia", "psicoterapia"]),
-    ("med_center", ["醫療中心", "centro médico", "診所", "clinic", "醫務所"]),
+    ("med_center", ["醫療中心", "centro médico", "診所", "clinic", "醫務所",
+                    "治療中心", "診療所", "治療所", "tratamento", "terapia"]),
     ("gov", ["市政署", "社工局", "衛生局", "公共醫療機構", "政府", "governo", "iapf", "社會工作局"]),
 ]
 
