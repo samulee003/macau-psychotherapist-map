@@ -84,10 +84,12 @@ function row(label, value) {
  */
 function buildAmapNavUrl(loc) {
   if (loc.lng != null && loc.lat != null) {
-    return `https://uri.amap.com/navigation?to=${loc.lng},${loc.lat},${encodeURIComponent(loc.name)}&mode=walk&callnative=1`;
+    // 使用 marker 標記點頁面而非直接進入 navigation 路線規劃。
+    // 這樣在瀏覽器開啟時會精確定位並釘在澳門的位置，使用者點擊「路線」即可使用定位開始導航，避免了因沒有起點而預設定位到北京的問題。
+    return `https://uri.amap.com/marker?position=${loc.lng},${loc.lat}&name=${encodeURIComponent(loc.name)}&coordinate=gcj02&callnative=1`;
   }
   if (loc.addressZh) {
-    return `https://uri.amap.com/navigation?to=${encodeURIComponent(loc.addressZh)}&mode=walk&callnative=1`;
+    return `https://uri.amap.com/search?query=${encodeURIComponent('澳門 ' + loc.name)}`;
   }
   return '';
 }
