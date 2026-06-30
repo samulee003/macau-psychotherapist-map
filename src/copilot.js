@@ -121,8 +121,7 @@ function setupDom() {
     <!-- 對話記錄 -->
     <div id="chat-messages" class="chat-messages">
       <div class="chat-message chat-message--system">
-        你好！我是心理地圖 AI 智能助理。您可以直接在此提問，我會為您解答澳門註冊心理治療師的執業地點，並在地圖上進行選取定位。
-        <div style="margin-top: 8px; font-weight: 600;">您可以試著問我：</div>
+        <div style="font-weight: 600; margin-bottom: 6px;">您可以試著問我：</div>
         <ul style="margin: 4px 0 0 16px; padding: 0; font-size:11.5px; line-height:1.65; color: var(--color-text-muted);">
           <li>澳門哪裡有免費的心理諮詢服務？</li>
           <li>有沒有星期六或假日開診的治療中心？</li>
@@ -130,14 +129,6 @@ function setupDom() {
           <li>大學生或青少年可以去哪裡尋求心理支援？</li>
         </ul>
       </div>
-    </div>
-
-    <!-- 快捷按鈕 -->
-    <div class="chat-suggestions">
-      <button class="chat-suggest-btn" data-input="澳門哪裡有免費或公立的心理諮詢服務？">免費/公立服務</button>
-      <button class="chat-suggest-btn" data-input="有沒有星期六或假日開診的心理治療中心？">週末/假日開診</button>
-      <button class="chat-suggest-btn" data-input="下班後（晚上六點後）有哪些診所提供心理治療服務？">晚間/夜間預約</button>
-      <button class="chat-suggest-btn" data-input="大學生或青少年可以去哪裡尋求心理支援？">學生/青少年支援</button>
     </div>
     
     <!-- 搜尋結果筆數 -->
@@ -162,7 +153,7 @@ function bindEvents() {
   const saveKeyBtn = document.getElementById('save-key-btn');
   const sendBtn = document.getElementById('chat-send');
   const chatInput = document.getElementById('chat-input');
-  const suggestions = document.querySelectorAll('.chat-suggest-btn');
+
   // 搜尋與 AI 助理連動：打字時即時過濾
   chatInput?.addEventListener('input', (e) => {
     controls.setQuery(e.target.value);
@@ -222,13 +213,7 @@ function bindEvents() {
     }
   });
 
-  // 快捷按鈕
-  suggestions.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const text = btn.dataset.input;
-      if (text) handleUserMsg(text);
-    });
-  });
+
 }
 
 function clearChatMemory() {
@@ -237,8 +222,7 @@ function clearChatMemory() {
   if (container) {
     container.innerHTML = `
       <div class="chat-message chat-message--system">
-        你好！我是心理地圖 AI 智能助理。您可以直接在此提問，我會為您解答澳門註冊心理治療師的執業地點，並在地圖上進行選取定位。
-        <div style="margin-top: 8px; font-weight: 600;">您可以試著問我：</div>
+        <div style="font-weight: 600; margin-bottom: 6px;">您可以試著問我：</div>
         <ul style="margin: 4px 0 0 16px; padding: 0; font-size:11.5px; line-height:1.65; color: var(--color-text-muted);">
           <li>澳門哪裡有免費的心理諮詢服務？</li>
           <li>有沒有星期六或假日開診的治療中心？</li>

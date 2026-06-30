@@ -69,6 +69,7 @@ html, body {
 #app {
   display: flex;
   height: 100vh;
+  height: 100dvh; /* 動態視區高度，防止行動版 Safari 工具列遮擋底部 */
   width: 100vw;
   position: relative;
 }

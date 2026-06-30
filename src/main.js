@@ -63,6 +63,14 @@ async function main() {
     const loc = db.getLocationById(locationId);
     if (loc) showLocationDetail(loc, db);
     setActiveListItem(locationId);
+
+    // 行動版點擊標記後，自動收合側欄，便於查看地圖與詳情抽屜
+    if (window.innerWidth <= 768) {
+      const sidebar = document.getElementById('sidebar');
+      const openBtn = document.getElementById('sidebar-open');
+      sidebar?.classList.add('is-collapsed');
+      if (openBtn) openBtn.hidden = false;
+    }
   });
 
   // 側欄開合
@@ -185,6 +193,7 @@ function bindSidebarToggle() {
   const sidebar = document.getElementById('sidebar');
   const toggleBtn = document.getElementById('sidebar-toggle');
   const openBtn = document.getElementById('sidebar-open');
+  const mapContainer = document.getElementById('map-container');
 
   toggleBtn?.addEventListener('click', () => {
     sidebar.classList.add('is-collapsed');
@@ -195,6 +204,15 @@ function bindSidebarToggle() {
   openBtn?.addEventListener('click', () => {
     sidebar.classList.remove('is-collapsed');
     openBtn.hidden = true;
+  });
+
+  // 在行動裝置上，點擊地圖區域空白處自動收合側欄，提升使用者體驗
+  mapContainer?.addEventListener('click', (e) => {
+    // 只有在非拖拽點擊且為行動版時觸發
+    if (window.innerWidth <= 768) {
+      sidebar.classList.add('is-collapsed');
+      openBtn.hidden = false;
+    }
   });
 }
 
