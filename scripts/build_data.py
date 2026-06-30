@@ -179,7 +179,7 @@ def main():
             
             # 針對特定的高德 geocoding 偏差或大廈坐標進行手動精準修正
             if "土地廟里" in addr_raw:
-                coord = {"lng": 113.5398, "lat": 22.2001}
+                coord = {"lng": 113.543613, "lat": 22.198883}
             elif "望德樓" in addr_raw or "望德樓" in place_name:
                 coord = {"lng": 113.5516, "lat": 22.2071}
             elif "九澳聖母馬路" in addr_raw or "聖路濟亞" in place_name:
