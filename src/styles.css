@@ -157,6 +157,10 @@ html, body {
   transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+.sidebar-open[hidden] {
+  display: none !important;
+}
+
 .sidebar-open:hover {
   background: #fff;
   transform: scale(1.08);
