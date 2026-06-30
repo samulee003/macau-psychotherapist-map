@@ -26,7 +26,8 @@ export async function loadData() {
  */
 export function buildDatabase(raw) {
   const therapists = raw.therapists || [];
-  const locations = raw.locations || [];
+  // 執業地點按機構名稱中文筆劃進行客觀排序，避免偏私偏袒
+  const locations = (raw.locations || []).sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
   const practices = raw.practices || [];
   const meta = raw.meta || {};
 
@@ -59,10 +60,11 @@ export function buildDatabase(raw) {
     getLocationById(id) {
       return locationMap.get(id) || null;
     },
-    /** 回傳某地點的所有治療師（已過濾不存在的） */
+    /** 回傳某地點的所有治療師（已過濾不存在的，並按姓名筆劃客觀排序） */
     getTherapistsByLocation(locationId) {
       const ids = locToTherapists.get(locationId) || [];
-      return ids.map((id) => therapistMap.get(id)).filter(Boolean);
+      const list = ids.map((id) => therapistMap.get(id)).filter(Boolean);
+      return list.sort((a, b) => a.nameZh.localeCompare(b.nameZh, 'zh-Hant'));
     },
     /** 回傳某治療師的所有執業地點（已過濾不存在的） */
     getLocationsByTherapist(therapistId) {
