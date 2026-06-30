@@ -441,6 +441,11 @@ html, body {
   font-weight: 500;
 }
 
+.sidebar__sorting {
+  margin-top: 1px;
+  font-weight: 500;
+}
+
 .sidebar__disclaimer {
   margin-top: 10px;
   padding-top: 10px;
