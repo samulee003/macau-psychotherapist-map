@@ -119,17 +119,7 @@ function setupDom() {
     </div>
 
     <!-- 對話記錄 -->
-    <div id="chat-messages" class="chat-messages">
-      <div class="chat-message chat-message--system">
-        <div style="font-weight: 600; margin-bottom: 6px;">您可以試著問我：</div>
-        <ul style="margin: 4px 0 0 16px; padding: 0; font-size:11.5px; line-height:1.65; color: var(--color-text-muted);">
-          <li>澳門哪裡有免費的心理諮詢服務？</li>
-          <li>有沒有星期六或假日開診的治療中心？</li>
-          <li>下班後（晚上六點後）有哪些診所提供服務？</li>
-          <li>大學生或青少年可以去哪裡尋求心理支援？</li>
-        </ul>
-      </div>
-    </div>
+    <div id="chat-messages" class="chat-messages"></div>
     
     <!-- 搜尋結果筆數 -->
     <div id="search-results-count" class="search__count"></div>
@@ -220,17 +210,7 @@ function clearChatMemory() {
   chatHistory = [];
   const container = document.getElementById('chat-messages');
   if (container) {
-    container.innerHTML = `
-      <div class="chat-message chat-message--system">
-        <div style="font-weight: 600; margin-bottom: 6px;">您可以試著問我：</div>
-        <ul style="margin: 4px 0 0 16px; padding: 0; font-size:11.5px; line-height:1.65; color: var(--color-text-muted);">
-          <li>澳門哪裡有免費的心理諮詢服務？</li>
-          <li>有沒有星期六或假日開診的治療中心？</li>
-          <li>下班後（晚上六點後）有哪些診所提供服務？</li>
-          <li>大學生或青少年可以去哪裡尋求心理支援？</li>
-        </ul>
-      </div>
-    `;
+    container.innerHTML = '';
   }
 }
 
