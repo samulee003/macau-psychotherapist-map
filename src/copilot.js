@@ -39,51 +39,44 @@ export function initCopilot(db, ctrlControl) {
 }
 
 function setupDom() {
-  const app = document.getElementById('app');
-  if (!app) return;
+  const container = document.getElementById('copilot-sidebar-container');
+  if (!container) return;
 
-  // 1. 浮動對話按鈕
-  const toggleBtn = document.createElement('button');
-  toggleBtn.id = 'chat-toggle';
-  toggleBtn.className = 'chat-toggle';
-  toggleBtn.setAttribute('aria-label', '打開 AI 助理');
-  toggleBtn.setAttribute('title', '打開 AI 助理');
-  toggleBtn.innerHTML = `
-    <span class="icon">
-      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-      </svg>
-    </span>
-  `;
-
-  // 2. 對話面板
-  const panel = document.createElement('div');
-  panel.id = 'chat-panel';
-  panel.className = 'chat-panel';
-  panel.hidden = true;
-  panel.innerHTML = `
-    <div class="chat-panel__header">
-      <div class="chat-panel__title">
-        <span class="chat-panel__sparkle">✨</span> AI 智能助理
+  container.innerHTML = `
+    <!-- 輸入區域與控制按鈕 -->
+    <div class="search-ai__input-row">
+      <div class="search__wrapper">
+        <span class="search-ai__sparkle">✨</span>
+        <input
+          id="chat-input"
+          class="search__input"
+          type="text"
+          placeholder="搜尋或問問 AI 智能助理..."
+          autocomplete="off"
+          aria-label="輸入 AI 智能助理問題"
+        />
+        <button id="chat-send" class="search-ai__send-btn" aria-label="傳送">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
       </div>
-      <div class="chat-panel__header-actions">
-        <button id="chat-clear-btn" class="chat-panel__clear-btn" title="清除對話歷史">🗑️</button>
-        <button id="chat-settings-btn" class="chat-panel__settings-btn" title="進階設定">⚙️</button>
-        <button id="chat-close" class="chat-panel__close" aria-label="關閉助理">&times;</button>
+      <div class="search-ai__actions">
+        <button id="chat-clear-btn" class="search-ai__action-btn" title="清除對話歷史">🗑️</button>
+        <button id="chat-settings-btn" class="search-ai__action-btn" title="進階設定">⚙️</button>
       </div>
     </div>
 
     <!-- 進階設定面板 -->
     <div id="chat-settings" class="chat-settings" hidden>
-      <p class="chat-settings__hint">
-        💡 預設已透過站台伺服器代為呼叫 AI，您<strong>無需任何設定</strong>即可直接使用。
-        若您有自己的 Deepseek API 金鑰，可在此切換為「自帶金鑰」模式（瀏覽器直連，不經本站伺服器）。
+      <p class="chat-settings__desc" style="font-size:11px; margin-bottom: 6px;">
+        預設透過站台伺服器代為呼叫，您無需任何設定。若有自定義 Key 可在此切換為自帶金鑰直連模式。
       </p>
-
       <div class="chat-settings__field">
         <label class="chat-settings__label">
           <input type="checkbox" id="use-own-key-toggle" ${settings.useOwnKey ? 'checked' : ''}>
-          使用自帶 API 金鑰（進階）
+          使用自帶 API 金鑰
         </label>
       </div>
 
@@ -96,15 +89,15 @@ function setupDom() {
       </div>
 
       <div style="display:flex; justify-content:flex-end; margin-top:8px">
-        <button id="save-key-btn" class="btn btn--primary" style="padding:6px 12px;font-size:11px">儲存設定</button>
+        <button id="save-key-btn" class="btn btn--primary" style="padding:4px 8px;font-size:11px">儲存設定</button>
       </div>
     </div>
 
     <!-- 對話記錄 -->
     <div id="chat-messages" class="chat-messages">
       <div class="chat-message chat-message--system">
-        👋 你好！我是心理地圖的 AI 智能助理（支援記憶上下文功能）。您可以直接問我：
-        <ul style="margin: 8px 0 0 16px; padding: 0; font-size:12px; line-height:1.6">
+        👋 你好！我是心理地圖 AI 智能助理。您可以直接在此對話、搜尋或進行篩選。
+        <ul style="margin: 8px 0 0 16px; padding: 0; font-size:11.5px; line-height:1.6">
           <li>“幫我找培甯心理治療中心”</li>
           <li>“顯示所有社會服務機構”</li>
           <li>“現在地圖上共有多少位治療師？”</li>
@@ -114,25 +107,14 @@ function setupDom() {
 
     <!-- 快捷按鈕 -->
     <div class="chat-suggestions">
-      <button class="chat-suggest-btn" data-input="找醫院">🏥 找醫院</button>
-      <button class="chat-suggest-btn" data-input="顯示所有心理治療中心">🏢 心理治療中心</button>
+      <button class="chat-suggest-btn" data-input="找醫院">🏥 醫院</button>
+      <button class="chat-suggest-btn" data-input="顯示所有心理治療中心">🧠 心理中心</button>
       <button class="chat-suggest-btn" data-input="統計治療師人數">📊 統計人數</button>
     </div>
-
-    <!-- 輸入區域 -->
-    <div class="chat-panel__input-area">
-      <input type="text" id="chat-input" placeholder="輸入您的問題...（例如：找大學）" class="chat-input" aria-label="輸入 AI 智能助理問題">
-      <button id="chat-send" class="chat-send-btn" aria-label="傳送">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="22" y1="2" x2="11" y2="13"></line>
-          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-        </svg>
-      </button>
-    </div>
+    
+    <!-- 搜尋結果筆數 -->
+    <div id="search-results-count" class="search__count"></div>
   `;
-
-  app.appendChild(toggleBtn);
-  app.appendChild(panel);
 
   // 用程式碼動態邏輯賦值，以防從 localStorage 讀取受污染的設定產生 DOM XSS 漏洞
   const keyInput = document.getElementById('ai-key-input');
@@ -142,9 +124,6 @@ function setupDom() {
 }
 
 function bindEvents() {
-  const toggleBtn = document.getElementById('chat-toggle');
-  const panel = document.getElementById('chat-panel');
-  const closeBtn = document.getElementById('chat-close');
   const clearBtn = document.getElementById('chat-clear-btn');
   const settingsBtn = document.getElementById('chat-settings-btn');
   const settingsPanel = document.getElementById('chat-settings');
@@ -156,22 +135,6 @@ function bindEvents() {
   const sendBtn = document.getElementById('chat-send');
   const chatInput = document.getElementById('chat-input');
   const suggestions = document.querySelectorAll('.chat-suggest-btn');
-
-  // 切換助理面板
-  toggleBtn?.addEventListener('click', () => {
-    panel.hidden = !panel.hidden;
-    if (!panel.hidden) {
-      chatInput.focus();
-      toggleBtn.classList.add('is-active');
-    } else {
-      toggleBtn.classList.remove('is-active');
-    }
-  });
-
-  closeBtn?.addEventListener('click', () => {
-    panel.hidden = true;
-    toggleBtn.classList.remove('is-active');
-  });
 
   // 清除對話歷史 (Memory)
   clearBtn?.addEventListener('click', () => {
@@ -213,6 +176,10 @@ function bindEvents() {
     const text = chatInput.value.trim();
     if (!text) return;
     chatInput.value = '';
+    // 發送 AI 訊息前，也順便重置即時過濾（回歸正常對話控制模式）
+    const event = new Event('input', { bubbles: true });
+    chatInput.dispatchEvent(event);
+    
     handleUserMsg(text);
   };
 
@@ -239,8 +206,8 @@ function clearChatMemory() {
   if (container) {
     container.innerHTML = `
       <div class="chat-message chat-message--system">
-        👋 你好！我是心理地圖的 AI 智能助理（支援記憶上下文功能）。您可以直接問我：
-        <ul style="margin: 8px 0 0 16px; padding: 0; font-size:12px; line-height:1.6">
+        👋 你好！我是心理地圖 AI 智能助理。您可以直接在此對話、搜尋或進行篩選。
+        <ul style="margin: 8px 0 0 16px; padding: 0; font-size:11.5px; line-height:1.6">
           <li>“幫我找培甯心理治療中心”</li>
           <li>“顯示所有社會服務機構”</li>
           <li>“現在地圖上共有多少位治療師？”</li>

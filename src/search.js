@@ -127,8 +127,8 @@ export function selectCategoryProgrammatic(catKey, db) {
 export function resetFiltersProgrammatic(db) {
   state.query = '';
   state.activeCategories.clear();
-  const searchInput = document.getElementById('search-input');
-  if (searchInput) searchInput.value = '';
+  const chatInput = document.getElementById('chat-input');
+  if (chatInput) chatInput.value = '';
   const chips = document.querySelectorAll('.filter-chip');
   chips.forEach((chip) => chip.classList.remove('is-active'));
   emit(db);
