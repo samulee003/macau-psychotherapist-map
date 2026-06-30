@@ -1,12 +1,19 @@
 /* ============================================================
-   AI 智能助理 (Copilot)：支援本地規則引擎與 Gemini API JSON 路由
+   AI 智能助理 (Copilot)：支援本地規則引擎、Gemini、Deepseek 及 OpenAI 相容端點
    ============================================================ */
 
 import { CATEGORIES } from './config.js';
 
 let database = null;
 let controls = {};
-let geminiApiKey = localStorage.getItem('gemini_api_key') || '';
+
+// 從 localStorage 載入設定，並提供預設值
+const settings = {
+  provider: localStorage.getItem('copilot_provider') || 'gemini',
+  apiKey: localStorage.getItem('copilot_api_key') || '',
+  baseUrl: localStorage.getItem('copilot_base_url') || '',
+  model: localStorage.getItem('copilot_model') || ''
+};
 
 /**
  * 初始化 Copilot 控制面板
@@ -22,7 +29,6 @@ export function initCopilot(db, ctrlControl) {
 }
 
 function setupDom() {
-  // 注入展開按鈕與對話框容器
   const app = document.getElementById('app');
   if (!app) return;
 
@@ -51,27 +57,49 @@ function setupDom() {
         <span class="chat-panel__sparkle">✨</span> AI 智能助理
       </div>
       <div class="chat-panel__header-actions">
-        <button id="chat-settings-btn" class="chat-panel__settings-btn" title="設定 API 金鑰">🔑</button>
+        <button id="chat-settings-btn" class="chat-panel__settings-btn" title="設定 API 服務商">⚙️</button>
         <button id="chat-close" class="chat-panel__close" aria-label="關閉助理">&times;</button>
       </div>
     </div>
 
     <!-- 設定面板 -->
     <div id="chat-settings" class="chat-settings" hidden>
-      <p class="chat-settings__desc">輸入您的 Gemini API 金鑰啟用 AI 語意地圖（金鑰僅存在您的瀏覽器）：</p>
-      <div class="chat-settings__input-wrapper">
-        <input type="password" id="gemini-key-input" placeholder="AIzaSy..." class="chat-settings__input" value="${geminiApiKey}">
-        <button id="save-key-btn" class="btn btn--primary" style="padding:6px 12px;font-size:11px">儲存</button>
+      <div class="chat-settings__field">
+        <label class="chat-settings__label">AI 服務商：</label>
+        <select id="ai-provider-select" class="chat-settings__select">
+          <option value="gemini" ${settings.provider === 'gemini' ? 'selected' : ''}>Google Gemini</option>
+          <option value="deepseek" ${settings.provider === 'deepseek' ? 'selected' : ''}>Deepseek 官方</option>
+          <option value="custom" ${settings.provider === 'custom' ? 'selected' : ''}>OpenAI 相容 API (自訂)</option>
+        </select>
       </div>
-      <p class="chat-settings__hint">💡 無金鑰時，會自動切換為本地離線版規則引擎。</p>
+
+      <div id="settings-base-url-group" class="chat-settings__field" ${settings.provider === 'custom' ? '' : 'hidden'}>
+        <label class="chat-settings__label">API 端點 (Base URL)：</label>
+        <input type="text" id="ai-base-url-input" placeholder="https://api.deepseek.com/v1" class="chat-settings__input" value="${settings.baseUrl}">
+      </div>
+
+      <div class="chat-settings__field">
+        <label class="chat-settings__label">模型名稱 (Model)：</label>
+        <input type="text" id="ai-model-input" placeholder="自動預設" class="chat-settings__input" value="${settings.model}">
+      </div>
+
+      <div class="chat-settings__field">
+        <label class="chat-settings__label">API 金鑰 (API Key)：</label>
+        <input type="password" id="ai-key-input" placeholder="輸入 API 金鑰" class="chat-settings__input" value="${settings.apiKey}">
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; margin-top:8px">
+        <button id="save-key-btn" class="btn btn--primary" style="padding:6px 12px;font-size:11px">儲存設定</button>
+      </div>
+      <p class="chat-settings__hint">💡 金鑰僅存在您的本地瀏覽器，直接呼叫 AI 官方端點。</p>
     </div>
 
     <!-- 對話記錄 -->
     <div id="chat-messages" class="chat-messages">
       <div class="chat-message chat-message--system">
-        👋 你好！我是心理地圖的 AI 智能助理。你可以用自然語言直接問我，我會幫您操作地圖：
+        👋 你好！我是心理地圖的 AI 智能助理。您可以直接使用自然語言問我：
         <ul style="margin: 8px 0 0 16px; padding: 0; font-size:12px; line-height:1.6">
-          <li>“幫我找培甯心理治療中心”</li>
+          <li>“幫我找培甯心理治療中心在哪”</li>
           <li>“顯示所有社會服務機構”</li>
           <li>“現在地圖上共有多少位治療師？”</li>
         </ul>
@@ -107,8 +135,12 @@ function bindEvents() {
   const closeBtn = document.getElementById('chat-close');
   const settingsBtn = document.getElementById('chat-settings-btn');
   const settingsPanel = document.getElementById('chat-settings');
+  const providerSelect = document.getElementById('ai-provider-select');
+  const baseUrlGroup = document.getElementById('settings-base-url-group');
+  const baseUrlInput = document.getElementById('ai-base-url-input');
+  const modelInput = document.getElementById('ai-model-input');
+  const keyInput = document.getElementById('ai-key-input');
   const saveKeyBtn = document.getElementById('save-key-btn');
-  const keyInput = document.getElementById('gemini-key-input');
   const sendBtn = document.getElementById('chat-send');
   const chatInput = document.getElementById('chat-input');
   const suggestions = document.querySelectorAll('.chat-suggest-btn');
@@ -135,11 +167,41 @@ function bindEvents() {
     settingsBtn.classList.toggle('is-active');
   });
 
+  // AI 服務商切換連動
+  providerSelect?.addEventListener('change', (e) => {
+    const val = e.target.value;
+    if (val === 'custom') {
+      baseUrlGroup.hidden = false;
+    } else {
+      baseUrlGroup.hidden = true;
+    }
+    // 自動填入預設 Placeholder
+    if (val === 'gemini') {
+      modelInput.placeholder = 'gemini-1.5-flash';
+    } else if (val === 'deepseek') {
+      modelInput.placeholder = 'deepseek-chat';
+    } else {
+      modelInput.placeholder = '自訂模型，如 gpt-4o';
+    }
+  });
+
   // 儲存金鑰
   saveKeyBtn?.addEventListener('click', () => {
-    geminiApiKey = keyInput.value.trim();
-    localStorage.setItem('gemini_api_key', geminiApiKey);
-    addMessage('system', geminiApiKey ? '🔑 金鑰已儲存，正式啟用 Gemini AI 智能路由！' : '🔑 金鑰已清除，切換回本地規則引導。');
+    settings.provider = providerSelect.value;
+    settings.apiKey = keyInput.value.trim();
+    settings.baseUrl = baseUrlInput.value.trim();
+    settings.model = modelInput.value.trim();
+
+    localStorage.setItem('copilot_provider', settings.provider);
+    localStorage.setItem('copilot_api_key', settings.apiKey);
+    localStorage.setItem('copilot_base_url', settings.baseUrl);
+    localStorage.setItem('copilot_model', settings.model);
+
+    let providerName = 'Gemini AI';
+    if (settings.provider === 'deepseek') providerName = 'Deepseek AI';
+    if (settings.provider === 'custom') providerName = '自訂 OpenAI 相容 API';
+
+    addMessage('system', settings.apiKey ? `🔑 設定已儲存，正式啟用 <strong>${providerName}</strong> 智能助理！` : '🔑 金鑰已清除，切換回本地規則引導。');
     settingsPanel.hidden = true;
     settingsBtn.classList.remove('is-active');
   });
@@ -169,9 +231,6 @@ function bindEvents() {
   });
 }
 
-/**
- * 記錄並滾動顯示單條聊天訊息
- */
 function addMessage(sender, text) {
   const container = document.getElementById('chat-messages');
   if (!container) return;
@@ -183,13 +242,9 @@ function addMessage(sender, text) {
   container.scrollTop = container.scrollHeight;
 }
 
-/**
- * 處理使用者輸入的核心 Agent 邏輯
- */
 async function handleUserMsg(text) {
   addMessage('user', escapeHtml(text));
 
-  // 顯示載入動畫氣泡
   const container = document.getElementById('chat-messages');
   const loader = document.createElement('div');
   loader.className = 'chat-message chat-message--assistant chat-message--loading';
@@ -199,53 +254,44 @@ async function handleUserMsg(text) {
 
   try {
     let result = null;
-    if (geminiApiKey) {
-      // 1. 使用 Gemini AI 進行智能語意解析與 Action 路由 (Agentic Tool Calling)
-      result = await requestGeminiAgent(geminiApiKey, text);
+    if (settings.apiKey) {
+      if (settings.provider === 'gemini') {
+        result = await requestGeminiAgent(text);
+      } else {
+        // deepseek / custom
+        result = await requestOpenAIAgent(text);
+      }
     } else {
-      // 2. 退回本地輕量級規則路由引擎 (Local Rule-Based Routing)
       result = parseLocalAgent(text);
-      // 附帶提示
-      result.reply += '<br><small style="color:#94a3b8;display:block;margin-top:4px">💡（目前為本地離線模式，可在設定中配置 Gemini 金鑰以解鎖完整 AI 語意理解能力）</small>';
+      result.reply += '<br><small style="color:#94a3b8;display:block;margin-top:4px">💡（目前為本地離線模式，可點擊上方 ⚙️ 設定金鑰以解鎖完整 AI 語意理解能力）</small>';
     }
 
-    // 移除載入動畫氣泡
     loader.remove();
-
-    // 執行 Agent 返回的控制指令
     executeAgentActions(result.actions || []);
-
-    // 呈現 AI 的回答
     addMessage('assistant', result.reply);
   } catch (err) {
     console.error('Agent 執行失敗:', err);
     loader.remove();
-    addMessage('assistant', `❌ 處理請求時發生錯誤：${escapeHtml(err.message)}<br><small style="color:#94a3b8;display:block;margin-top:4px">請確認您的 API 金鑰是否正確，或是否網路連線異常。</small>`);
+    addMessage('assistant', `❌ 處理請求時發生錯誤：${escapeHtml(err.message)}<br><small style="color:#94a3b8;display:block;margin-top:4px">請確認您的 API 金鑰、端點及模型名稱是否正確，或是否網路連線異常。</small>`);
   }
 }
 
-/**
- * 本地規則 Agent (Local Rule-Based Agent)
- */
 function parseLocalAgent(text) {
   const t = text.toLowerCase();
   const result = { reply: '', actions: [] };
 
-  // 1. 重置
   if (t.includes('全部') || t.includes('清除') || t.includes('重置') || t.includes('還原')) {
     result.reply = '已為您重置所有篩選條件，展示全部執業地點。';
     result.actions.push({ type: 'reset', value: true });
     return result;
   }
 
-  // 2. 統計數據
   if (t.includes('統計') || t.includes('人數') || t.includes('多少人') || t.includes('多少位') || t.includes('規模')) {
     const stats = database.meta?.stats || { therapists: 90, locations: 41, practices: 108 };
     result.reply = `📊 目前地圖共收錄了 <strong>${stats.therapists}</strong> 位完全註冊的心理治療師（不計實習生），分佈在 <strong>${stats.locations}</strong> 個執業地點，共有 <strong>${stats.practices}</strong> 個執業關聯。`;
     return result;
   }
 
-  // 3. 分類篩選
   const catMatches = [
     { key: 'hospital', keywords: ['醫院', 'hospital'] },
     { key: 'med_center', keywords: ['醫療中心', '診所', '綜合治療中心', '綜合診療所', '綜合診所'] },
@@ -264,7 +310,6 @@ function parseLocalAgent(text) {
     }
   }
 
-  // 4. 地名搜尋匹配
   for (const loc of database.locations) {
     if (t.includes(loc.name.toLowerCase()) || loc.name.toLowerCase().includes(t)) {
       result.reply = `已在地圖上為您找到 <strong>${escapeHtml(loc.name)}</strong>，並已為您開啟了詳情抽屜。`;
@@ -273,7 +318,6 @@ function parseLocalAgent(text) {
     }
   }
 
-  // 5. 治療師搜尋匹配
   for (const th of database.therapists) {
     if (t.includes(th.nameZh) || (th.nameEn && t.includes(th.nameEn.toLowerCase()))) {
       result.reply = `已搜尋到治療師 <strong>${escapeHtml(th.nameZh)}</strong> (${th.licenseNo})。已為您篩選出其所在的執業地點。`;
@@ -282,18 +326,12 @@ function parseLocalAgent(text) {
     }
   }
 
-  // 6. 模糊搜尋兜底
   result.reply = `已為您在數據庫中搜尋關鍵字：『<strong>${escapeHtml(text)}</strong>』。`;
   result.actions.push({ type: 'search', value: text });
   return result;
 }
 
-/**
- * 調用 Gemini API 進行 AI 智能路由與 Tool Calling
- */
-async function requestGeminiAgent(apiKey, userMsg) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-  
+function getSystemInstruction() {
   const locationsBrief = database.locations.map(l => ({
     id: l.id,
     name: l.name,
@@ -301,7 +339,7 @@ async function requestGeminiAgent(apiKey, userMsg) {
     category: l.category
   }));
 
-  const systemInstruction = `
+  return `
 你現在是澳門心理治療師地圖 (Macau Psychotherapist Map) 的 AI 智能助理。
 你的目標是協助使用者解答疑問，並通過發送指令來控制地圖界面與過濾診所。
 你必須只使用繁體中文(zh-Hant)回答。
@@ -334,9 +372,16 @@ ${JSON.stringify(locationsBrief)}
 - 如果使用者想尋找某個大類（如「醫院」、「社會服務機構」），請使用 "filter_category" 進行過濾！
 - 如果使用者想要搜尋特定的個人（如「曾蔚然」）或特定字詞，請使用 "search" 指令！
 - 如果使用者想要查看全部或重置，請使用 "reset" 指令！
-- 不要虛構不存在的地點或治療師，請僅基於提供的列表進行分析。
+- 不要與資料庫以外的事實發生衝突，請僅基於提供的列表進行分析。
 - 始終保持親切、專業的口氣，並用繁體中文回答。
 `;
+}
+
+async function requestGeminiAgent(userMsg) {
+  const modelName = settings.model || 'gemini-1.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${settings.apiKey}`;
+  
+  const systemInstruction = getSystemInstruction();
 
   const response = await fetch(url, {
     method: 'POST',
@@ -370,9 +415,52 @@ ${JSON.stringify(locationsBrief)}
   return JSON.parse(text);
 }
 
-/**
- * 執行 Agent 所指派的 Actions (聯動地圖與篩選 UI)
- */
+async function requestOpenAIAgent(userMsg) {
+  let url = '';
+  let modelName = settings.model;
+
+  if (settings.provider === 'deepseek') {
+    url = 'https://api.deepseek.com/v1/chat/completions';
+    modelName = modelName || 'deepseek-chat';
+  } else {
+    const base = settings.baseUrl.replace(/\/+$/, '');
+    url = `${base}/chat/completions`;
+    modelName = modelName || 'deepseek-chat';
+  }
+
+  const systemInstruction = getSystemInstruction();
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${settings.apiKey}`
+    },
+    body: JSON.stringify({
+      model: modelName,
+      messages: [
+        { role: 'system', content: systemInstruction },
+        { role: 'user', content: userMsg }
+      ],
+      response_format: {
+        type: 'json_object'
+      },
+      temperature: 0.1
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`AI API 請求失敗 (HTTP ${response.status}): ${errorText}`);
+  }
+
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content;
+  if (!text) throw new Error("無效的 API 回應");
+
+  return JSON.parse(text);
+}
+
 function executeAgentActions(actions) {
   for (const action of actions) {
     try {

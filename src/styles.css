@@ -988,6 +988,28 @@ html, body {
   to { transform: translateY(0); opacity: 1; }
 }
 
+.chat-settings__field {
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chat-settings__label {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.chat-settings__select {
+  padding: 6px 10px;
+  font-size: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  outline: none;
+}
+
 .chat-settings__desc {
   color: var(--color-text-muted);
   line-height: 1.5;
