@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>資料校驗預覽 — 心理治療師地點</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, "PingFang TC", sans-serif; display: flex; height: 100vh; }
+    #sidebar { width: 380px; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
+    #sidebar header { background: #2c6e7f; color: #fff; padding: 12px 16px; }
+    #sidebar header h1 { font-size: 15px; font-weight: 600; }
+    #sidebar header p { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+    #list { flex: 1; overflow-y: auto; }
+    .item { padding: 10px 14px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 13px; }
+    .item:hover { background: #f0f4f5; }
+    .item.active { background: #e8f2f4; }
+    .item.warn { background: #fff8e1; }
+    .item .name { font-weight: 600; }
+    .item .addr { color: #666; font-size: 12px; margin-top: 2px; }
+    .item .coord { color: #2c6e7f; font-size: 11px; margin-top: 2px; }
+    .item .nocoord { color: #d97706; font-size: 11px; margin-top: 2px; font-weight: 600; }
+    #footer { padding: 10px 14px; border-top: 1px solid #ddd; font-size: 11px; background: #f7f9fa; }
+    #footer textarea { width: 100%; height: 60px; font-size: 11px; margin-top: 6px; }
+    #footer button { padding: 6px 12px; background: #2c6e7f; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    #map { flex: 1; height: 100%; }
+    .stats { font-size: 12px; padding: 8px 14px; background: #f7f9fa; border-bottom: 1px solid #eee; }
+    .edit-row { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
+    .edit-row input { width: 90px; font-size: 11px; padding: 3px 6px; border: 1px solid #ccc; border-radius: 3px; }
+    .edit-row button { font-size: 11px; padding: 3px 8px; }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <header>
+      <h1>📍 資料校驗預覽</h1>
+      <p>核對每個地點座標是否準確，可手動修正後複製座標。</p>
+    </header>
+    <div class="stats" id="stats"></div>
+    <div id="list"></div>
+    <div id="footer">
+      <div>💡 點擊地圖任意處可取得該點座標，再貼到下方編輯框修正某地點。</div>
+      <textarea id="output" placeholder="修正後的座標會顯示在這裡（格式：locId,lng,lat）"></textarea>
+      <button onclick="copyOutput()">📋 複製修正結果</button>
+    </div>
+  </div>
+  <div id="map"></div>
+
+  <!-- 高德 JS API：在此填入你的 key -->
+  <script src="https://webapi.amap.com/maps?v=2.0&key=YOUR_AMAP_JSAPI_KEY"></script>
+  <script>
+    // ========== 載入 data.json ==========
+    let data = null;
+    let map = null;
+    let markers = {};
+    let activeId = null;
+    let clickLngLat = null;
+
+    async function loadData() {
+      const res = await fetch('../data/data.json');
+      data = await res.json();
+      initMap();
+      renderList();
+    }
+
+    function initMap() {
+      map = new AMap.Map('map', {
+        zoom: 12.5,
+        center: [113.548, 22.161],
+        resizeEnable: true,
+      });
+
+      // 點擊地圖取得座標（用於人工修正）
+      map.on('click', (e) => {
+        clickLngLat = [e.lnglat.getLng(), e.lnglat.getLat()];
+        const out = document.getElementById('output');
+        if (activeId) {
+          out.value = `${activeId},${clickLngLat[0].toFixed(6)},${clickLngLat[1].toFixed(6)}`;
+        } else {
+          out.value = `（請先在左側選一個地點，再點擊地圖設定座標）\n點擊座標: ${clickLngLat[0].toFixed(6)},${clickLngLat[1].toFixed(6)}`;
+        }
+      });
+
+      // 為每個有座標的地點建 marker
+      const colors = {
+        hospital: '#d64545', med_center: '#e8893a', psych_center: '#2c6e7f',
+        social: '#5b8c5a', university: '#7a5ca0', gov: '#6b7280', other: '#9ca3af',
+      };
+      data.locations.forEach(loc => {
+        if (loc.lng == null || loc.lat == null) return;
+        const m = new AMap.Marker({
+          position: [loc.lng, loc.lat],
+          map,
+          title: loc.name,
+          icon: makeDotIcon(colors[loc.category] || '#9ca3af'),
+        });
+        m.on('click', () => selectLocation(loc.id));
+        markers[loc.id] = m;
+      });
+    }
+
+    function makeDotIcon(color) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="8" fill="${color}" stroke="#fff" stroke-width="2"/></svg>`;
+      return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+    }
+
+    function renderList() {
+      const list = document.getElementById('list');
+      const stats = document.getElementById('stats');
+      const total = data.locations.length;
+      const geocoded = data.locations.filter(l => l.lng != null).length;
+      stats.textContent = `地點總數: ${total} ｜ 已定位: ${geocoded} ｜ 待定位: ${total - geocoded}`;
+
+      list.innerHTML = '';
+      data.locations.forEach(loc => {
+        const div = document.createElement('div');
+        div.className = 'item' + (loc.lng == null ? ' warn' : '');
+        div.dataset.id = loc.id;
+        div.innerHTML = `
+          <div class="name">${loc.name}</div>
+          <div class="addr">${loc.addressZh || '（無地址）'}</div>
+          ${loc.lng != null
+            ? `<div class="coord">📍 ${loc.lng}, ${loc.lat}</div>`
+            : `<div class="nocoord">⚠ 缺座標，點擊此地圖位置取得座標後修正</div>`}
+        `;
+        div.onclick = () => selectLocation(loc.id);
+        list.appendChild(div);
+      });
+    }
+
+    function selectLocation(id) {
+      activeId = id;
+      document.querySelectorAll('.item').forEach(el => {
+        el.classList.toggle('active', el.dataset.id === id);
+      });
+      const loc = data.locations.find(l => l.id === id);
+      if (loc && loc.lng != null) {
+        map.setZoomAndCenter(16, [loc.lng, loc.lat]);
+      }
+      // 提示：現在點擊地圖會設定此地點的座標
+      if (loc && loc.lng == null) {
+        document.getElementById('output').value =
+          `已選取「${loc.name}」。請在地圖上點擊正確位置來設定座標。`;
+      }
+    }
+
+    function copyOutput() {
+      const out = document.getElementById('output');
+      out.select();
+      document.execCommand('copy');
+      alert('已複製！\n請將此修正結果交給 build 流程或手動更新 data.json');
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

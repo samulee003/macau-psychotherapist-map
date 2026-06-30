@@ -1,0 +1,1496 @@
+{
+  "meta": {
+    "description": "澳門註冊心理治療師執業地點分布",
+    "source": "澳門衛生局牌照註冊資料查詢網頁",
+    "sourceUrl": "https://www.ssm.gov.mo/pubssmweb/Utlap/frmUtlapLic.aspx?licode=11&t=",
+    "officialSource": "澳門特別行政區政府衛生局 — 從事私人醫務活動專業人員名冊",
+    "officialSourceUrl": "https://www.ssm.gov.mo/pubssmweb/register/frmShowRegister.aspx",
+    "collectedAt": "2026-06-30",
+    "scrapedAt": "2026-06-30 16:49:21",
+    "note": "資料直接採集自衛生局官方登記系統。最新資訊請以官方為準。",
+    "disclaimer": "本網站非官方機構，資料可能有延遲或不完整，不構成任何醫療建議或轉介。",
+    "stats": {
+      "therapists": 90,
+      "locations": 41,
+      "practices": 108
+    }
+  },
+  "therapists": [
+    {
+      "id": "T_be324e50",
+      "licenseNo": "PI-0001",
+      "nameZh": "施文安",
+      "nameEn": "ANTÓNIO AUGUSTO SIMÕES",
+      "status": "有效"
+    },
+    {
+      "id": "T_f71f0eaf",
+      "licenseNo": "PI-0002",
+      "nameZh": "陳彩霞",
+      "nameEn": "CHAN CHOI HA",
+      "status": "有效"
+    },
+    {
+      "id": "T_6f3b2557",
+      "licenseNo": "PI-0003",
+      "nameZh": "謝嘉怡",
+      "nameEn": "CHE KA I",
+      "status": "有效"
+    },
+    {
+      "id": "T_e030fbb3",
+      "licenseNo": "PI-0004",
+      "nameZh": "謝嘉路",
+      "nameEn": "CHE KA LOU",
+      "status": "有效"
+    },
+    {
+      "id": "T_74452a3e",
+      "licenseNo": "PI-0005",
+      "nameZh": "鄭曉欣",
+      "nameEn": "CHEANG HIO IAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_38112302",
+      "licenseNo": "PI-0006",
+      "nameZh": "鄭雪影",
+      "nameEn": "CHEANG SUT IENG",
+      "status": "有效"
+    },
+    {
+      "id": "T_9cd74faa",
+      "licenseNo": "PI-0007",
+      "nameZh": "鄭德雯",
+      "nameEn": "CHIANG TAK MAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_31ae5ba0",
+      "licenseNo": "PI-0008",
+      "nameZh": "趙必凱",
+      "nameEn": "CHIO PIT HOI",
+      "status": "有效"
+    },
+    {
+      "id": "T_929b032c",
+      "licenseNo": "PI-0009",
+      "nameZh": "蔡嘉敏",
+      "nameEn": "CHOI KA MAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_8d73e2f4",
+      "licenseNo": "PI-0010",
+      "nameZh": "朱俊波",
+      "nameEn": "CHU CHON PO",
+      "status": "有效"
+    },
+    {
+      "id": "T_c982e306",
+      "licenseNo": "PI-0011",
+      "nameZh": "何碧筠",
+      "nameEn": "HO PEK KUAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_cc19225c",
+      "licenseNo": "PI-0012",
+      "nameZh": "林珈汶",
+      "nameEn": "LAM KA MAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_0a212b99",
+      "licenseNo": "PI-0013",
+      "nameZh": "梁仲慈",
+      "nameEn": "LEONG CHONG CHI",
+      "status": "有效"
+    },
+    {
+      "id": "T_ddac124e",
+      "licenseNo": "PI-0014",
+      "nameZh": "梁嘉蒨",
+      "nameEn": "LEONG KA SIN",
+      "status": "有效"
+    },
+    {
+      "id": "T_474406b0",
+      "licenseNo": "PI-0015",
+      "nameZh": "羅敏珊",
+      "nameEn": "LO MAN SAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_8b5d7593",
+      "licenseNo": "PI-0016",
+      "nameZh": "羅韻芝",
+      "nameEn": "LO WAN CHI",
+      "status": "有效"
+    },
+    {
+      "id": "T_460cb5c7",
+      "licenseNo": "PI-0017",
+      "nameZh": "彭詠思",
+      "nameEn": "PANG WENG SI",
+      "status": "有效"
+    },
+    {
+      "id": "T_944979ef",
+      "licenseNo": "PI-0018",
+      "nameZh": "潘綺雯",
+      "nameEn": "PUN I MAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_3abacc44",
+      "licenseNo": "PI-0019",
+      "nameZh": "譚文欣",
+      "nameEn": "TAM MAN IAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_9dfda662",
+      "licenseNo": "PI-0020",
+      "nameZh": "唐小瑩",
+      "nameEn": "TONG SIO IENG",
+      "status": "有效"
+    },
+    {
+      "id": "T_775fbe9a",
+      "licenseNo": "PI-0021",
+      "nameZh": "湯達成",
+      "nameEn": "TONG TAT SENG",
+      "status": "有效"
+    },
+    {
+      "id": "T_e08eb0bf",
+      "licenseNo": "PI-0022",
+      "nameZh": "黃思捷",
+      "nameEn": "WONG SI CHIT",
+      "status": "有效"
+    },
+    {
+      "id": "T_dd109055",
+      "licenseNo": "PI-0023",
+      "nameZh": "黃煒琪",
+      "nameEn": "WONG WAI KEI",
+      "status": "有效"
+    },
+    {
+      "id": "T_3de75a7d",
+      "licenseNo": "PI-0024",
+      "nameZh": "余慧中",
+      "nameEn": "YU WAI CHUNG",
+      "status": "有效"
+    },
+    {
+      "id": "T_c721dbc8",
+      "licenseNo": "PI-0025",
+      "nameZh": "歐穎茵",
+      "nameEn": "AO WENG IAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_840e6fb2",
+      "licenseNo": "PI-0026",
+      "nameZh": "畢詩銘",
+      "nameEn": "BUTT SI MENG",
+      "status": "有效"
+    },
+    {
+      "id": "T_807c8449",
+      "licenseNo": "PI-0028",
+      "nameZh": "陳艷鳳",
+      "nameEn": "CHAN IM FONG",
+      "status": "有效"
+    },
+    {
+      "id": "T_113f3d43",
+      "licenseNo": "PI-0029",
+      "nameZh": "陳立文",
+      "nameEn": "CHAN LAP MAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_0512bc68",
+      "licenseNo": "PI-0030",
+      "nameZh": "陳雪盈",
+      "nameEn": "CHAN SUET YING",
+      "status": "有效"
+    },
+    {
+      "id": "T_c7f6e9a0",
+      "licenseNo": "PI-0031",
+      "nameZh": "曾小雅",
+      "nameEn": "CHANG SIO NGA",
+      "status": "有效"
+    },
+    {
+      "id": "T_d19dbb53",
+      "licenseNo": "PI-0032",
+      "nameZh": "曾蔚然",
+      "nameEn": "CHANG WAI IN",
+      "status": "有效"
+    },
+    {
+      "id": "T_50f2f507",
+      "licenseNo": "PI-0033",
+      "nameZh": "周佩儀",
+      "nameEn": "CHAO PUI I",
+      "status": "有效"
+    },
+    {
+      "id": "T_ba096c2d",
+      "licenseNo": "PI-0034",
+      "nameZh": "周碧潾",
+      "nameEn": "CHAU PEK LON MINNA",
+      "status": "有效"
+    },
+    {
+      "id": "T_9e1a3fc9",
+      "licenseNo": "PI-0036",
+      "nameZh": "鄭佩燕",
+      "nameEn": "CHEANG PUI IN",
+      "status": "有效"
+    },
+    {
+      "id": "T_11d40778",
+      "licenseNo": "PI-0037",
+      "nameZh": "蔣政欣",
+      "nameEn": "CHEONG CHENG IAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_9e55862e",
+      "licenseNo": "PI-0038",
+      "nameZh": "鄭健廷",
+      "nameEn": "CHIANG KIN TENG",
+      "status": "有效"
+    },
+    {
+      "id": "T_1a4b4c4f",
+      "licenseNo": "PI-0039",
+      "nameZh": "陳詠芝",
+      "nameEn": "CINTIA CHAN DE NORONHA",
+      "status": "有效"
+    },
+    {
+      "id": "T_cb46b9fb",
+      "licenseNo": "PI-0041",
+      "nameZh": "鍾曉嵐",
+      "nameEn": "CHONG FLORENÇA",
+      "status": "有效"
+    },
+    {
+      "id": "T_1e01cffd",
+      "licenseNo": "PI-0042",
+      "nameZh": "馮正安",
+      "nameEn": "FONG CHENG ON",
+      "status": "有效"
+    },
+    {
+      "id": "T_ff82aca0",
+      "licenseNo": "PI-0043",
+      "nameZh": "馮嘉恩",
+      "nameEn": "FONG KA IAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_7ce75258",
+      "licenseNo": "PI-0044",
+      "nameZh": "許晴茵",
+      "nameEn": "HOI CHENG IAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_da660f7e",
+      "licenseNo": "PI-0045",
+      "nameZh": "惠筠",
+      "nameEn": "HUI YUN",
+      "status": "有效"
+    },
+    {
+      "id": "T_e7ee6bac",
+      "licenseNo": "PI-0046",
+      "nameZh": "姚琳",
+      "nameEn": "IO LAM",
+      "status": "有效"
+    },
+    {
+      "id": "T_627b9b2c",
+      "licenseNo": "PI-0047",
+      "nameZh": "葉子豪",
+      "nameEn": "IP CHI HOU",
+      "status": "有效"
+    },
+    {
+      "id": "T_4216d5d4",
+      "licenseNo": "PI-0048",
+      "nameZh": "葉康妮",
+      "nameEn": "IP HONG NEI",
+      "status": "有效"
+    },
+    {
+      "id": "T_b726532f",
+      "licenseNo": "PI-0049",
+      "nameZh": "林幗怡",
+      "nameEn": "IRIS LAM",
+      "status": "有效"
+    },
+    {
+      "id": "T_391a07d0",
+      "licenseNo": "PI-0050",
+      "nameZh": "袁嘉浚",
+      "nameEn": "YUEN JOEL ARCÁDIO",
+      "status": "有效"
+    },
+    {
+      "id": "T_3043235f",
+      "licenseNo": "PI-0052",
+      "nameZh": "林麗芳",
+      "nameEn": "LAM LAI FONG",
+      "status": "有效"
+    },
+    {
+      "id": "T_55df53d3",
+      "licenseNo": "PI-0053",
+      "nameZh": "林詠欣",
+      "nameEn": "LAM WENG IAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_2131a6a1",
+      "licenseNo": "PI-0054",
+      "nameZh": "林逸姿",
+      "nameEn": "LAM YAT CHI",
+      "status": "有效"
+    },
+    {
+      "id": "T_e8e54759",
+      "licenseNo": "PI-0055",
+      "nameZh": "劉振峰",
+      "nameEn": "LAO CHAN FONG",
+      "status": "有效"
+    },
+    {
+      "id": "T_aa800b5e",
+      "licenseNo": "PI-0056",
+      "nameZh": "劉欣亮",
+      "nameEn": "LAO IAN LEONG",
+      "status": "有效"
+    },
+    {
+      "id": "T_502c4a0d",
+      "licenseNo": "PI-0057",
+      "nameZh": "劉靖",
+      "nameEn": "LAU CHING",
+      "status": "有效"
+    },
+    {
+      "id": "T_828c5cbe",
+      "licenseNo": "PI-0058",
+      "nameZh": "李海豐",
+      "nameEn": "LEI HOI FONG",
+      "status": "有效"
+    },
+    {
+      "id": "T_83645d77",
+      "licenseNo": "PI-0059",
+      "nameZh": "李雯慧",
+      "nameEn": "LEI MAN WAI",
+      "status": "有效"
+    },
+    {
+      "id": "T_0ea834d8",
+      "licenseNo": "PI-0060",
+      "nameZh": "李沛怡",
+      "nameEn": "LEI PUI I",
+      "status": "有效"
+    },
+    {
+      "id": "T_25a60594",
+      "licenseNo": "PI-0061",
+      "nameZh": "李昇恆",
+      "nameEn": "LEI SENG HANG",
+      "status": "有效"
+    },
+    {
+      "id": "T_9b37d738",
+      "licenseNo": "PI-0062",
+      "nameZh": "梁彩虹",
+      "nameEn": "LEONG CHOI HONG",
+      "status": "有效"
+    },
+    {
+      "id": "T_b39e1e7f",
+      "licenseNo": "PI-0063",
+      "nameZh": "梁家俊",
+      "nameEn": "LEONG KA CHON",
+      "status": "有效"
+    },
+    {
+      "id": "T_8cb67320",
+      "licenseNo": "PI-0064",
+      "nameZh": "梁永耀",
+      "nameEn": "LEONG WENG IO",
+      "status": "有效"
+    },
+    {
+      "id": "T_385b53cb",
+      "licenseNo": "PI-0065",
+      "nameZh": "林芳漪",
+      "nameEn": "LIN FANG YI",
+      "status": "有效"
+    },
+    {
+      "id": "T_5ef842ca",
+      "licenseNo": "PI-0066",
+      "nameZh": "陸珍妮",
+      "nameEn": "LOK CHAN NEI",
+      "status": "有效"
+    },
+    {
+      "id": "T_20b57095",
+      "licenseNo": "PI-0067",
+      "nameZh": "陸嘉洋",
+      "nameEn": "LOK KA IEONG",
+      "status": "有效"
+    },
+    {
+      "id": "T_47a0d11a",
+      "licenseNo": "PI-0068",
+      "nameZh": "盧佳慧",
+      "nameEn": "LU CHIA HUI",
+      "status": "有效"
+    },
+    {
+      "id": "T_11d2f0c2",
+      "licenseNo": "PI-0069",
+      "nameZh": "高諾明",
+      "nameEn": "NUNO MIGUEL ALVES DOS SANTOS TEIXEIRA GOMES",
+      "status": "有效"
+    },
+    {
+      "id": "T_9ddcce8d",
+      "licenseNo": "PI-0070",
+      "nameZh": "柯瑞煌",
+      "nameEn": "O SOI WONG",
+      "status": "有效"
+    },
+    {
+      "id": "T_755cec06",
+      "licenseNo": "PI-0071",
+      "nameZh": "鄭莎莉",
+      "nameEn": "SARA VIOLETA DAS NEVES CHIANG",
+      "status": "有效"
+    },
+    {
+      "id": "T_d7587e56",
+      "licenseNo": "PI-0072",
+      "nameZh": "薛巧鳳",
+      "nameEn": "SIT HAO FONG",
+      "status": "有效"
+    },
+    {
+      "id": "T_6a6fa973",
+      "licenseNo": "PI-0073",
+      "nameZh": "薛文彦",
+      "nameEn": "SIT MAN IN",
+      "status": "有效"
+    },
+    {
+      "id": "T_0cb4327b",
+      "licenseNo": "PI-0074",
+      "nameZh": "蘇桂龍",
+      "nameEn": "SOU KUAI LONG",
+      "status": "有效"
+    },
+    {
+      "id": "T_5bb31fc0",
+      "licenseNo": "PI-0075",
+      "nameZh": "譚海山",
+      "nameEn": "TAM HOI SAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_3811de0f",
+      "licenseNo": "PI-0076",
+      "nameZh": "鄧兆佳",
+      "nameEn": "TANG SIO KAI",
+      "status": "有效"
+    },
+    {
+      "id": "T_4a9fb69f",
+      "licenseNo": "PI-0077",
+      "nameZh": "黃詠雯",
+      "nameEn": "VONG WENG MAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_89ac825f",
+      "licenseNo": "PI-0078",
+      "nameZh": "黃子澄",
+      "nameEn": "WONG CHI CHENG",
+      "status": "有效"
+    },
+    {
+      "id": "T_f1e211f5",
+      "licenseNo": "PI-0079",
+      "nameZh": "王覓",
+      "nameEn": "WONG MEK",
+      "status": "有效"
+    },
+    {
+      "id": "T_24badf3a",
+      "licenseNo": "PI-0080",
+      "nameZh": "黃偉鴻",
+      "nameEn": "WONG WAI HONG",
+      "status": "有效"
+    },
+    {
+      "id": "T_993c1e38",
+      "licenseNo": "PI-0081",
+      "nameZh": "黃薇",
+      "nameEn": "HUANG WEI",
+      "status": "有效"
+    },
+    {
+      "id": "T_14196fbb",
+      "licenseNo": "PI-0082",
+      "nameZh": "梁浩邦",
+      "nameEn": "LEONG HOU PONG",
+      "status": "有效"
+    },
+    {
+      "id": "T_142ffbad",
+      "licenseNo": "PI-0083",
+      "nameZh": "馬柏芝",
+      "nameEn": "MA PAK CHI",
+      "status": "有效"
+    },
+    {
+      "id": "T_a4085aa0",
+      "licenseNo": "PI-0084",
+      "nameZh": "謝佩珊",
+      "nameEn": "TSE PUI SAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_4f3004f4",
+      "licenseNo": "PI-0085",
+      "nameZh": "ANGELA DESIREE YAO",
+      "nameEn": "",
+      "status": "有效"
+    },
+    {
+      "id": "T_43ca7bf1",
+      "licenseNo": "PI-0086",
+      "nameZh": "陳雨盈",
+      "nameEn": "CHAN U IENG",
+      "status": "有效"
+    },
+    {
+      "id": "T_a7157238",
+      "licenseNo": "PI-0087",
+      "nameZh": "陳惠芬",
+      "nameEn": "CHAN WAI FAN",
+      "status": "有效"
+    },
+    {
+      "id": "T_5b30e3d2",
+      "licenseNo": "PI-0088",
+      "nameZh": "張啓希",
+      "nameEn": "CHEONG KAI HEI",
+      "status": "有效"
+    },
+    {
+      "id": "T_3a00a461",
+      "licenseNo": "PI-0089",
+      "nameZh": "何淑賢",
+      "nameEn": "HO SOK IN",
+      "status": "有效"
+    },
+    {
+      "id": "T_81b5d6b2",
+      "licenseNo": "PI-0090",
+      "nameZh": "黃綺婷",
+      "nameEn": "VONG I TENG",
+      "status": "有效"
+    },
+    {
+      "id": "T_d3f3755c",
+      "licenseNo": "PI-0091",
+      "nameZh": "劉嘉碧",
+      "nameEn": "LAO KA PEK",
+      "status": "有效"
+    },
+    {
+      "id": "T_3472f453",
+      "licenseNo": "PI-0092",
+      "nameZh": "黃安麟",
+      "nameEn": "WONG ON LON",
+      "status": "有效"
+    },
+    {
+      "id": "T_863987fe",
+      "licenseNo": "PI-0093",
+      "nameZh": "卓曉清",
+      "nameEn": "CHEOK HIO CHENG",
+      "status": "有效"
+    },
+    {
+      "id": "T_1155e3af",
+      "licenseNo": "PI-0094",
+      "nameZh": "張艷倩",
+      "nameEn": "CHEONG IM SIN",
+      "status": "有效"
+    }
+  ],
+  "locations": [
+    {
+      "id": "loc_a641d7f0",
+      "name": "澳門公共醫療機構",
+      "addressZh": "澳門若憲馬路339號",
+      "category": "gov",
+      "phone": "",
+      "hours": "",
+      "lng": 113.5467,
+      "lat": 22.1942
+    },
+    {
+      "id": "loc_38b0d60d",
+      "name": "培甯心理治療中心",
+      "addressZh": "澳門亞卑寮奴你士街(荷蘭園二馬路)6號友聯大廈1G",
+      "category": "psych_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.551245,
+      "lat": 22.193631
+    },
+    {
+      "id": "loc_abf52428",
+      "name": "澳門大學",
+      "addressZh": "澳門氹仔大學大馬路澳門大學學生活動中心二樓2009-g室",
+      "category": "university",
+      "phone": "",
+      "hours": "",
+      "lng": 113.54694,
+      "lat": 22.12542
+    },
+    {
+      "id": "loc_249ffe3d",
+      "name": "上膳堂文心醫療中心",
+      "addressZh": "澳門青洲街173-175號宏建大廈第八座地下A座",
+      "category": "med_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.548007,
+      "lat": 22.206194
+    },
+    {
+      "id": "loc_3b801cdb",
+      "name": "鏡湖醫院",
+      "addressZh": "澳門鏡湖馬路33、33A、33B、33C 及35 號",
+      "category": "hospital",
+      "phone": "",
+      "hours": "",
+      "lng": 113.548762,
+      "lat": 22.198107
+    },
+    {
+      "id": "loc_960ae886",
+      "name": "婦聯心理治療中心",
+      "addressZh": "澳門渡船街27-C號澳門婦女聯合總會C座1樓",
+      "category": "social",
+      "phone": "",
+      "hours": "",
+      "lng": 113.548795,
+      "lat": 22.199564
+    },
+    {
+      "id": "loc_fce73103",
+      "name": "悅行治療中心",
+      "addressZh": "澳門殷皇子大馬路47號澳門廣場21樓E座",
+      "category": "psych_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.546499,
+      "lat": 22.188347
+    },
+    {
+      "id": "loc_0b387558",
+      "name": "敏德醫療中心",
+      "addressZh": "澳門殷皇子大馬路62號中央商業中心A18",
+      "category": "med_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.54657,
+      "lat": 22.189314
+    },
+    {
+      "id": "loc_5e184744",
+      "name": "心藥繫心綜合診療所",
+      "addressZh": "澳門巴掌圍斜巷19號南粵商業中心8樓D",
+      "category": "psych_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.54405,
+      "lat": 22.188206
+    },
+    {
+      "id": "loc_7528db64",
+      "name": "澳門基督教新生命團契-薈穗社",
+      "addressZh": "澳門俾利喇街163至165B號美林花園第一座2樓",
+      "category": "social",
+      "phone": "",
+      "hours": "",
+      "lng": 113.554911,
+      "lat": 22.203607
+    },
+    {
+      "id": "loc_8dd2cc09",
+      "name": "誠德醫療中心",
+      "addressZh": "澳門俾若翰街(筷子基北街)367號綠楊花園第一及二座(利康、利泰閣)地下J座",
+      "category": "med_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.546557,
+      "lat": 22.204354
+    },
+    {
+      "id": "loc_d2975f6e",
+      "name": "澳門特奧兒童SO FUN室",
+      "addressZh": "澳門宋玉生廣場258號建興龍廣場5樓A室",
+      "category": "social",
+      "phone": "",
+      "hours": "",
+      "lng": 113.556417,
+      "lat": 22.186299
+    },
+    {
+      "id": "loc_5a5ee82f",
+      "name": "愛康醫療中心",
+      "addressZh": "澳門爹利仙拿姑娘街35A號照麗安大廈B座",
+      "category": "med_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.549298,
+      "lat": 22.199105
+    },
+    {
+      "id": "loc_31a8d417",
+      "name": "逸心心理治療中心",
+      "addressZh": "澳門水坑尾巷14-A號啓富大廈地下A座",
+      "category": "psych_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.549164,
+      "lat": 22.192837
+    },
+    {
+      "id": "loc_44763150",
+      "name": "華暉康復綜合服務中心",
+      "addressZh": "澳門俾利喇街望廈社屋望德樓二樓A2",
+      "category": "social",
+      "phone": "",
+      "hours": "",
+      "lng": 113.549761,
+      "lat": 22.193754
+    },
+    {
+      "id": "loc_384bfbb3",
+      "name": "聖路濟亞中心",
+      "addressZh": "澳門路環九澳聖母馬路",
+      "category": "social",
+      "phone": "",
+      "hours": "",
+      "lng": 113.58713,
+      "lat": 22.129925
+    },
+    {
+      "id": "loc_12bc587f",
+      "name": "聖瑪嘉烈中心",
+      "addressZh": "澳門氹仔卓家村天津街",
+      "category": "social",
+      "phone": "",
+      "hours": "",
+      "lng": 113.562493,
+      "lat": 22.159458
+    },
+    {
+      "id": "loc_a4c883e6",
+      "name": "聖類斯公撒格之家",
+      "addressZh": "澳門氹仔卓家村天津街",
+      "category": "social",
+      "phone": "",
+      "hours": "",
+      "lng": 113.562493,
+      "lat": 22.159458
+    },
+    {
+      "id": "loc_36676bc1",
+      "name": "主教山兒童中心",
+      "addressZh": "澳門鮑公馬路22號",
+      "category": "social",
+      "phone": "",
+      "hours": "",
+      "lng": 113.538269,
+      "lat": 22.183373
+    },
+    {
+      "id": "loc_771d5e0d",
+      "name": "仁誠醫療中心",
+      "addressZh": "澳門高地烏巷31-33號富麗苑地下N座",
+      "category": "med_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.554234,
+      "lat": 22.200953
+    },
+    {
+      "id": "loc_a0cee104",
+      "name": "泰迪治療中心",
+      "addressZh": "澳門畢士達大馬路26 - 54-B號中福商業中心G16",
+      "category": "psych_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.55925,
+      "lat": 22.191963
+    },
+    {
+      "id": "loc_2d1ca7e7",
+      "name": "市政署",
+      "addressZh": "澳門東方斜巷12-14號東方中心3樓B座",
+      "category": "gov",
+      "phone": "",
+      "hours": "",
+      "lng": 113.544213,
+      "lat": 22.19018
+    },
+    {
+      "id": "loc_943a6d88",
+      "name": "楊金桃醫療中心",
+      "addressZh": "澳門高士德大馬路3-C號高士德花園地下M座",
+      "category": "med_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.554456,
+      "lat": 22.197615
+    },
+    {
+      "id": "loc_73a98ab4",
+      "name": "誠峰醫療中心",
+      "addressZh": "澳門南灣大馬路599號羅德禮商業大廈13樓A座",
+      "category": "med_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.546141,
+      "lat": 22.189966
+    },
+    {
+      "id": "loc_4b09d36b",
+      "name": "德星醫療中心",
+      "addressZh": "澳門殷皇子大馬路47號澳門廣場C21",
+      "category": "med_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.546499,
+      "lat": 22.188347
+    },
+    {
+      "id": "loc_1ee10c01",
+      "name": "澳門銀葵醫院",
+      "addressZh": "澳門蘇亞利斯博士大馬路320號澳門財富中心2樓及3樓、4樓B及C座",
+      "category": "hospital",
+      "phone": "",
+      "hours": "",
+      "lng": 113.546692,
+      "lat": 22.187398
+    },
+    {
+      "id": "loc_84079594",
+      "name": "環宇醫療中心",
+      "addressZh": "澳門氹仔大連街389號寶龍花園地下I座",
+      "category": "med_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.56237,
+      "lat": 22.156257
+    },
+    {
+      "id": "loc_4dca13a1",
+      "name": "盈栢醫療中心",
+      "addressZh": "澳門南灣大馬路599號羅德禮商業大廈4樓C座及D座",
+      "category": "med_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.546141,
+      "lat": 22.189966
+    },
+    {
+      "id": "loc_2d98277d",
+      "name": "澳門街坊會聯合總會綜合診療中心",
+      "addressZh": "澳門台山白朗古將軍大馬路(街總社區服務大樓地下)",
+      "category": "social",
+      "phone": "",
+      "hours": "",
+      "lng": 113.5495,
+      "lat": 22.207642
+    },
+    {
+      "id": "loc_34f33f95",
+      "name": "百和綜合診所",
+      "addressZh": "澳門祐漢新村第四街73號黃金商場閣樓BG座",
+      "category": "med_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.555623,
+      "lat": 22.208319
+    },
+    {
+      "id": "loc_cf3494b1",
+      "name": "旭日中心",
+      "addressZh": "澳門黑沙環新街廣華新邨第十五座一樓",
+      "category": "social",
+      "phone": "",
+      "hours": "",
+      "lng": 113.562057,
+      "lat": 22.204049
+    },
+    {
+      "id": "loc_759806cf",
+      "name": "澳門扶康會怡樂軒",
+      "addressZh": "澳門菜園路458-C號永添新邨第二座地下",
+      "category": "social",
+      "phone": "",
+      "hours": "",
+      "lng": 113.557974,
+      "lat": 22.208507
+    },
+    {
+      "id": "loc_a1e60e9a",
+      "name": "澳門中華新青年協會信和醫療中心",
+      "addressZh": "澳門蘭花前地246-250號信和廣場(第一座融和閣，第二座祥和閣，第三座盈和閣)地下W座",
+      "category": "social",
+      "phone": "",
+      "hours": "",
+      "lng": 113.547231,
+      "lat": 22.203415
+    },
+    {
+      "id": "loc_5409866d",
+      "name": "科進醫療中心",
+      "addressZh": "澳門南灣大馬路619號時代商業中心G7",
+      "category": "med_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.546864,
+      "lat": 22.189616
+    },
+    {
+      "id": "loc_9a9cb14e",
+      "name": "匯力綜合治療中心",
+      "addressZh": "澳門荷蘭園二馬路6號友聯大廈1樓E座",
+      "category": "psych_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.551245,
+      "lat": 22.193631
+    },
+    {
+      "id": "loc_e91b005c",
+      "name": "社會工作局",
+      "addressZh": "關閘馬路25號利達新邨第二期2樓",
+      "category": "gov",
+      "phone": "",
+      "hours": "",
+      "lng": 113.556531,
+      "lat": 22.204952
+    },
+    {
+      "id": "loc_5711d3d6",
+      "name": "仁德醫療中心",
+      "addressZh": "澳門孫逸仙大馬路1567號雙鑽(商業用途)地下R座",
+      "category": "med_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.557245,
+      "lat": 22.184091
+    },
+    {
+      "id": "loc_3c71f1d5",
+      "name": "寬樂身心健康服務中心",
+      "addressZh": "澳門路環石排灣社屋樂群樓第二座1樓E舖",
+      "category": "social",
+      "phone": "",
+      "hours": "",
+      "lng": 113.566937,
+      "lat": 22.126763
+    },
+    {
+      "id": "loc_21141842",
+      "name": "澳門扶康會青濤中心",
+      "addressZh": "澳門沙梨頭北街367-D號青濤大廈地下D及三樓",
+      "category": "social",
+      "phone": "",
+      "hours": "",
+      "lng": 113.545676,
+      "lat": 22.20785
+    },
+    {
+      "id": "loc_f2fd3fe1",
+      "name": "澳門寶康醫療中心",
+      "addressZh": "澳門高士德大馬路89-93號高士德商業中心2樓B座",
+      "category": "med_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.550026,
+      "lat": 22.201482
+    },
+    {
+      "id": "loc_189fe1c5",
+      "name": "辰醫療中心",
+      "addressZh": "澳門土地廟里3號地下D3座",
+      "category": "med_center",
+      "phone": "",
+      "hours": "",
+      "lng": 113.543076,
+      "lat": 22.186927
+    }
+  ],
+  "practices": [
+    {
+      "therapistId": "T_be324e50",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_f71f0eaf",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_6f3b2557",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_e030fbb3",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_74452a3e",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_38112302",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_9cd74faa",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_31ae5ba0",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_929b032c",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_8d73e2f4",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_c982e306",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_cc19225c",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_0a212b99",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_ddac124e",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_474406b0",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_8b5d7593",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_460cb5c7",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_944979ef",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_3abacc44",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_9dfda662",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_775fbe9a",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_e08eb0bf",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_dd109055",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_3de75a7d",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_c721dbc8",
+      "locationId": "loc_38b0d60d"
+    },
+    {
+      "therapistId": "T_840e6fb2",
+      "locationId": "loc_abf52428"
+    },
+    {
+      "therapistId": "T_807c8449",
+      "locationId": "loc_249ffe3d"
+    },
+    {
+      "therapistId": "T_113f3d43",
+      "locationId": "loc_3b801cdb"
+    },
+    {
+      "therapistId": "T_0512bc68",
+      "locationId": "loc_960ae886"
+    },
+    {
+      "therapistId": "T_c7f6e9a0",
+      "locationId": "loc_960ae886"
+    },
+    {
+      "therapistId": "T_d19dbb53",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_50f2f507",
+      "locationId": "loc_fce73103"
+    },
+    {
+      "therapistId": "T_ba096c2d",
+      "locationId": "loc_0b387558"
+    },
+    {
+      "therapistId": "T_9e1a3fc9",
+      "locationId": "loc_960ae886"
+    },
+    {
+      "therapistId": "T_11d40778",
+      "locationId": "loc_5e184744"
+    },
+    {
+      "therapistId": "T_9e55862e",
+      "locationId": "loc_7528db64"
+    },
+    {
+      "therapistId": "T_9e55862e",
+      "locationId": "loc_8dd2cc09"
+    },
+    {
+      "therapistId": "T_1a4b4c4f",
+      "locationId": "loc_d2975f6e"
+    },
+    {
+      "therapistId": "T_cb46b9fb",
+      "locationId": "loc_fce73103"
+    },
+    {
+      "therapistId": "T_cb46b9fb",
+      "locationId": "loc_5a5ee82f"
+    },
+    {
+      "therapistId": "T_1e01cffd",
+      "locationId": "loc_31a8d417"
+    },
+    {
+      "therapistId": "T_1e01cffd",
+      "locationId": "loc_44763150"
+    },
+    {
+      "therapistId": "T_1e01cffd",
+      "locationId": "loc_384bfbb3"
+    },
+    {
+      "therapistId": "T_1e01cffd",
+      "locationId": "loc_12bc587f"
+    },
+    {
+      "therapistId": "T_1e01cffd",
+      "locationId": "loc_a4c883e6"
+    },
+    {
+      "therapistId": "T_1e01cffd",
+      "locationId": "loc_36676bc1"
+    },
+    {
+      "therapistId": "T_ff82aca0",
+      "locationId": "loc_771d5e0d"
+    },
+    {
+      "therapistId": "T_7ce75258",
+      "locationId": "loc_a0cee104"
+    },
+    {
+      "therapistId": "T_da660f7e",
+      "locationId": "loc_38b0d60d"
+    },
+    {
+      "therapistId": "T_e7ee6bac",
+      "locationId": "loc_2d1ca7e7"
+    },
+    {
+      "therapistId": "T_627b9b2c",
+      "locationId": "loc_5a5ee82f"
+    },
+    {
+      "therapistId": "T_627b9b2c",
+      "locationId": "loc_943a6d88"
+    },
+    {
+      "therapistId": "T_627b9b2c",
+      "locationId": "loc_73a98ab4"
+    },
+    {
+      "therapistId": "T_4216d5d4",
+      "locationId": "loc_3b801cdb"
+    },
+    {
+      "therapistId": "T_b726532f",
+      "locationId": "loc_4b09d36b"
+    },
+    {
+      "therapistId": "T_391a07d0",
+      "locationId": "loc_771d5e0d"
+    },
+    {
+      "therapistId": "T_391a07d0",
+      "locationId": "loc_5e184744"
+    },
+    {
+      "therapistId": "T_391a07d0",
+      "locationId": "loc_960ae886"
+    },
+    {
+      "therapistId": "T_3043235f",
+      "locationId": "loc_1ee10c01"
+    },
+    {
+      "therapistId": "T_3043235f",
+      "locationId": "loc_84079594"
+    },
+    {
+      "therapistId": "T_55df53d3",
+      "locationId": "loc_960ae886"
+    },
+    {
+      "therapistId": "T_55df53d3",
+      "locationId": "loc_5e184744"
+    },
+    {
+      "therapistId": "T_55df53d3",
+      "locationId": "loc_31a8d417"
+    },
+    {
+      "therapistId": "T_2131a6a1",
+      "locationId": "loc_31a8d417"
+    },
+    {
+      "therapistId": "T_e8e54759",
+      "locationId": "loc_abf52428"
+    },
+    {
+      "therapistId": "T_aa800b5e",
+      "locationId": "loc_abf52428"
+    },
+    {
+      "therapistId": "T_502c4a0d",
+      "locationId": "loc_4dca13a1"
+    },
+    {
+      "therapistId": "T_828c5cbe",
+      "locationId": "loc_2d98277d"
+    },
+    {
+      "therapistId": "T_828c5cbe",
+      "locationId": "loc_771d5e0d"
+    },
+    {
+      "therapistId": "T_83645d77",
+      "locationId": "loc_34f33f95"
+    },
+    {
+      "therapistId": "T_83645d77",
+      "locationId": "loc_a0cee104"
+    },
+    {
+      "therapistId": "T_0ea834d8",
+      "locationId": "loc_cf3494b1"
+    },
+    {
+      "therapistId": "T_25a60594",
+      "locationId": "loc_abf52428"
+    },
+    {
+      "therapistId": "T_9b37d738",
+      "locationId": "loc_abf52428"
+    },
+    {
+      "therapistId": "T_b39e1e7f",
+      "locationId": "loc_759806cf"
+    },
+    {
+      "therapistId": "T_8cb67320",
+      "locationId": "loc_771d5e0d"
+    },
+    {
+      "therapistId": "T_385b53cb",
+      "locationId": "loc_38b0d60d"
+    },
+    {
+      "therapistId": "T_5ef842ca",
+      "locationId": "loc_a1e60e9a"
+    },
+    {
+      "therapistId": "T_20b57095",
+      "locationId": "loc_fce73103"
+    },
+    {
+      "therapistId": "T_47a0d11a",
+      "locationId": "loc_38b0d60d"
+    },
+    {
+      "therapistId": "T_11d2f0c2",
+      "locationId": "loc_5e184744"
+    },
+    {
+      "therapistId": "T_9ddcce8d",
+      "locationId": "loc_771d5e0d"
+    },
+    {
+      "therapistId": "T_755cec06",
+      "locationId": "loc_3b801cdb"
+    },
+    {
+      "therapistId": "T_d7587e56",
+      "locationId": "loc_771d5e0d"
+    },
+    {
+      "therapistId": "T_d7587e56",
+      "locationId": "loc_a1e60e9a"
+    },
+    {
+      "therapistId": "T_6a6fa973",
+      "locationId": "loc_38b0d60d"
+    },
+    {
+      "therapistId": "T_0cb4327b",
+      "locationId": "loc_abf52428"
+    },
+    {
+      "therapistId": "T_5bb31fc0",
+      "locationId": "loc_5e184744"
+    },
+    {
+      "therapistId": "T_3811de0f",
+      "locationId": "loc_0b387558"
+    },
+    {
+      "therapistId": "T_4a9fb69f",
+      "locationId": "loc_960ae886"
+    },
+    {
+      "therapistId": "T_89ac825f",
+      "locationId": "loc_38b0d60d"
+    },
+    {
+      "therapistId": "T_f1e211f5",
+      "locationId": "loc_abf52428"
+    },
+    {
+      "therapistId": "T_24badf3a",
+      "locationId": "loc_5409866d"
+    },
+    {
+      "therapistId": "T_993c1e38",
+      "locationId": "loc_9a9cb14e"
+    },
+    {
+      "therapistId": "T_14196fbb",
+      "locationId": "loc_38b0d60d"
+    },
+    {
+      "therapistId": "T_142ffbad",
+      "locationId": "loc_a641d7f0"
+    },
+    {
+      "therapistId": "T_a4085aa0",
+      "locationId": "loc_e91b005c"
+    },
+    {
+      "therapistId": "T_4f3004f4",
+      "locationId": "loc_5711d3d6"
+    },
+    {
+      "therapistId": "T_43ca7bf1",
+      "locationId": "loc_3c71f1d5"
+    },
+    {
+      "therapistId": "T_a7157238",
+      "locationId": "loc_960ae886"
+    },
+    {
+      "therapistId": "T_5b30e3d2",
+      "locationId": "loc_21141842"
+    },
+    {
+      "therapistId": "T_3a00a461",
+      "locationId": "loc_960ae886"
+    },
+    {
+      "therapistId": "T_81b5d6b2",
+      "locationId": "loc_f2fd3fe1"
+    },
+    {
+      "therapistId": "T_81b5d6b2",
+      "locationId": "loc_960ae886"
+    },
+    {
+      "therapistId": "T_d3f3755c",
+      "locationId": "loc_189fe1c5"
+    },
+    {
+      "therapistId": "T_3472f453",
+      "locationId": "loc_a1e60e9a"
+    },
+    {
+      "therapistId": "T_863987fe",
+      "locationId": "loc_a1e60e9a"
+    },
+    {
+      "therapistId": "T_1155e3af",
+      "locationId": "loc_38b0d60d"
+    }
+  ]
+}
