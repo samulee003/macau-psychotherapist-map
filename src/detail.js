@@ -16,7 +16,8 @@ export function showLocationDetail(loc, db) {
   if (!loc) return;
   const cat = CATEGORIES[loc.category] || CATEGORIES.other;
   const therapists = db.getTherapistsByLocation(loc.id);
-  const navUrl = buildNavUrl(loc);
+  const amapUrl = buildAmapNavUrl(loc);
+  const googleUrl = buildGoogleNavUrl(loc);
 
   const html = `
     <span class="detail__category" style="background:${cat.color}22;color:${cat.color}">
@@ -29,7 +30,8 @@ export function showLocationDetail(loc, db) {
     ${loc.hours ? row('時間', escapeHtml(loc.hours)) : ''}
 
     <div class="detail__actions">
-      ${navUrl ? `<a class="btn btn--primary" href="${navUrl}" target="_blank" rel="noopener">🧭 導航至此</a>` : ''}
+      ${amapUrl ? `<a class="btn btn--primary" href="${amapUrl}" target="_blank" rel="noopener">🧭 高德導航</a>` : ''}
+      ${googleUrl ? `<a class="btn btn--ghost" href="${googleUrl}" target="_blank" rel="noopener">🗺️ Google 地圖</a>` : ''}
       <button class="btn btn--ghost" id="copy-addr-btn">📋 複製地址</button>
     </div>
 
@@ -76,15 +78,27 @@ function row(label, value) {
 }
 
 /**
- * 構建高德導航 URI。有座標用座標導航，否則用地址。
- * 高德導航 scheme：androidamap://navi?... 或網頁版 uri.amap.com/navigation
+ * 構建高德導航 URI。
  */
-function buildNavUrl(loc) {
+function buildAmapNavUrl(loc) {
   if (loc.lng != null && loc.lat != null) {
     return `https://uri.amap.com/navigation?to=${loc.lng},${loc.lat},${encodeURIComponent(loc.name)}&mode=walk&coordinate=wgs84&callnative=1`;
   }
   if (loc.addressZh) {
     return `https://uri.amap.com/navigation?to=${encodeURIComponent(loc.addressZh)}&mode=walk&callnative=1`;
+  }
+  return '';
+}
+
+/**
+ * 構建 Google Maps 導航 URI。
+ */
+function buildGoogleNavUrl(loc) {
+  if (loc.lng != null && loc.lat != null) {
+    return `https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`;
+  }
+  if (loc.addressZh) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.addressZh)}`;
   }
   return '';
 }
