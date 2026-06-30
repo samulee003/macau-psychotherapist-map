@@ -83,13 +83,28 @@ function row(label, value) {
  * 導航時不能指定 coordinate=wgs84，否則高德會進行二次偏移導致導航不準。
  */
 function buildAmapNavUrl(loc) {
-  if (loc.lng != null && loc.lat != null) {
-    // 使用 marker 標記點頁面而非直接進入 navigation 路線規劃。
-    // 這樣在瀏覽器開啟時會精確定位並釘在澳門的位置，使用者點擊「路線」即可使用定位開始導航，避免了因沒有起點而預設定位到北京的問題。
-    return `https://uri.amap.com/marker?position=${loc.lng},${loc.lat}&name=${encodeURIComponent(loc.name)}&coordinate=gcj02&callnative=1`;
-  }
-  if (loc.addressZh) {
-    return `https://uri.amap.com/search?query=${encodeURIComponent('澳門 ' + loc.name)}`;
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  if (isMobile) {
+    if (loc.lng != null && loc.lat != null) {
+      // 行動端：使用 marker 標記點 URI，可自動調起高德地圖原生 App
+      return `https://uri.amap.com/marker?position=${loc.lng},${loc.lat}&name=${encodeURIComponent(loc.name)}&coordinate=gcj02&callnative=1`;
+    }
+    if (loc.addressZh) {
+      return `https://uri.amap.com/search?query=${encodeURIComponent('澳門 ' + loc.name)}`;
+    }
+  } else {
+    // 電腦網頁端：直接使用高德搜索連結，自動定位在澳門並在側邊欄展示該機構，避免了因沒有導航起點而默認退回北京的問題
+    const queryParts = [];
+    if (loc.name && loc.name !== '（未知名稱）') {
+      queryParts.push(loc.name);
+    }
+    if (loc.addressZh) {
+      const cleanAddr = loc.addressZh.split('二樓')[0].split('2樓')[0].split('地下')[0].trim();
+      if (cleanAddr) queryParts.push(cleanAddr);
+    }
+    const q = '澳門 ' + queryParts.join(' ');
+    return `https://www.amap.com/search?query=${encodeURIComponent(q)}`;
   }
   return '';
 }
