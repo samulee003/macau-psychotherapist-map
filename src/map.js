@@ -175,17 +175,16 @@ export function closeInfoWindow() {
  */
 export function fitToMarkers(locations) {
   if (!map || !AMap) return;
-  const pts = locations.filter((l) => l.lng != null).map((l) => [l.lng, l.lat]);
-  if (pts.length === 0) {
+  if (!markerLayer || markerLayer.length === 0) {
     // 無可定位點，回到澳門全景
     map.setZoomAndCenter(MACAO_VIEW.zoom, MACAO_VIEW.center);
     return;
   }
-  if (pts.length === 1) {
-    map.setZoomAndCenter(16, pts[0]);
+  if (markerLayer.length === 1) {
+    map.setZoomAndCenter(16, markerLayer[0].getPosition());
     return;
   }
-  map.setFitView(pts.map((p) => new AMap.LngLat(p[0], p[1])), false, [60, 60, 60, 60]);
+  map.setFitView(markerLayer, false, [60, 60, 60, 60]);
 }
 
 /** 基本HTML跳脫，避免資料含特殊字元 */
