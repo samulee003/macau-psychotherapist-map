@@ -5,7 +5,7 @@
     "sourceUrl": "https://www.ssm.gov.mo/pubssmweb/Utlap/frmUtlapLic.aspx?licode=11&t=",
     "officialSource": "澳門特別行政區政府衛生局 — 從事私人醫務活動專業人員名冊",
     "officialSourceUrl": "https://www.ssm.gov.mo/pubssmweb/register/frmShowRegister.aspx",
-    "collectedAt": "2026-06-30",
+    "collectedAt": "2026-07-01",
     "scrapedAt": "2026-06-30 16:49:21",
     "note": "資料直接採集自衛生局官方登記系統。最新資訊請以官方為準。",
     "disclaimer": "本網站非官方機構，資料可能有延遲或不完整，不構成任何醫療建議或轉介。",
@@ -805,8 +805,8 @@
       "category": "social",
       "phone": "28870616,28870354",
       "hours": "星期二 09:00-13:00,14:00-18:00",
-      "lng": 113.58713,
-      "lat": 22.129925
+      "lng": 113.5855,
+      "lat": 22.1287
     },
     {
       "id": "loc_12bc587f",
@@ -815,8 +815,8 @@
       "category": "social",
       "phone": "28835957,28835935",
       "hours": "星期三至星期四 09:00-13:00",
-      "lng": 113.562493,
-      "lat": 22.159458
+      "lng": 113.5594,
+      "lat": 22.1585
     },
     {
       "id": "loc_a4c883e6",
@@ -825,8 +825,8 @@
       "category": "social",
       "phone": "+853 2883 0503",
       "hours": "星期四 14:00-18:00",
-      "lng": 113.562493,
-      "lat": 22.159458
+      "lng": 113.5594,
+      "lat": 22.1585
     },
     {
       "id": "loc_36676bc1",
@@ -915,8 +915,8 @@
       "category": "med_center",
       "phone": "+853 2828 2328",
       "hours": "星期一至星期二 14:00-20:00",
-      "lng": 113.56237,
-      "lat": 22.156257
+      "lng": 113.5583,
+      "lat": 22.1537
     },
     {
       "id": "loc_4dca13a1",

@@ -182,6 +182,12 @@ def main():
                 coord = {"lng": 113.5398, "lat": 22.2001}
             elif "望德樓" in addr_raw or "望德樓" in place_name:
                 coord = {"lng": 113.5516, "lat": 22.2071}
+            elif "九澳聖母馬路" in addr_raw or "聖路濟亞" in place_name:
+                coord = {"lng": 113.5855, "lat": 22.1287}
+            elif "卓家村天津街" in addr_raw or "聖瑪嘉烈" in place_name or "聖類斯" in place_name:
+                coord = {"lng": 113.5594, "lat": 22.1585}
+            elif "寶龍花園" in addr_raw or "環宇醫療中心" in place_name:
+                coord = {"lng": 113.5583, "lat": 22.1537}
             elif not coord and place_name in ["衛生局", "澳門公共醫療機構"]:
                 coord = {"lng": 113.5467, "lat": 22.1942}
             
