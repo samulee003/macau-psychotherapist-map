@@ -15,6 +15,7 @@ import { initCopilot, updateModalUiState } from './copilot.js';
 
 let db = null;
 let currentLocations = []; // 目前篩選後顯示的地點
+let activeModalResultIndex = -1; // Spotlight 搜尋結果鍵盤選取索引
 
 async function main() {
   showLoader('載入資料中…');
@@ -53,8 +54,7 @@ async function main() {
     await initMap(mapContainer);
   } catch (err) {
     console.error('地圖初始化失敗:', err);
-    showLoader('地圖初始化失敗：' + err.message);
-    return;
+    showMapLoadError(mapContainer, err.message);
   }
 
   hideLoader();
@@ -573,6 +573,62 @@ function bindDesktopSpotlight() {
       closeModal();
     }
   });
+
+  // 鍵盤導航：在 Spotlight 輸入框按 ArrowUp / ArrowDown 選取預覽結果，按 Enter 定位
+  const chatInput = document.getElementById('chat-input');
+  chatInput?.addEventListener('keydown', (e) => {
+    const resultsContainer = document.getElementById('modal-search-results');
+    if (!resultsContainer || resultsContainer.hidden) {
+      activeModalResultIndex = -1;
+      return;
+    }
+
+    const items = resultsContainer.querySelectorAll('.modal-results__item');
+    if (items.length === 0) {
+      activeModalResultIndex = -1;
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      activeModalResultIndex++;
+      if (activeModalResultIndex >= items.length) {
+        activeModalResultIndex = 0; // 循環到第一個
+      }
+      updateSelectedModalResult(items, activeModalResultIndex);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      activeModalResultIndex--;
+      if (activeModalResultIndex < -1) {
+        activeModalResultIndex = items.length - 1; // 循環到最後一個
+      }
+      updateSelectedModalResult(items, activeModalResultIndex);
+    } else if (e.key === 'Enter') {
+      // 只有當選中了某個即時預覽結果時，才攔截 Enter 鍵並進行定位（否則放行給 AI 對話）
+      if (activeModalResultIndex >= 0 && activeModalResultIndex < items.length) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        items[activeModalResultIndex].click(); // 觸發定位點擊事件
+        activeModalResultIndex = -1;
+      }
+    }
+  }, true); // 使用 Capture 捕獲階段，以先於 copilot.js 的 Enter 對話發送事件進行攔截
+}
+
+/**
+ * 更新 Spotlight 搜尋結果的鍵盤選取樣式與滾動視角
+ */
+function updateSelectedModalResult(items, index) {
+  items.forEach((item, i) => {
+    if (i === index) {
+      item.classList.add('modal-results__item--selected');
+      item.scrollIntoView({ block: 'nearest' });
+    } else {
+      item.classList.remove('modal-results__item--selected');
+    }
+  });
 }
 
 /**
@@ -583,6 +639,7 @@ function renderModalSearchResults(locations) {
   if (!container) return;
 
   container.innerHTML = '';
+  activeModalResultIndex = -1; // 每次重新輸入或搜尋時，重置鍵盤選取索引
   
   // 若沒有篩選關鍵字且對話尚未開始，由 updateModalUiState 控制隱藏
   const queryInput = document.getElementById('chat-input');
@@ -665,6 +722,25 @@ function escapeHtml(s) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+/**
+ * 當地圖加載失敗時，渲染精美的警告卡片替代空白，使系統其他列表與 AI 功能正常降級運行
+ */
+function showMapLoadError(container, errorMsg) {
+  if (!container) return;
+  container.classList.add('map-error-state');
+  container.innerHTML = `
+    <div class="map-error-card">
+      <div class="map-error-card__icon">⚠️</div>
+      <div class="map-error-card__title">地圖服務暫時無法載入</div>
+      <div class="map-error-card__desc">
+        可能是您的網絡連接受限（例如身處內地需使用 VPN 訪問高德地圖），或者高德 API 服務繁忙。您仍可透過左側欄列表或 AI 助理檢索資源。
+      </div>
+      <div class="map-error-card__tech">錯誤詳情：${escapeHtml(errorMsg)}</div>
+      <button class="btn btn--primary map-error-card__retry" onclick="window.location.reload()">重新整理網頁</button>
+    </div>
+  `;
 }
 
 main();

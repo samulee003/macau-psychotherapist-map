@@ -1632,6 +1632,13 @@ html, body {
   transform: translateY(-1px);
 }
 
+.modal-results__item.modal-results__item--selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  box-shadow: 0 0 0 2px rgba(44, 110, 127, 0.2);
+  transform: translateY(-1px);
+}
+
 .modal-results__item-left {
   display: flex;
   align-items: center;
@@ -1711,6 +1718,63 @@ html, body {
   line-height: 1.45;
   user-select: none;
   flex-shrink: 0;
+}
+
+/* 地圖載入失敗降級卡片 */
+.map-error-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.map-error-card {
+  max-width: 420px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.map-error-card__icon {
+  font-size: 44px;
+  margin-bottom: 16px;
+}
+
+.map-error-card__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 10px;
+}
+
+.map-error-card__desc {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+.map-error-card__tech {
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  background: #fff;
+  border: 1px solid var(--color-border);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  color: #ea580c;
+  margin-bottom: 20px;
+  word-break: break-all;
+  text-align: left;
+}
+
+.map-error-card__retry {
+  width: 100%;
 }
 
 
