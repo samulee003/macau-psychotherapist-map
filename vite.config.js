@@ -21,8 +21,17 @@ export default defineConfig(({ mode }) => {
       {
         name: 'copy-data',
         closeBundle() {
+          // 複製資料 JSON
           cpSync('data', 'dist/data', { recursive: true });
           console.log('\n[data] 已複製 data/ → dist/data/');
+          
+          // 複製社交分享預覽縮圖
+          try {
+            cpSync('og-image.png', 'dist/og-image.png');
+            console.log('[og-image] 已複製 og-image.png → dist/og-image.png');
+          } catch (e) {
+            console.warn('[og-image] 複製 og-image.png 失敗:', e.message);
+          }
         },
       },
       {
