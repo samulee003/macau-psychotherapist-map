@@ -64,12 +64,10 @@ async function main() {
     if (loc) showLocationDetail(loc, db);
     setActiveListItem(locationId);
 
-    // 行動版點擊標記後，自動收合側欄，便於查看地圖與詳情抽屜
+    // 行動版點擊標記後，自動最小化側欄（收回底部），便於查看地圖與詳情抽屜
     if (window.innerWidth <= 768) {
       const sidebar = document.getElementById('sidebar');
-      const openBtn = document.getElementById('sidebar-open');
-      sidebar?.classList.add('is-collapsed');
-      if (openBtn) openBtn.hidden = false;
+      sidebar?.classList.remove('is-expanded');
     }
   });
 
@@ -156,12 +154,10 @@ function renderLocationList(locations) {
       highlightMarker(loc.id, db);
       setActiveListItem(loc.id);
       
-      // 在行動裝置上，點擊列表地點後自動摺疊側欄，以防重疊並顯現地圖與抽屜
+      // 在行動裝置上，點擊列表地點後自動最小化側欄（收回底部），以防重疊並顯現地圖與抽屜
       if (window.innerWidth <= 768) {
         const sidebar = document.getElementById('sidebar');
-        const openBtn = document.getElementById('sidebar-open');
-        sidebar?.classList.add('is-collapsed');
-        if (openBtn) openBtn.hidden = false;
+        sidebar?.classList.remove('is-expanded');
       }
     });
     ul.appendChild(li);
@@ -194,24 +190,40 @@ function bindSidebarToggle() {
   const toggleBtn = document.getElementById('sidebar-toggle');
   const openBtn = document.getElementById('sidebar-open');
   const mapContainer = document.getElementById('map-container');
+  const handle = document.getElementById('sidebar-handle');
+  const header = document.querySelector('.sidebar__header');
 
-  toggleBtn?.addEventListener('click', () => {
+  // 桌上版與行動版通用的完全摺疊邏輯
+  toggleBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
     sidebar.classList.add('is-collapsed');
+    sidebar.classList.remove('is-expanded');
     openBtn.hidden = false;
     closeInfoWindow();
   });
 
-  openBtn?.addEventListener('click', () => {
+  openBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
     sidebar.classList.remove('is-collapsed');
     openBtn.hidden = true;
   });
 
-  // 在行動裝置上，點擊地圖區域空白處自動收合側欄，提升使用者體驗
-  mapContainer?.addEventListener('click', (e) => {
-    // 只有在非拖拽點擊且為行動版時觸發
+  // 行動裝置專屬的底部抽屜（展開/收合最小化）切換邏輯
+  const toggleMobileExpand = (e) => {
     if (window.innerWidth <= 768) {
-      sidebar.classList.add('is-collapsed');
-      openBtn.hidden = false;
+      // 避免點擊收合按鈕時重複觸發
+      if (e.target.closest('#sidebar-toggle')) return;
+      sidebar.classList.toggle('is-expanded');
+    }
+  };
+
+  handle?.addEventListener('click', toggleMobileExpand);
+  header?.addEventListener('click', toggleMobileExpand);
+
+  // 在行動裝置上，點擊地圖區域空白處自動最小化側欄（收回底部），提升使用者體驗
+  mapContainer?.addEventListener('click', () => {
+    if (window.innerWidth <= 768) {
+      sidebar.classList.remove('is-expanded');
     }
   });
 }
