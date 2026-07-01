@@ -910,6 +910,60 @@ html, body {
   .drawer__content {
     padding: 16px 20px 32px;
   }
+
+  /* 行動版頁籤切換與內容顯示切換 */
+  .sidebar__tabs {
+    display: flex;
+    border-bottom: 1px solid var(--color-border);
+    background: #fff;
+    flex-shrink: 0;
+  }
+  
+  .tab-btn {
+    flex: 1;
+    padding: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  
+  .tab-btn:hover {
+    color: var(--color-primary);
+  }
+  
+  .tab-btn.is-active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    background: var(--color-primary-light);
+  }
+
+  /* 頁籤隱藏/顯示控制 */
+  .sidebar.tab-list-active .search-ai {
+    display: none !important;
+  }
+
+  .sidebar.tab-ai-active .search-ai {
+    display: flex !important;
+    max-height: none !important;
+    flex: 1;
+  }
+  
+  .sidebar.tab-ai-active .filters,
+  .sidebar.tab-ai-active .list {
+    display: none !important;
+  }
+}
+
+/* ---------------------------------------------------------- */
+/* 行動版頁籤切換                                             */
+/* ---------------------------------------------------------- */
+.sidebar__tabs {
+  display: none;
 }
 
 /* ---------------------------------------------------------- */

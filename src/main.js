@@ -57,6 +57,7 @@ async function main() {
   // 初始化 UI 元件
   initDetail();
   initFilters(db, onFilterResult);
+  initSidebarTabs();
 
   // marker 點擊 → 開啟詳情 + 標記列表 active
   onMarkerClick((locationId) => {
@@ -297,6 +298,43 @@ function escapeHtml(s) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+/**
+ * 初始化行動版頁籤切換。
+ */
+function initSidebarTabs() {
+  const sidebar = document.getElementById('sidebar');
+  const tabContainer = document.getElementById('sidebar-tabs');
+  if (!sidebar || !tabContainer) return;
+
+  // 預設為列表頁籤作用中
+  sidebar.classList.add('tab-list-active');
+
+  const tabBtns = tabContainer.querySelectorAll('.tab-btn');
+  tabBtns.forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const tab = btn.dataset.tab;
+      
+      // 切換 class
+      sidebar.classList.remove('tab-list-active', 'tab-ai-active');
+      if (tab === 'list') {
+        sidebar.classList.add('tab-list-active');
+      } else if (tab === 'ai') {
+        sidebar.classList.add('tab-ai-active');
+      }
+
+      // 更新按鈕 active 樣式
+      tabBtns.forEach((b) => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+
+      // 切換頁籤時，如果抽屜是收合最小化的，自動將其展開，提供良好體驗
+      if (window.innerWidth <= 768) {
+        sidebar.classList.add('is-expanded');
+      }
+    });
+  });
 }
 
 main();
