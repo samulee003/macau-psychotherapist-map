@@ -856,6 +856,12 @@ html, body {
     cursor: pointer;
   }
 
+  /* 行動版旋轉箭頭：收合鈕指向下方（滑出螢幕），展開鈕指向上方（滑入顯示） */
+  .icon--collapse svg,
+  .icon--expand svg {
+    transform: rotate(-90deg);
+  }
+
   /* 行動版詳情抽屜轉換為底部抽屜 (Bottom Sheet) */
   .drawer {
     left: 0;
