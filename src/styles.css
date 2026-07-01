@@ -942,8 +942,10 @@ html, body {
     background: var(--color-primary-light);
   }
 
-  /* 頁籤隱藏/顯示控制 */
-  .sidebar.tab-list-active .search-ai {
+  /* 頁籤隱藏/顯示控制：列表頁籤下，保留搜尋列，隱藏 AI 對話歷程與對話操作按鈕 */
+  .sidebar.tab-list-active #chat-messages,
+  .sidebar.tab-list-active #chat-settings,
+  .sidebar.tab-list-active .search-ai__actions {
     display: none !important;
   }
 
