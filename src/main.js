@@ -193,13 +193,19 @@ function bindSidebarToggle() {
   const handle = document.getElementById('sidebar-handle');
   const header = document.querySelector('.sidebar__header');
 
-  // 桌上版與行動版通用的完全摺疊邏輯
+  // 桌上版與行動版通用的摺疊/展開切換邏輯
   toggleBtn?.addEventListener('click', (e) => {
     e.stopPropagation();
-    sidebar.classList.add('is-collapsed');
-    sidebar.classList.remove('is-expanded');
-    openBtn.hidden = false;
-    closeInfoWindow();
+    if (window.innerWidth <= 768) {
+      // 行動版：點擊按鈕切換展開與最小化狀態，常駐在底部不完全離屏
+      sidebar.classList.toggle('is-expanded');
+    } else {
+      // 桌上版：原有的完全離屏摺疊邏輯
+      sidebar.classList.add('is-collapsed');
+      sidebar.classList.remove('is-expanded');
+      openBtn.hidden = false;
+      closeInfoWindow();
+    }
   });
 
   openBtn?.addEventListener('click', (e) => {

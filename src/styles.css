@@ -856,10 +856,19 @@ html, body {
     cursor: pointer;
   }
 
-  /* 行動版旋轉箭頭：收合鈕指向下方（滑出螢幕），展開鈕指向上方（滑入顯示） */
-  .icon--collapse svg,
-  .icon--expand svg {
+  /* 行動版旋轉箭頭：預設最小化時指向朝上 ∧，展開時指向朝下 ∨ */
+  .sidebar .icon--collapse svg {
+    transform: rotate(90deg);
+    transition: transform 0.3s ease;
+  }
+  
+  .sidebar.is-expanded .icon--collapse svg {
     transform: rotate(-90deg);
+  }
+
+  /* 行動版隱藏懸浮的展開按鈕，因底部抽屜已常駐收合在底部（只露出搜尋列），無需離屏隱藏 */
+  .sidebar-open {
+    display: none !important;
   }
 
   /* 行動版詳情抽屜轉換為底部抽屜 (Bottom Sheet) */
