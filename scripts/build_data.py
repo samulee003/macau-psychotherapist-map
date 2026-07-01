@@ -188,6 +188,8 @@ def main():
                 coord = {"lng": 113.5594, "lat": 22.1585}
             elif "寶龍花園" in addr_raw or "環宇醫療中心" in place_name:
                 coord = {"lng": 113.5583, "lat": 22.1537}
+            elif "利達新邨" in addr_raw or "利達新邨" in place_name or "社會工作局" in place_name:
+                coord = {"lng": 113.552786, "lat": 22.208034}
             elif not coord and place_name in ["衛生局", "澳門公共醫療機構"]:
                 coord = {"lng": 113.550801, "lat": 22.190530}
             
