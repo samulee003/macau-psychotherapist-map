@@ -1,28 +1,24 @@
-# 依賴
-node_modules/
-.venv/
-venv/
-
-
-# 建構產出
-dist/
-
-# 環境變數與本地設定（含採集腳本的 API key）
-.env
-.env.local
-.env.*.local
-
-# 採集過程的中間產物（不 commit，由腳本重新產生）
-scripts/raw.json
-scripts/geocoded.json
 
 # 作業系統
-.DS_Store
-Thumbs.db
-
+# 依賴
+# 建構產出
+# 採集過程的中間產物（不 commit，由腳本重新產生）
+# 環境變數與本地設定（含採集腳本的 API key）
 # 編輯器
-.vscode/
-.idea/
-*.swp
 *.swo
+*.swp
+.DS_Store
+.env
+.env.*.local
+.env.local
+.idea/
+.superpowers/
+.venv/
 .vercel
+.vscode/
+Thumbs.db
+dist/
+node_modules/
+scripts/geocoded.json
+scripts/raw.json
+venv/

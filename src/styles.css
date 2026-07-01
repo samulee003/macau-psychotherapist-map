@@ -114,6 +114,47 @@ html, body {
   border-right: 3px solid var(--color-primary);
 }
 
+/* 桌面版側欄搜尋觸發按鈕 */
+.sidebar__search-trigger {
+  margin: 16px 24px 12px;
+  padding: 10px 14px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.sidebar__search-trigger:hover {
+  border-color: var(--color-primary);
+  background: #fff;
+  box-shadow: 0 0 0 3px var(--color-primary-glow);
+}
+
+.search-trigger__icon {
+  font-size: 14px;
+}
+
+.search-trigger__placeholder {
+  font-size: 13px;
+  color: var(--color-text-light);
+  flex: 1;
+}
+
+.search-trigger__shortcut {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-light);
+  background: var(--color-border);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
 .sidebar__header {
   display: flex;
   align-items: center;
@@ -425,58 +466,46 @@ html, body {
 
 /* 頁尾資訊 */
 .sidebar__footer {
-  padding: 14px 24px 18px;
+  padding: 10px 20px 12px;
   border-top: 1px solid var(--color-border);
   background: rgba(248, 250, 252, 0.7);
   font-size: 11px;
   color: var(--color-text-muted);
-  line-height: 1.6;
+  line-height: 1.4;
+  flex-shrink: 0;
 }
 
-.sidebar__source a {
+.sidebar__footer-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.sidebar__footer-meta a {
   color: var(--color-primary);
   font-weight: 600;
   text-decoration: none;
   transition: color 0.15s;
 }
 
-.sidebar__source a:hover {
+.sidebar__footer-meta a:hover {
   color: var(--color-primary-dark);
   text-decoration: underline;
 }
 
-.sidebar__official {
-  margin-top: 3px;
-}
-
-.sidebar__official a {
-  color: var(--color-text-muted);
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.sidebar__official a:hover {
-  color: var(--color-text);
-  text-decoration: underline;
-}
-
-.sidebar__collected {
-  margin-top: 1px;
-  font-weight: 500;
-}
-
-.sidebar__sorting {
-  margin-top: 1px;
-  font-weight: 500;
+.footer-divider {
+  color: var(--color-text-light);
+  opacity: 0.5;
+  user-select: none;
 }
 
 .sidebar__disclaimer {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed rgba(203, 213, 225, 0.8);
   color: var(--color-text-light);
-  font-size: 10px;
-  line-height: 1.5;
+  font-size: 9.5px;
+  line-height: 1.35;
 }
 
 /* ---------------------------------------------------------- */
@@ -811,68 +840,314 @@ html, body {
 }
 
 /* ---------------------------------------------------------- */
+/* 手機版專屬元件基礎樣式（桌面版隱藏）                       */
+/* split-handle / mobile-panel / ai-fab / ai-overlay 僅於      */
+/* max-width:768px 時顯示，桌面版一律 display:none            */
+/* ---------------------------------------------------------- */
+.split-handle,
+.mobile-panel,
+.ai-fab,
+.ai-overlay {
+  display: none;
+}
+
+/* ---------------------------------------------------------- */
 /* 行動裝置響應式 (max-width: 768px)                          */
 /* ---------------------------------------------------------- */
 @media (max-width: 768px) {
-  .sidebar {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    top: auto;
-    width: 100%;
-    height: 80vh;
-    max-width: 100%;
-    margin-left: 0;
-    transform: translateY(calc(80vh - 130px)); /* 預設收合狀態：只露出頂部約 130px */
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    border-right: none;
-    border-top: 1px solid var(--color-border);
-    box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.12);
-    z-index: 1000;
-  }
-  
-  .sidebar.is-expanded {
-    transform: translateY(0) !important;
-  }
-
-  .sidebar.is-collapsed {
-    transform: translateY(100%) !important;
-    margin-left: 0 !important;
-  }
-
-  .sidebar__resizer {
+  /* ===== 1. 隱藏所有桌面版元件 ===== */
+  .sidebar,
+  .sidebar-open,
+  .sidebar__search-trigger,
+  .search-backdrop {
     display: none !important;
   }
 
-  .sidebar__handle {
-    display: block;
-    width: 40px;
+  /* ===== 2. 上下分屏核心佈局 ===== */
+  #app {
+    flex-direction: column;
+  }
+
+  .map-container {
+    height: 40vh;
+    flex-shrink: 0;
+  }
+
+  /* 分屏拖曳把手 */
+  .split-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 6px;
+    flex-shrink: 0;
+    background: #e2e8f0;
+    cursor: row-resize;
+    position: relative;
+    z-index: 5;
+  }
+
+  .split-handle::after {
+    content: '';
+    width: 36px;
     height: 4px;
-    background: #cbd5e1;
     border-radius: 2px;
-    margin: 8px auto 0;
+    background: #94a3b8;
+    transition: background 0.2s;
+  }
+
+  .split-handle:hover::after,
+  .split-handle:active::after {
+    background: var(--color-primary);
+  }
+
+  /* 手機版下半屏面板 */
+  .mobile-panel {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
+    background: #fff;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08);
+    min-height: 0; /* 允許 flex 子項縮小，啟用內部滾動 */
+  }
+
+  /* ===== 3. mobile-panel 內部：搜尋 ===== */
+  .mobile-panel__search {
+    padding: 10px 14px 8px;
+    flex-shrink: 0;
+  }
+
+  .mobile-panel__search .search__input {
+    padding: 8px 12px 8px 34px;
+    font-size: 13px;
+  }
+
+  .mobile-panel__search .search__icon {
+    left: 10px;
+    font-size: 13px;
+  }
+
+  /* ===== 4. mobile-panel 內部：分類橫向滑動 ===== */
+  .mobile-filters {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 0 14px 8px;
+    flex-shrink: 0;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .mobile-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-filters .filter-chip {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  /* ===== 5. mobile-panel 內部：列表區 ===== */
+  .mobile-panel__list-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 14px 16px;
+    min-height: 0;
+    scrollbar-width: thin;
+    --scrollbar-thumb: rgba(148, 163, 184, 0.35);
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+
+  .mobile-panel__list-wrapper::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .mobile-panel__list-wrapper::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 999px;
+  }
+
+  .mobile-panel__title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--font-title);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--color-text-muted);
+    margin-bottom: 8px;
+  }
+
+  .mobile-panel__title span {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-primary);
+    background: var(--color-primary-light);
+    padding: 2px 8px;
+    border-radius: 999px;
+    text-transform: none;
+  }
+
+  .mobile-list {
+    list-style: none;
+  }
+
+  /* 緊湊型列表項目卡片 */
+  .mobile-list__item {
+    padding: 9px 11px;
+    margin-bottom: 5px;
+    background: #fff;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: var(--radius-md);
     cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-sm);
   }
 
-  /* 行動版旋轉箭頭：預設最小化時指向朝上 ∧，展開時指向朝下 ∨ */
-  .sidebar .icon--collapse svg {
-    transform: rotate(90deg);
-    transition: transform 0.3s ease;
-  }
-  
-  .sidebar.is-expanded .icon--collapse svg {
-    transform: rotate(-90deg);
+  .mobile-list__item:hover {
+    background: #fff;
+    border-color: rgba(44, 110, 127, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
   }
 
-  /* 行動版隱藏懸浮的展開按鈕，因底部抽屜已常駐收合在底部（只露出搜尋列），無需離屏隱藏 */
-  .sidebar-open {
+  .mobile-list__item:active {
+    transform: translateY(0);
+  }
+
+  .mobile-list__item.is-active {
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 12px rgba(44, 110, 127, 0.08);
+  }
+
+  .mobile-list__item-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-title);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 3px;
+  }
+
+  .mobile-list__item-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 4px rgba(15, 23, 42, 0.1);
+  }
+
+  .mobile-list__item-address {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    line-height: 1.4;
+  }
+
+  /* ===== 6. 浮動 AI 按鈕 ===== */
+  .ai-fab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    bottom: 16px;
+    right: 14px;
+    width: 48px;
+    height: 48px;
+    border: none;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(44, 110, 127, 0.4);
+    z-index: 900;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+  }
+
+  .ai-fab:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 20px rgba(44, 110, 127, 0.5);
+  }
+
+  .ai-fab:active {
+    transform: scale(0.95);
+  }
+
+  /* ===== 7. AI 全螢幕覆蓋層 ===== */
+  .ai-overlay {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    inset: 0;
+    z-index: 2000;
+    background: var(--color-bg);
+  }
+
+  .ai-overlay[hidden] {
     display: none !important;
   }
 
-  /* 行動版詳情抽屜轉換為底部抽屜 (Bottom Sheet) */
+  .ai-overlay__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(44, 110, 127, 0.12);
+    flex-shrink: 0;
+  }
+
+  .ai-overlay__header h2 {
+    font-family: var(--font-title);
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .ai-overlay__close {
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .ai-overlay__close:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.05);
+  }
+
+  .ai-overlay__close:active {
+    transform: scale(0.95);
+  }
+
+  .ai-overlay__body {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* ===== 8. 詳情抽屜手機版（底部 Bottom Sheet） ===== */
   .drawer {
+    position: absolute;
     left: 0;
     right: 0;
     bottom: 0;
@@ -884,12 +1159,12 @@ html, body {
     border: none;
     border-top: 1px solid var(--color-border);
     box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.15);
-    z-index: 1100; /* 高於側欄抽屜 */
+    z-index: 1100;
   }
 
   .drawer[hidden] {
     display: flex !important;
-    transform: translateY(100%); /* 行動版向下移出螢幕 */
+    transform: translateY(100%);
     opacity: 0;
   }
 
@@ -901,165 +1176,78 @@ html, body {
     border-radius: 2px;
     margin: 8px auto 0;
   }
-  
+
   .drawer__close {
     top: 10px;
     right: 16px;
   }
-  
+
   .drawer__content {
     padding: 16px 20px 32px;
   }
-
-  /* 行動版頁籤切換與內容顯示切換 */
-  .sidebar__tabs {
-    display: flex;
-    border-bottom: 1px solid var(--color-border);
-    background: #fff;
-    flex-shrink: 0;
-  }
-  
-  .tab-btn {
-    flex: 1;
-    padding: 10px;
-    font-size: 12px;
-    font-weight: 600;
-    border: none;
-    background: none;
-    cursor: pointer;
-    color: var(--color-text-muted);
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-  }
-  
-  .tab-btn:hover {
-    color: var(--color-primary);
-  }
-  
-  .tab-btn.is-active {
-    color: var(--color-primary);
-    border-bottom-color: var(--color-primary);
-    background: var(--color-primary-light);
-  }
-
-  /* 頁籤隱藏/顯示控制：列表頁籤下，保留搜尋列，隱藏 AI 對話歷程與對話操作按鈕 */
-  .sidebar.tab-list-active #chat-messages,
-  .sidebar.tab-list-active #chat-settings,
-  .sidebar.tab-list-active .search-ai__actions {
-    display: none !important;
-  }
-
-  .sidebar.tab-ai-active .search-ai {
-    display: flex !important;
-    max-height: none !important;
-    flex: 1;
-  }
-  
-  .sidebar.tab-ai-active .filters,
-  .sidebar.tab-ai-active .list {
-    display: none !important;
-  }
-
-  /* 手機版緊湊型間距，釋放最大列表滾動高度 */
-  .sidebar__header {
-    padding: 12px 16px;
-  }
-  
-  .sidebar__title {
-    font-size: 14px;
-    line-height: 1.25;
-  }
-
-  .sidebar__toggle {
-    width: 28px;
-    height: 28px;
-  }
-
-  .search-ai {
-    padding: 10px 16px 8px;
-    gap: 6px;
-  }
-
-  .search__input {
-    padding: 8px 12px 8px 36px;
-    font-size: 13px;
-  }
-
-  .search__count {
-    margin-top: 4px;
-    font-size: 11px;
-  }
-
-  .filters {
-    padding: 10px 16px 8px;
-  }
-
-  .filters__title {
-    margin-bottom: 6px;
-    font-size: 11px;
-  }
-
-  /* 分類 Chip 改為橫向滾動，防折行，省去 ~50px 高度 */
-  .filters__list {
-    flex-wrap: nowrap !important;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .filters__list::-webkit-scrollbar {
-    display: none;
-  }
-
-  .filter-chip {
-    padding: 4px 10px;
-    font-size: 11px;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  .list {
-    padding: 10px 16px 16px;
-  }
-
-  .list__title {
-    font-size: 11px;
-    margin-bottom: 6px;
-  }
-
-  .list__item {
-    padding: 10px 12px;
-  }
-
-  .list__item-name {
-    font-size: 13px;
-  }
-
-  .list__item-address {
-    font-size: 11px;
-  }
-}
-
-/* ---------------------------------------------------------- */
-/* 行動版頁籤切換                                             */
-/* ---------------------------------------------------------- */
-.sidebar__tabs {
-  display: none;
 }
 
 /* ---------------------------------------------------------- */
 /* AI 智能助理 (Copilot Chatbot)                              */
 /* ---------------------------------------------------------- */
-.search-ai {
-  padding: 16px 20px 12px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg);
+/* 桌面版 Spotlight 搜尋背景遮罩 */
+.search-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 3000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12vh;
+}
+
+.search-backdrop[hidden] {
+  display: none !important;
+}
+
+/* Spotlight 搜尋框主體 */
+.search-modal {
+  width: 100%;
+  max-width: 640px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-height: 45vh; /* 限制智能助理區域最大高度，避免壓垮下方列表 */
+  max-height: 70vh;
+  overflow: hidden;
+  animation: modalEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.search-modal.search-ai {
+  height: auto;
   min-height: 0;
+  max-height: none;
+  border-bottom: none;
+  border-radius: var(--radius-lg);
+}
+
+.search-modal.search-ai.has-messages {
+  height: 480px; /* 在有訊息時提供足夠的滾動展示空間 */
+  max-height: 70vh;
+  min-height: 200px;
+}
+
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .search-ai__input-row {
@@ -1196,11 +1384,15 @@ html, body {
 }
 
 .chat-messages {
+  display: none;
+}
+
+.search-ai.has-messages .chat-messages {
+  display: flex;
   flex: 1;
   padding: 12px 16px;
   overflow-y: auto;
   min-height: 0; /* 允許 flex 項目縮小，啟用滾動條 */
-  display: flex;
   flex-direction: column;
   gap: 12px;
   scrollbar-width: thin;
@@ -1343,6 +1535,182 @@ html, body {
   0% { opacity: .2; }
   20% { opacity: 1; }
   100% { opacity: .2; }
+}
+
+/* ============================================================
+   Spotlight 搜尋與 AI 助理進階樣式 (推薦提問 / 快速結果預覽)
+   ============================================================ */
+
+/* 推薦提問提示 */
+.modal-tips {
+  padding: 12px 20px 16px;
+  border-top: 1px dashed var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modal-tips__title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.modal-tips__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-tips__item {
+  font-size: 12px;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.modal-tips__item:hover {
+  background: #fff;
+  border-color: var(--color-primary);
+  transform: translateX(4px);
+}
+
+/* Spotlight 搜尋結果快速預覽 */
+.modal-results {
+  padding: 12px 20px 16px;
+  border-top: 1px dashed var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 280px;
+}
+
+.modal-results__empty {
+  font-size: 12px;
+  color: var(--color-text-light);
+  text-align: center;
+  padding: 16px 0;
+}
+
+.modal-results__title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+}
+
+.modal-results__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-results__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-results__item:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  transform: translateY(-1px);
+}
+
+.modal-results__item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-results__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.modal-results__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.modal-results__address {
+  font-size: 11px;
+  color: var(--color-text-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+  margin-left: 4px;
+}
+
+.modal-results__item-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.modal-results__badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  padding: 2px 6px;
+  border-radius: 99px;
+  border: 1px solid rgba(44, 110, 127, 0.15);
+}
+
+.modal-results__go {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-light);
+}
+
+.modal-results__item:hover .modal-results__go {
+  color: var(--color-primary);
+}
+
+@media (max-width: 768px) {
+  .modal-tips,
+  .modal-results {
+    display: none !important;
+  }
+}
+
+.search-ai__disclaimer {
+  padding: 8px 16px;
+  font-size: 10px;
+  color: var(--color-text-light);
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+  line-height: 1.45;
+  user-select: none;
+  flex-shrink: 0;
 }
 
 

@@ -118,11 +118,29 @@ function setupDom() {
       </div>
     </div>
 
+    <!-- 建議提問與熱門搜尋（初始顯示，桌面版專用） -->
+    <div id="modal-suggested-tips" class="modal-tips">
+      <div class="modal-tips__title">💡 推薦詢問 AI 助理：</div>
+      <ul class="modal-tips__list">
+        <li class="modal-tips__item" data-query="衛生局社區衛生中心提供免費心理諮詢嗎？">🔍 衛生局社區衛生中心提供免費心理諮詢嗎？</li>
+        <li class="modal-tips__item" data-query="幫我找星期六下午開診的心理中心">🔍 幫我找星期六下午開診的心理中心</li>
+        <li class="modal-tips__item" data-query="介紹一下婦聯心理治療中心，包含地址和電話">🔍 介紹一下婦聯心理治療中心，包含地址和電話</li>
+      </ul>
+    </div>
+
+    <!-- 搜尋結果快速預覽（輸入時顯示，桌面版專用） -->
+    <div id="modal-search-results" class="modal-results" hidden></div>
+
     <!-- 對話記錄 -->
     <div id="chat-messages" class="chat-messages"></div>
     
     <!-- 搜尋結果筆數 -->
     <div id="search-results-count" class="search__count"></div>
+
+    <!-- AI 免責聲明 -->
+    <div class="search-ai__disclaimer">
+      ⚠️ AI 助理回覆由人工智慧生成，僅供學習參考。最新與權威資訊請務必以衛生局官方登載為準。
+    </div>
   `;
 
   // 用程式碼動態邏輯賦值，以防從 localStorage 讀取受污染的設定產生 DOM XSS 漏洞
@@ -144,9 +162,41 @@ function bindEvents() {
   const sendBtn = document.getElementById('chat-send');
   const chatInput = document.getElementById('chat-input');
 
-  // 搜尋與 AI 助理連動：打字時即時過濾
+  // 簡易的防抖函數 (Debounce)
+  function debounce(fn, delay) {
+    let timer = null;
+    return function(...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+  }
+
+  // 推薦提問點擊事件
+  const tipsList = document.getElementById('modal-suggested-tips');
+  tipsList?.addEventListener('click', (e) => {
+    const item = e.target.closest('.modal-tips__item');
+    if (item) {
+      const query = item.dataset.query;
+      if (chatInput) {
+        chatInput.value = query;
+        // 觸發輸入框的 input 事件以同步過濾
+        const event = new Event('input', { bubbles: true });
+        chatInput.dispatchEvent(event);
+        // 直接發送
+        triggerSend();
+      }
+    }
+  });
+
+  // 搜尋與 AI 助理連動：打字時即時過濾（防抖 250ms 防止頻繁重建 Marker 崩潰）
+  const debouncedSearch = debounce((val) => {
+    controls.setQuery(val);
+  }, 250);
+
   chatInput?.addEventListener('input', (e) => {
-    controls.setQuery(e.target.value);
+    const val = e.target.value.trim();
+    updateModalUiState(val);
+    debouncedSearch(e.target.value);
   });
   // 清除對話歷史 (Memory)
   clearBtn?.addEventListener('click', () => {
@@ -211,7 +261,13 @@ function clearChatMemory() {
   const container = document.getElementById('chat-messages');
   if (container) {
     container.innerHTML = '';
+    const parent = container.closest('.search-ai');
+    if (parent) {
+      parent.classList.remove('has-messages');
+    }
   }
+  const chatInput = document.getElementById('chat-input');
+  updateModalUiState(chatInput ? chatInput.value.trim() : '');
 }
 
 export function formatAssistantMessage(text) {
@@ -229,11 +285,19 @@ function addMessage(sender, text) {
   const container = document.getElementById('chat-messages');
   if (!container) return;
 
+  const parent = container.closest('.search-ai');
+  if (parent) {
+    parent.classList.add('has-messages');
+  }
+
   const msg = document.createElement('div');
   msg.className = `chat-message chat-message--${sender}`;
   msg.innerHTML = text;
   container.appendChild(msg);
   container.scrollTop = container.scrollHeight;
+
+  const chatInput = document.getElementById('chat-input');
+  updateModalUiState(chatInput ? chatInput.value.trim() : '');
 }
 
 async function handleUserMsg(text) {
@@ -787,4 +851,36 @@ function escapeHtml(s) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+/**
+ * 更新 Spotlight 模態框元件顯示狀態 (桌面版專用)。
+ * 用於切換：Suggested Tips -> Search Results -> Chat Messages
+ */
+export function updateModalUiState(query) {
+  // 手機版時不執行此邏輯
+  if (window.innerWidth <= 768) return;
+
+  const tips = document.getElementById('modal-suggested-tips');
+  const results = document.getElementById('modal-search-results');
+  const chat = document.getElementById('chat-messages');
+
+  const hasMessages = chat && chat.children.length > 0;
+
+  if (hasMessages) {
+    // 1. 處於 AI 對話狀態：只顯示對話內容
+    if (tips) tips.hidden = true;
+    if (results) results.hidden = true;
+    if (chat) chat.style.display = 'flex';
+  } else if (query) {
+    // 2. 處於搜尋過濾狀態：只顯示搜尋結果快速預覽
+    if (tips) tips.hidden = true;
+    if (results) results.hidden = false;
+    if (chat) chat.style.display = 'none';
+  } else {
+    // 3. 初始空狀態：只顯示推薦提問 Tips
+    if (tips) tips.hidden = false;
+    if (results) results.hidden = true;
+    if (chat) chat.style.display = 'none';
+  }
 }

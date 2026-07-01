@@ -104,9 +104,10 @@ open scripts/preview.html        # 人工校驗座標
 - **地圖視角**：以「地點」為主（marker = location，點擊展開此地點的治療師）。
 - **HTML 跳脫**：所有從資料渲染到 DOM 的字串必須 `escapeHtml()`（各模組內已有此函式）。
 - **檔案職責單一**：`map.js` 只管地圖、`search.js` 只管篩選、`detail.js` 只管詳情。
-- **行動端 Bottom Sheet 設計**：在寬度小於或等於 `768px` 時，控制側欄 `.sidebar` 會轉化為底部抽屜佈局，高為 `80vh`。預設最小化收合（僅露出頂部 `130px`），點擊頂部箭頭（最小化時向上 `∧`，展開時向下 `∨`）可切換展開狀態。切換操作一體化在抽屜 Header，移動端徹底隱藏地圖上的懸浮展開按鈕。
-- **行動端頁籤切換**：為解決空間擁擠，手機下引入 `📍 執業地點` 與 `💬 智能助理` 頁籤。在「執業地點」頁籤下隱藏 AI 歷史訊息但保留最頂部搜尋輸入框；在「智能助理」頁籤下滿版展示對話。
-- **行動端分類滑動**：為了不壓迫下方診所列表高度，手機下的機構分類標籤設為單行橫向滑動而不折行。
+- **行動端上下分屏設計**：在寬度小於或等於 `768px` 時，桌面版側欄 `.sidebar` 完全隱藏（`display:none`），改為「地圖固定上半屏（預設 40vh）+ 列表常駐下半屏」的分屏佈局。兩者同時可見、永不互相遮擋。中間有 `.split-handle` 拖曳把手，支援 mouse + touch 調整比例（限制 25%~70%）。
+- **行動端專屬 DOM**：手機版有獨立的 `#mobile-panel`（含 `#mobile-search-input`、`#mobile-filters`、`#mobile-location-list`），與桌面版側欄（`#location-list` 等）並存但互不影響。`main.js` 的 `renderAll()` 同時渲染兩套列表，`setActiveListItem` / `setActiveMobileListItem` 互相同步 active 狀態。
+- **行動端 AI 浮動按鈕**：砍掉頁籤切換，AI 助理改為 `.ai-fab` 浮動按鈕（右下角）→ 點擊開啟 `.ai-overlay` 全螢幕覆蓋層。Copilot 容器透過 id swap hack 掛載（手機版時將 `#copilot-sidebar-container` 的 id 轉移到 `#copilot-mobile-container`），copilot.js 本身不需改動。
+- **行動端分類滑動**：手機版分類標籤設為單行橫向滑動（`.mobile-filters`），採「單選」模式（點擊呼叫 `selectCategoryProgrammatic`，自動同步桌面版 chip 的 active 狀態）。
 
 ### 地圖初始化（已驗證的關鍵約定）
 高德 JS API 偏好以**容器 id 字串**初始化，直接傳 DOM 元素會在內部偵測時報 `Map container div not exist`。`map.js` 的 `initMap()` 已處理：取 `container.id` 傳遞，並用 `requestAnimationFrame` 確保版面就緒。**勿改回傳 DOM 元素**。
@@ -145,7 +146,7 @@ open scripts/preview.html        # 人工校驗座標
 
 1. 改分類 → 同步 `src/config.js` 的 `CATEGORIES` + `styles.css` 的 `--cat-*` + `build_data.py` 的 `CATEGORY_RULES`
 2. 改資料 schema → 同步 `data-loader.js` 的索引邏輯 + `validate.py` 的校驗 + `build_data.py` 的產出 + `main.js` 的 meta 讀取
-3. 改 UI → 確認手機/桌面響應式（`@media (max-width: 768px)`）
+3. 改 UI → 確認手機/桌面響應式（`@media (max-width: 768px)`）。手機版改動需同步 `#mobile-*` 元件與桌面版 `.sidebar` 內對應元件（兩套 DOM 並存，見 `index.html`）
 4. 跑 `npm run build` 確認無語法錯，且 `dist/data/data.json` 存在
 5. 跑 `python3 scripts/validate.py` 確認資料一致
 6. 改 Vite 設定 → 確認 `closeBundle` hook 仍複製 data/
