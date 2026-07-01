@@ -821,10 +821,10 @@ html, body {
     bottom: 0;
     top: auto;
     width: 100%;
-    height: 70vh;
+    height: 80vh;
     max-width: 100%;
     margin-left: 0;
-    transform: translateY(calc(70vh - 140px)); /* 預設收合狀態：只露出頂部 140px */
+    transform: translateY(calc(80vh - 130px)); /* 預設收合狀態：只露出頂部約 130px */
     transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     border-right: none;
@@ -878,7 +878,7 @@ html, body {
     bottom: 0;
     top: auto;
     width: 100%;
-    max-height: 75vh;
+    max-height: 80vh;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     transform: translateY(0);
     border: none;
@@ -921,8 +921,8 @@ html, body {
   
   .tab-btn {
     flex: 1;
-    padding: 12px;
-    font-size: 13px;
+    padding: 10px;
+    font-size: 12px;
     font-weight: 600;
     border: none;
     background: none;
@@ -958,6 +958,86 @@ html, body {
   .sidebar.tab-ai-active .filters,
   .sidebar.tab-ai-active .list {
     display: none !important;
+  }
+
+  /* 手機版緊湊型間距，釋放最大列表滾動高度 */
+  .sidebar__header {
+    padding: 12px 16px;
+  }
+  
+  .sidebar__title {
+    font-size: 14px;
+    line-height: 1.25;
+  }
+
+  .sidebar__toggle {
+    width: 28px;
+    height: 28px;
+  }
+
+  .search-ai {
+    padding: 10px 16px 8px;
+    gap: 6px;
+  }
+
+  .search__input {
+    padding: 8px 12px 8px 36px;
+    font-size: 13px;
+  }
+
+  .search__count {
+    margin-top: 4px;
+    font-size: 11px;
+  }
+
+  .filters {
+    padding: 10px 16px 8px;
+  }
+
+  .filters__title {
+    margin-bottom: 6px;
+    font-size: 11px;
+  }
+
+  /* 分類 Chip 改為橫向滾動，防折行，省去 ~50px 高度 */
+  .filters__list {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .filters__list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filter-chip {
+    padding: 4px 10px;
+    font-size: 11px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .list {
+    padding: 10px 16px 16px;
+  }
+
+  .list__title {
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+
+  .list__item {
+    padding: 10px 12px;
+  }
+
+  .list__item-name {
+    font-size: 13px;
+  }
+
+  .list__item-address {
+    font-size: 11px;
   }
 }
 
