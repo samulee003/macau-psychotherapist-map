@@ -21,6 +21,8 @@ const MAX_MESSAGES = 60;
 const MAX_MESSAGE_CHARS = 20_000;
 const MAX_TOTAL_CHARS = 60_000;
 
+const ALLOWED_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
+
 /**
  * 驗證前端傳入的 messages 陣列是否在合理範圍內。
  * @returns {string|null} 錯誤訊息（合法時回傳 null）
@@ -33,8 +35,12 @@ function validateMessages(body) {
   if (messages.length > MAX_MESSAGES) return `messages 數量超過上限（${MAX_MESSAGES}）`;
 
   let totalChars = 0;
-  for (const m of messages) {
+  for (let idx = 0; idx < messages.length; idx++) {
+    const m = messages[idx];
     if (!m || typeof m !== 'object') return 'messages 內含無效項目';
+    if (!ALLOWED_ROLES.has(m.role)) return `不支援的 role：${m.role}`;
+    // 只允許第一則訊息為 system role，防止在對話中間夾帶偽造的系統指令
+    if (m.role === 'system' && idx !== 0) return 'system role 只能出現在第一則訊息';
     const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content ?? '');
     if (content.length > MAX_MESSAGE_CHARS) return `單一訊息內容超過上限（${MAX_MESSAGE_CHARS} 字元）`;
     totalChars += content.length;
