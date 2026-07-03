@@ -74,7 +74,7 @@ open scripts/preview.html        # 人工校驗座標
 `data/data.json` 含三個實體，形成**多對多**關係：
 
 - **therapists**：`id`（由牌照號派生）、`licenseNo`、`nameZh`、`nameEn`、`status`
-- **locations**：`id`（由地址 hash 派生）、`name`占、`addressZh`、`category`、`lng`/`lat`、`phone`、`hours`
+- **locations**：`id`（由地址 hash 派生）、`name`、`addressZh`、`category`、`lng`/`lat`、`phone`、`hours`
 - **practices**：`therapistId` + `locationId`（執業關聯）
 
 一位治療師可在多地點執業；一個地點可有多位治療師。
