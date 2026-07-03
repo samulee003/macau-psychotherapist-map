@@ -26,6 +26,15 @@
   <link rel="stylesheet" href="./src/styles.css" />
 </head>
 <body>
+  <!-- App 內置瀏覽器提示橫幅（Threads / Instagram / 微信 / Facebook 等）-->
+  <div id="inapp-browser-banner" class="inapp-banner" hidden role="alert">
+    <p id="inapp-banner-text" class="inapp-banner__text"></p>
+    <div class="inapp-banner__actions">
+      <button id="inapp-banner-copy" type="button" class="inapp-banner__btn">複製連結</button>
+      <button id="inapp-banner-close" type="button" class="inapp-banner__close" aria-label="關閉提示">✕</button>
+    </div>
+  </div>
+
   <div id="app">
     <!-- 側邊控制面板（桌面版側欄 / 手機版隱藏） -->
     <aside id="sidebar" class="sidebar">

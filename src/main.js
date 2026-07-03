@@ -12,12 +12,16 @@ import { initFilters, setQuery, selectCategoryProgrammatic, resetFiltersProgramm
 import { initDetail, showLocationDetail } from './detail.js';
 import { CATEGORIES } from './config.js';
 import { initCopilot, updateModalUiState } from './copilot.js';
+import { initInAppBrowserBanner } from './inapp-browser.js';
 
 let db = null;
 let currentLocations = []; // 目前篩選後顯示的地點
 let activeModalResultIndex = -1; // Spotlight 搜尋結果鍵盤選取索引
 
 async function main() {
+  // 儘早偵測並提示 App 內置瀏覽器（不等待資料載入）
+  initInAppBrowserBanner();
+
   showLoader('載入資料中…');
 
   try {

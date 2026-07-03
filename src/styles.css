@@ -75,6 +75,72 @@ html, body {
 }
 
 /* ---------------------------------------------------------- */
+/* App 內置瀏覽器提示橫幅（Threads / IG / 微信 等）           */
+/* ---------------------------------------------------------- */
+.inapp-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px 16px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  background: var(--color-primary-dark);
+  color: #ffffff;
+  box-shadow: var(--shadow-md);
+}
+
+.inapp-banner[hidden] {
+  display: none;
+}
+
+.inapp-banner__text {
+  flex: 1 1 240px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.inapp-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.inapp-banner__btn {
+  background: #ffffff;
+  color: var(--color-primary-dark);
+  border: none;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.inapp-banner__close {
+  background: transparent;
+  color: #ffffff;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  opacity: 0.85;
+}
+
+.inapp-banner__close:hover {
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------- */
 /* 側邊面板 (Sidebar)                                         */
 /* ---------------------------------------------------------- */
 .sidebar {
