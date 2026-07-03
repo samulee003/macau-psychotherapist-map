@@ -18,11 +18,11 @@ let controls = {};
 // 記憶模組：儲存短期對話歷史
 let chatHistory = [];
 
-// 設定：useOwnKey 為 true 時走「自帶 Key 直連」，否則走「自家薄代理（免 Key）」
+// 站台專屬設定：強制走自家薄代理（免 Key 模式）
 const settings = {
-  useOwnKey: localStorage.getItem('copilot_use_own_key') === 'true',
-  apiKey: localStorage.getItem('copilot_api_key') || '',
-  model: localStorage.getItem('copilot_model') || ''
+  useOwnKey: false,
+  apiKey: '',
+  model: 'deepseek-chat'
 };
 
 /**
@@ -84,37 +84,6 @@ function setupDom() {
             <line x1="14" y1="11" x2="14" y2="17"></line>
           </svg>
         </button>
-        <button id="chat-settings-btn" class="search-ai__action-btn" title="進階設定" aria-label="進階設定">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-          </svg>
-        </button>
-      </div>
-    </div>
-
-    <!-- 進階設定面板 -->
-    <div id="chat-settings" class="chat-settings" hidden>
-      <p class="chat-settings__desc" style="font-size:11px; margin-bottom: 6px;">
-        預設透過站台伺服器代為呼叫，您無需任何設定。若有自定義 Key 可在此切換為自帶金鑰直連模式。
-      </p>
-      <div class="chat-settings__field">
-        <label class="chat-settings__label">
-          <input type="checkbox" id="use-own-key-toggle" ${settings.useOwnKey ? 'checked' : ''}>
-          使用自帶 API 金鑰
-        </label>
-      </div>
-
-      <div id="own-key-group" class="chat-settings__field" ${settings.useOwnKey ? '' : 'hidden'}>
-        <label class="chat-settings__label" for="ai-key-input">API 金鑰 (API Key)：</label>
-        <input type="password" id="ai-key-input" placeholder="輸入您的 Deepseek API 金鑰" class="chat-settings__input">
-
-        <label class="chat-settings__label" for="ai-model-input" style="margin-top:8px">模型名稱 (Model)：</label>
-        <input type="text" id="ai-model-input" placeholder="deepseek-chat" class="chat-settings__input">
-      </div>
-
-      <div style="display:flex; justify-content:flex-end; margin-top:8px">
-        <button id="save-key-btn" class="btn btn--primary" style="padding:4px 8px;font-size:11px">儲存設定</button>
       </div>
     </div>
 
@@ -122,9 +91,9 @@ function setupDom() {
     <div id="modal-suggested-tips" class="modal-tips">
       <div class="modal-tips__title">💡 推薦詢問 AI 助理：</div>
       <ul class="modal-tips__list">
+        <li class="modal-tips__item" data-query="我有焦慮情緒，官方有自我評估檢測或諮詢熱線嗎？">🔍 我有焦慮情緒，官方有自我評估檢測或諮詢熱線嗎？</li>
         <li class="modal-tips__item" data-query="衛生局社區衛生中心提供免費心理諮詢嗎？">🔍 衛生局社區衛生中心提供免費心理諮詢嗎？</li>
         <li class="modal-tips__item" data-query="幫我找星期六下午開診的心理中心">🔍 幫我找星期六下午開診的心理中心</li>
-        <li class="modal-tips__item" data-query="介紹一下婦聯心理治療中心，包含地址和電話">🔍 介紹一下婦聯心理治療中心，包含地址和電話</li>
       </ul>
     </div>
 
@@ -143,22 +112,11 @@ function setupDom() {
     </div>
   `;
 
-  // 用程式碼動態邏輯賦值，以防從 localStorage 讀取受污染的設定產生 DOM XSS 漏洞
-  const keyInput = document.getElementById('ai-key-input');
-  if (keyInput) keyInput.value = settings.apiKey;
-  const modelInput = document.getElementById('ai-model-input');
-  if (modelInput) modelInput.value = settings.model;
+
 }
 
 function bindEvents() {
   const clearBtn = document.getElementById('chat-clear-btn');
-  const settingsBtn = document.getElementById('chat-settings-btn');
-  const settingsPanel = document.getElementById('chat-settings');
-  const useOwnKeyToggle = document.getElementById('use-own-key-toggle');
-  const ownKeyGroup = document.getElementById('own-key-group');
-  const keyInput = document.getElementById('ai-key-input');
-  const modelInput = document.getElementById('ai-model-input');
-  const saveKeyBtn = document.getElementById('save-key-btn');
   const sendBtn = document.getElementById('chat-send');
   const chatInput = document.getElementById('chat-input');
 
@@ -202,35 +160,6 @@ function bindEvents() {
   clearBtn?.addEventListener('click', () => {
     clearChatMemory();
     addMessage('system', '🧹 已清除對話歷史，助理記憶已重置。');
-  });
-
-  // 切換進階設定
-  settingsBtn?.addEventListener('click', () => {
-    settingsPanel.hidden = !settingsPanel.hidden;
-    settingsBtn.classList.toggle('is-active');
-  });
-
-  // 「自帶金鑰」勾選連動
-  useOwnKeyToggle?.addEventListener('change', () => {
-    ownKeyGroup.hidden = !useOwnKeyToggle.checked;
-  });
-
-  // 儲存設定
-  saveKeyBtn?.addEventListener('click', () => {
-    settings.useOwnKey = useOwnKeyToggle.checked;
-    settings.apiKey = keyInput.value.trim();
-    settings.model = modelInput.value.trim();
-
-    localStorage.setItem('copilot_use_own_key', String(settings.useOwnKey));
-    localStorage.setItem('copilot_api_key', settings.apiKey);
-    localStorage.setItem('copilot_model', settings.model);
-
-    addMessage('system', settings.useOwnKey
-      ? (settings.apiKey ? '🔑 已切換為自帶金鑰模式（瀏覽器直連 Deepseek）。' : '⚠ 已勾選自帶金鑰但未填入 Key，將仍使用站台預設模式。')
-      : '✅ 已切換回站台預設模式（免設定金鑰）。'
-    );
-    settingsPanel.hidden = true;
-    settingsBtn.classList.remove('is-active');
   });
 
   // 發送訊息
@@ -676,19 +605,27 @@ ${JSON.stringify(locationsBrief)}
 【行為規範】
 - 如果使用者在上一次提問之後問「它的電話是多少」或「在哪裡」，請根據對話歷史判斷指的是哪一家機構，並調用 "select_location"！
 - 不要虛構任何不存在的醫療機構，始終基於事實回覆。
-- **禁止過度使用 Emoji**：為了保持醫療諮詢的專業度與介面的高級感（Anti-Slop），請不要在每一句或每個列表項目前都加上表情符號（嚴禁如「🏥 醫療中心」、「🧠 心理中心」等排列）。僅在回覆尾端最合適、最自然的地方使用極少量的溫和表情符號（如 😊）進行點綴，回覆主體以簡潔、專業的文字與排版呈現。
+- **個人隱私保護規則**：當你向使用者介紹或列出心理治療師的姓名時，請優先展示其「中文姓名」，若無中文姓名才展示其「英文/外文姓名」，你【必須絕對禁止同時展示中文與外文姓名】，但你可以展示其執業牌照號碼（如 PI-XXXX），以方便市民進行官方即時查詢。
+- **絕對禁止使用任何 Emoji (Absolute Ban)**：為了保持醫療諮詢的嚴肅性、專業度與介面的高級感（Anti-Slop），你必須在回覆中【完全禁止使用任何表情符號 (Emoji)】，包括但不限於 😊, 🏥, 🧠, 💬, 📞 等。你的整個回覆內容中不得出現任何一個 Emoji。所有列表、項目、標題與段落必須使用純文字與 Markdown 符號（如 - 或 1.）進行排版，絕不能有表情符號。
 
 【常見市民查詢解答指引】
-1. **免費/公立心理諮詢**：
-   - 澳門衛生局公立醫療體系（如各社區衛生中心）提供免費心理諮詢服務給澳門居民，地圖上的「澳門公共醫療機構」（位於若憲馬路）即代表公立服務，其關聯了多位註冊心理治療師。
-   - 社會服務機構（category: social，例如「婦聯心理治療中心」）也常提供低收費或特定免費服務，請積極向使用者推薦並使用 \`select_location\` 工具為他們在地圖上定位。
-2. **週末/假日開診**：
+1. **官方心理自我評測與求助管道**：
+   - 當使用者提到焦慮、抑鬱、失眠、心理困擾或壓力時，請主動提供衛生局的**「自我心理狀態快測」**網址：[https://www.ssm.gov.mo/portal1/mentalhealth/kzJY9ECgaLx4vv83tK3eA?lang=ch](https://www.ssm.gov.mo/portal1/mentalhealth/kzJY9ECgaLx4vv83tK3eA?lang=ch)。
+   - 情緒危機緊急求助：告知使用者可撥打**明愛 24 小時生命熱線：2852 5222**，或**社會工作局 24 小時心理諮詢熱線：2826 1126**，或前往仁伯爵綜合醫院（山頂醫院）急診。
+2. **四級聯防精神衛生服務模式與地圖匹配限制**：
+   若市民詢問公立或政府心理服務，請向其介紹澳門「四級聯防、四環緊扣」服務，但【必須特別注意地圖資料庫的匹配限制】：
+   - **地圖資料限制**：由於地圖主要收錄「私人醫務活動」的心理治療師執業地點，因此【地圖上不包含各公立社區衛生中心】（如黑沙環衛生中心、氹仔衛生中心等）。你【絕對不能】為社區衛生中心調用 \`select_location\` 工具，應引導市民直接攜帶身份證前往其所屬轄區的社區衛生中心掛號，預約第三級的「心理保健門診」服務。
+   - **第一、二級 (社區支援/專項服務)**：由民間社團（如地圖上的「婦聯心理治療中心」）提供，此類機構已收錄於地圖中，你可以調用 \`select_location\` 為其定位。
+   - **第四級 (專科醫療)**：仁伯爵綜合醫院（山頂醫院）精神科，提供專科治療。地圖中收錄了代表山頂醫院的「澳門公共醫療機構」（若憲馬路 339 號），你可以調用 \`select_location\` 為其定位。
+3. **週末/假日開診**：
    - 仔細檢查地點列表中的 \`hours\` 欄位。找出含有「星期六」、「星期日」或「六」或「日」的機構（例如「婦聯心理治療中心」星期六有開診，「泰迪治療中心」星期六下午開診等）。向使用者列出這些機構，並主動調用 \`select_location\` 幫使用者定位其中一間。
-3. **夜間服務（晚上 18:00 後）**：
+4. **夜間服務（晚上 18:00 後）**：
    - 檢查 \`hours\` 中的開診時間。例如「婦聯心理治療中心」營業至 19:30、「泰迪治療中心」營業至 20:00 等。向使用者列出並推薦。
-4. **學生/青少年支援**：
+5. **學生/青少年支援**：
    - 大專院校（category: university，如澳門大學等）設有學生專屬的心理輔導中心。社會服務機構（category: social，如「薈穗社」）也針對青少年藥物依賴或心理健康提供支援。
 
+【重要安全提示】
+AI 助理的回覆僅供參考，不代替任何醫療診斷或治療。如遇嚴重情緒困擾，應主動尋求專業醫療或致電明愛生命熱線 2852 5222 或社工局熱線 2826 1126 諮詢。
 `;
 }
 

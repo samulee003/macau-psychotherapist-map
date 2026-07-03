@@ -30,8 +30,8 @@ export function showLocationDetail(loc, db) {
     ${loc.hours ? row('時間', escapeHtml(loc.hours)) : ''}
 
     <div class="detail__actions">
-      ${amapUrl ? `<a class="btn btn--primary" href="${amapUrl}" target="_blank" rel="noopener">🧭 高德導航</a>` : ''}
-      ${googleUrl ? `<a class="btn btn--ghost" href="${googleUrl}" target="_blank" rel="noopener">🗺️ Google 地圖</a>` : ''}
+      ${amapUrl ? `<button class="btn btn--primary" id="nav-amap-btn">🧭 高德導航</button>` : ''}
+      ${googleUrl ? `<button class="btn btn--ghost" id="nav-google-btn">🗺️ Google 地圖</button>` : ''}
       <button class="btn btn--ghost" id="copy-addr-btn">📋 複製地址</button>
     </div>
 
@@ -46,6 +46,92 @@ export function showLocationDetail(loc, db) {
 
   content().innerHTML = html;
   drawer().hidden = false;
+
+  // Vercel Analytics: 統計使用者最常查看的機構或中心
+  if (window.va) {
+    window.va('event', {
+      name: 'view_location',
+      data: {
+        id: loc.id,
+        name: loc.name,
+        category: loc.category
+      }
+    });
+  }
+
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+
+  // 綁定高德導航（嘗試喚起 App）
+  const amapBtn = document.getElementById('nav-amap-btn');
+  if (amapBtn) {
+    amapBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const webUrl = loc.lng != null && loc.lat != null
+        ? `https://uri.amap.com/marker?position=${loc.lng},${loc.lat}&name=${encodeURIComponent(loc.name)}&coordinate=gcj02&callnative=1`
+        : buildAmapNavUrl(loc);
+
+      if (isWeChat) {
+        showWeChatToast(webUrl);
+        return;
+      }
+
+      if (isMobile && loc.lng != null && loc.lat != null) {
+        const schemeUrl = `amapuri://route/plan/?dlat=${loc.lat}&dlon=${loc.lng}&dname=${encodeURIComponent(loc.name)}&dev=0&t=0`;
+        window.location.href = schemeUrl;
+        
+        const start = Date.now();
+        setTimeout(() => {
+          if (Date.now() - start < 2000) {
+            window.open(webUrl, '_blank');
+          }
+        }, 1500);
+      } else {
+        window.open(webUrl, '_blank');
+      }
+    });
+  }
+
+  // 綁定 Google 地圖導航（嘗試喚起 App）
+  const googleBtn = document.getElementById('nav-google-btn');
+  if (googleBtn) {
+    googleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const queryParts = [];
+      if (loc.name && loc.name !== '（未知名稱）') {
+        queryParts.push(loc.name);
+      }
+      if (loc.addressZh) {
+        const cleanAddr = loc.addressZh.split('二樓')[0].split('2樓')[0].split('地下')[0].trim();
+        if (cleanAddr) queryParts.push(cleanAddr);
+      }
+      const q = '澳門 ' + (queryParts.length > 0 ? queryParts.join(' ') : `${loc.lat},${loc.lng}`);
+      const webUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+
+      if (isWeChat) {
+        showWeChatToast(webUrl);
+        return;
+      }
+
+      if (isMobile) {
+        const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const schemeUrl = isiOS 
+          ? `comgooglemaps://?q=${encodeURIComponent(q)}`
+          : `geo:0,0?q=${encodeURIComponent(q)}`;
+        
+        window.location.href = schemeUrl;
+        
+        const start = Date.now();
+        setTimeout(() => {
+          if (Date.now() - start < 2000) {
+            window.open(webUrl, '_blank');
+          }
+        }, 1500);
+      } else {
+        window.open(webUrl, '_blank');
+      }
+    });
+  }
 
   // 綁定複製地址
   const copyBtn = document.getElementById('copy-addr-btn');
@@ -70,13 +156,14 @@ export function showLocationDetail(loc, db) {
 }
 
 function renderTherapist(t) {
+  // 優先使用中文名，無中文名則使用英文名，只保留其一以維護隱私；同時展示其執業牌照號碼
+  const name = t.nameZh || t.nameEn || '（未具名）';
   return `
     <div class="therapist-card">
       <div class="therapist-card__name">
-        ${escapeHtml(t.nameZh || '（未具名）')}
+        ${escapeHtml(name)}
         ${t.licenseNo ? `<span class="therapist-card__license">${escapeHtml(t.licenseNo)}</span>` : ''}
       </div>
-      ${t.nameEn ? `<div class="therapist-card__name-en">${escapeHtml(t.nameEn)}</div>` : ''}
     </div>`;
 }
 
@@ -186,4 +273,48 @@ function escapeHtml(s) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function showWeChatToast(webUrl) {
+  let overlay = document.getElementById('wechat-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'wechat-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.background = 'rgba(15, 23, 42, 0.75)';
+    overlay.style.backdropFilter = 'blur(4px)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '10000';
+    overlay.style.padding = '24px';
+    overlay.style.boxSizing = 'border-box';
+    
+    overlay.innerHTML = `
+      <div style="background: #ffffff; padding: 28px 24px; border-radius: 16px; max-width: 320px; width: 100%; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center;">
+        <h4 style="margin: 0 0 8px; color: #2c6e7f; font-size: 16px; font-weight: 700; letter-spacing: -0.025em;">跳轉提示</h4>
+        <p style="margin: 0 0 20px; color: #64748b; font-size: 13px; line-height: 1.5;">微信內置瀏覽器無法直接打開地圖 App，建議點擊右上角選擇<strong>「在瀏覽器中打開」</strong>以喚起 App。</p>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button id="wechat-btn-web" style="background: #2c6e7f; color: #ffffff; border: none; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; width: 100%;">在微信內瀏覽網頁地圖</button>
+          <button id="wechat-btn-close" style="background: #f1f5f9; color: #64748b; border: none; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; width: 100%;">取消</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  }
+  
+  overlay.style.display = 'flex';
+  
+  document.getElementById('wechat-btn-web').onclick = () => {
+    overlay.style.display = 'none';
+    window.location.href = webUrl;
+  };
+  
+  document.getElementById('wechat-btn-close').onclick = () => {
+    overlay.style.display = 'none';
+  };
 }

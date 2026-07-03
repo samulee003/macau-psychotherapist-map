@@ -1,8 +1,8 @@
 {
   "meta": {
     "description": "澳門註冊心理治療師執業地點分布",
-    "source": "澳門衛生局牌照註冊資料查詢網頁",
-    "sourceUrl": "https://www.ssm.gov.mo/pubssmweb/Utlap/frmUtlapLic.aspx?licode=11&t=",
+    "source": "澳門衛生局",
+    "sourceUrl": "https://www.ssm.gov.mo/",
     "officialSource": "澳門特別行政區政府衛生局 — 從事私人醫務活動專業人員名冊",
     "officialSourceUrl": "https://www.ssm.gov.mo/pubssmweb/register/frmShowRegister.aspx",
     "collectedAt": "2026-07-01",
