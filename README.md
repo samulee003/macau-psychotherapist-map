@@ -113,6 +113,13 @@ npm run build
 
 > ⚠️ 部署後記得在高德後台將部署網域加入 JS API 的「綁定網域」白名單。
 
+### 部署前安全檢查清單
+
+- [ ] 高德 **JS API key**（`src/config.js`）已在高德後台綁定正式部署網域的白名單。
+- [ ] 高德 **JS API key** 與**Web 服務 key**（採集腳本用）已分離為兩組獨立 key，避免前端公開 key 與後端 geocoding key 混用。
+- [ ] Vercel 環境變數 `DEEPSEEK_API_KEY` 已設定，且未提交至版本控制。
+- [ ] `.env` 未被意外提交（已列於 `.gitignore`）。
+
 ## ⚖️ 免責聲明
 
 本網站**非官方機構**，與澳門衛生局或 APM 無關。資料採集自 APM 整理的公開名冊（源自衛生局註冊資料），**僅供參考**，可能延遲或不完整，不構成醫療建議或轉介。最新資訊請以[衛生局官方查詢系統](https://www.ssm.gov.mo/pubssmweb/register/frmShowRegister.aspx)為準。

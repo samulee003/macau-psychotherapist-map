@@ -74,7 +74,7 @@ open scripts/preview.html        # 人工校驗座標
 `data/data.json` 含三個實體，形成**多對多**關係：
 
 - **therapists**：`id`（由牌照號派生）、`licenseNo`、`nameZh`、`nameEn`、`status`
-- **locations**：`id`（由地址 hash 派生）、`name`占、`addressZh`、`category`、`lng`/`lat`、`phone`、`hours`
+- **locations**：`id`（由地址 hash 派生）、`name`、`addressZh`、`category`、`lng`/`lat`、`phone`、`hours`
 - **practices**：`therapistId` + `locationId`（執業關聯）
 
 一位治療師可在多地點執業；一個地點可有多位治療師。
@@ -138,6 +138,13 @@ open scripts/preview.html        # 人工校驗座標
 - **不做使用者帳號/收藏** — MVP 範圍外，且涉及隱私。
 - **明確免責聲明** — 頁面須標示「非官方、僅供參考、以官方為準、不構成醫療建議」。
 - **資料與來源透明** — 頁尾顯示採集日期，並包含跳轉到衛生局官網首頁的連結以維護來源真實性。
+
+## 不做（YAGNI）
+
+- **v2（現況）已實作 AI Agent 功能**：`src/copilot.js` + `api/copilot.js`（Vercel 薄代理代管 `DEEPSEEK_API_KEY`）+ `vercel.json`，讓使用者免 Key 即可使用 Deepseek Agent（9 個工具）。詳見 `docs/roadmap-v2.md`。
+- 後端伺服器／資料庫（~90 位治療師、41 地點，靜態 JSON 足夠）。v2 僅放寬至「無狀態 serverless 薄代理」，仍不做資料庫，`data.json` 仍在前端載入。
+- 評分/評論、使用者帳號、離線/推播
+- 「以治療師為 pin」的地圖視角切換
 
 ## 修改程式碼前的檢查清單
 

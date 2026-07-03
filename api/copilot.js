@@ -15,6 +15,41 @@ const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 20;
 const ipHits = new Map(); // 僅在單一函式實例生命週期內有效
 
+// 請求體驗證上限：防止惡意夾帶超長內容耗用代管的 Deepseek 額度
+// （系統指令含 41 個地點的 JSON 摘要 + 對話歷史最多 10 則，正常請求遠低於此上限）
+const MAX_MESSAGES = 60;
+const MAX_MESSAGE_CHARS = 20_000;
+const MAX_TOTAL_CHARS = 60_000;
+
+const ALLOWED_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
+
+/**
+ * 驗證前端傳入的 messages 陣列是否在合理範圍內。
+ * @returns {string|null} 錯誤訊息（合法時回傳 null）
+ */
+function validateMessages(body) {
+  if (!body || typeof body !== 'object') return '請求內容格式錯誤';
+  const messages = body.messages;
+  if (!Array.isArray(messages)) return '缺少有效的 messages 陣列';
+  if (messages.length === 0) return 'messages 不可為空';
+  if (messages.length > MAX_MESSAGES) return `messages 數量超過上限（${MAX_MESSAGES}）`;
+
+  let totalChars = 0;
+  for (let idx = 0; idx < messages.length; idx++) {
+    const m = messages[idx];
+    if (!m || typeof m !== 'object') return 'messages 內含無效項目';
+    if (!ALLOWED_ROLES.has(m.role)) return `不支援的 role：${m.role}`;
+    // 只允許第一則訊息為 system role，防止在對話中間夾帶偽造的系統指令
+    if (m.role === 'system' && idx !== 0) return 'system role 只能出現在第一則訊息';
+    const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content ?? '');
+    if (content.length > MAX_MESSAGE_CHARS) return `單一訊息內容超過上限（${MAX_MESSAGE_CHARS} 字元）`;
+    totalChars += content.length;
+  }
+  if (totalChars > MAX_TOTAL_CHARS) return `訊息總長度超過上限（${MAX_TOTAL_CHARS} 字元）`;
+
+  return null;
+}
+
 function rateLimited(ip) {
   const now = Date.now();
   
@@ -55,6 +90,13 @@ export default async function handler(req, res) {
   const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || 'unknown';
   if (rateLimited(ip)) {
     res.status(429).json({ error: '請求過於頻繁，請稍後再試' });
+    return;
+  }
+
+  // 請求體驗證：防止夾帶超長內容耗用代管的 API 額度
+  const validationError = validateMessages(req.body);
+  if (validationError) {
+    res.status(400).json({ error: `請求內容不符規範：${validationError}` });
     return;
   }
 
