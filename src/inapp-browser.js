@@ -57,8 +57,9 @@ export function initInAppBrowserBanner() {
       const url = window.location.href;
       try {
         await navigator.clipboard.writeText(url);
-      } catch {
-        // Clipboard API 在部分內置瀏覽器可能受限，退回提示使用者手動複製
+      } catch (err) {
+        // Clipboard API 在部分內置瀏覽器可能受限或被拒絕，記錄後退回提示使用者手動複製
+        console.warn('無法自動複製連結，改為手動複製提示:', err);
         window.prompt('請手動複製以下連結，並在外部瀏覽器中開啟：', url);
         return;
       }
