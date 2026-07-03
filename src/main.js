@@ -387,6 +387,7 @@ function bindSplitHandle() {
     dragging = true;
     document.body.style.userSelect = 'none';
     document.body.style.cursor = 'row-resize';
+    lastClientY = e.clientY;
     e.preventDefault();
   });
   document.addEventListener('mousemove', (e) => {
@@ -405,12 +406,19 @@ function bindSplitHandle() {
   });
 
   // --- 觸控 ---
+  // 利用移動端 Touch Target Capture 特性，將所有觸控監聽直接綁定在 handle 上
+  // 並配合 e.stopPropagation()，阻止 Threads/FB/Line 等 App 內置瀏覽器將此手勢判定為「下拉關閉 Webview」
   handle.addEventListener('touchstart', (e) => {
     dragging = true;
     document.body.style.userSelect = 'none';
+    if (e.touches && e.touches[0]) {
+      lastClientY = e.touches[0].clientY;
+    }
     if (e.cancelable) e.preventDefault();
+    e.stopPropagation();
   }, { passive: false });
-  document.addEventListener('touchmove', (e) => {
+
+  handle.addEventListener('touchmove', (e) => {
     if (!dragging) return;
     const t = e.touches[0];
     if (t) {
@@ -418,13 +426,16 @@ function bindSplitHandle() {
       throttledSetHeight(t.clientY);
     }
     if (e.cancelable) e.preventDefault();
+    e.stopPropagation();
   }, { passive: false });
-  document.addEventListener('touchend', () => {
+
+  handle.addEventListener('touchend', (e) => {
     if (dragging) {
       dragging = false;
       document.body.style.userSelect = '';
       // 拖曳結束時強制更新到最終位置
       setHeightFromY(lastClientY);
+      e.stopPropagation();
     }
   });
 }

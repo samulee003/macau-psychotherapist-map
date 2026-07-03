@@ -176,8 +176,8 @@ def main():
 
     payload = {
         "_meta": {
-            "source": "澳門衛生局牌照註冊資料查詢網頁",
-            "sourceUrl": URL,
+            "source": "澳門衛生局",
+            "sourceUrl": "https://www.ssm.gov.mo/",
             "originalSource": "澳門特別行政區政府衛生局 — 從事私人醫務活動專業人員名冊",
             "note": "資料直接採集自衛生局官方登記系統。最新資訊請以官方為準。",
             "scrapedAt": time.strftime("%Y-%m-%d %H:%M:%S"),

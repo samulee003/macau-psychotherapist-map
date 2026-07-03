@@ -53,11 +53,23 @@ function toggleCategory(catKey) {
   }
 }
 
+let trackTimer = null;
+function trackSearch(q) {
+  if (!q) return;
+  clearTimeout(trackTimer);
+  trackTimer = setTimeout(() => {
+    if (window.va) {
+      window.va('event', { name: 'search_query', data: { query: q } });
+    }
+  }, 1000); // 停止打字 1 秒後才發送事件，避免記錄無效的碎片輸入
+}
+
 /**
  * 設定搜尋關鍵字。
  */
 export function setQuery(query, db) {
   state.query = (query || '').trim().toLowerCase();
+  trackSearch(state.query);
   emit(db);
 }
 

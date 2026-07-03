@@ -116,8 +116,8 @@ html, body {
 
 /* 桌面版側欄搜尋觸發按鈕 */
 .sidebar__search-trigger {
-  margin: 16px 24px 12px;
-  padding: 10px 14px;
+  margin: 12px 16px 8px;
+  padding: 8px 12px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -288,7 +288,7 @@ html, body {
 
 /* 分類篩選區塊 */
 .filters {
-  padding: 14px 24px 12px;
+  padding: 8px 16px 8px;
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -358,7 +358,7 @@ html, body {
 .list {
   flex: 1;
   overflow-y: auto;
-  padding: 14px 24px 16px;
+  padding: 10px 16px 12px;
   /* 現代化滾動條設定 (Baseline 2024/2025) */
   --scrollbar-thumb: rgba(148, 163, 184, 0.35);
   --scrollbar-track: transparent;
@@ -396,6 +396,15 @@ html, body {
   padding: 2px 8px;
   border-radius: 999px;
   text-transform: none;
+}
+
+.list__sorting-disclaimer {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  opacity: 0.8;
+  margin-top: -6px;
+  margin-bottom: 12px;
+  line-height: 1.4;
 }
 
 .list__items {
@@ -506,6 +515,22 @@ html, body {
   color: var(--color-text-light);
   font-size: 9.5px;
   line-height: 1.35;
+}
+
+.sidebar__contact {
+  color: var(--color-text-light);
+  font-size: 9.5px;
+  line-height: 1.35;
+  margin-top: 4px;
+}
+
+.sidebar__contact-link {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.sidebar__contact-link:hover {
+  text-decoration: underline;
 }
 
 /* ---------------------------------------------------------- */
@@ -878,12 +903,25 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 6px;
+    height: 8px; /* 稍微增加高度以提高邊界質感 */
     flex-shrink: 0;
     background: #e2e8f0;
     cursor: row-resize;
     position: relative;
-    z-index: 5;
+    z-index: 1005; /* 確保高於地圖及下方控制面板 */
+    touch-action: none; /* 關鍵：阻止瀏覽器預設手勢干擾拖拉事件 */
+  }
+
+  /* 藉由偽元素擴展手指觸摸熱區 */
+  .split-handle::before {
+    content: '';
+    position: absolute;
+    top: -16px; /* 向上擴展 16px */
+    bottom: -16px; /* 向下擴展 16px */
+    left: 0;
+    right: 0;
+    z-index: 1; /* 置於頂部覆蓋 */
+    background: transparent;
   }
 
   .split-handle::after {
@@ -892,7 +930,9 @@ html, body {
     height: 4px;
     border-radius: 2px;
     background: #94a3b8;
-    transition: background 0.2s;
+    transition: background 0.2s, height 0.2s;
+    position: relative;
+    z-index: 2; /* 高於 before 觸摸層 */
   }
 
   .split-handle:hover::after,
@@ -992,6 +1032,15 @@ html, body {
     padding: 2px 8px;
     border-radius: 999px;
     text-transform: none;
+  }
+
+  .mobile-panel__sorting-disclaimer {
+    font-size: 10px;
+    color: var(--color-text-muted);
+    opacity: 0.8;
+    margin-top: 2px;
+    margin-bottom: 8px;
+    line-height: 1.4;
   }
 
   .mobile-list {
@@ -1776,6 +1825,167 @@ html, body {
 .map-error-card__retry {
   width: 100%;
 }
+
+/* ============================================================
+   心理健康資訊網整合樣式
+   ============================================================ */
+.mental-health-card {
+  background: var(--color-primary-light);
+  border: 1px solid rgba(44, 110, 127, 0.15);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin: 4px 16px 8px; /* 貼合側欄左右邊距 */
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+.mh-card__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.mh-card__icon {
+  font-size: 14px;
+}
+
+.mh-card__title {
+  font-family: var(--font-title);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+.mh-card__desc {
+  display: none; /* 隱藏贅餘描述以最大化節省高度空間，貫徹極簡無贅餘 */
+}
+
+.mh-card__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.mental-health-card .btn {
+  padding: 6px 4px;
+  font-size: 10.5px;
+  height: 28px;
+  line-height: 16px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.btn--sm {
+  padding: 8px 12px;
+  font-size: 11.5px;
+  border-radius: var(--radius-sm);
+  height: 32px;
+}
+
+.btn--full {
+  width: 100%;
+}
+
+/* 手機版心理健康快捷條 */
+.mobile-mh-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-light);
+  border-bottom: 1px solid var(--color-border);
+  padding: 8px 14px;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.mobile-mh-card__label {
+  font-weight: 600;
+  color: var(--color-primary-dark);
+}
+
+.mobile-mh-card a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.mobile-mh-card a:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+.mobile-mh-card__divider {
+  margin: 0 4px;
+  color: rgba(44, 110, 127, 0.2);
+}
+
+/* 詳情面板中的轉介與就醫指引 */
+.detail__referral-guide {
+  margin: 16px 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border-left: 4px solid;
+  font-size: 12.5px;
+  line-height: 1.5;
+  box-shadow: var(--shadow-sm);
+}
+
+.detail__referral-guide h4 {
+  font-family: var(--font-title);
+  font-size: 13.5px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.detail__referral-guide p {
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+.detail__referral-guide a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+.detail__referral-guide a:hover {
+  text-decoration: underline;
+}
+
+/* 不同級別指引樣式 */
+.referral-guide--center {
+  background: rgba(238, 247, 249, 0.7); /* 淺藍綠 */
+  border-color: var(--color-primary);
+}
+.referral-guide--center h4 {
+  color: var(--color-primary-dark);
+}
+
+.referral-guide--hospital {
+  background: rgba(254, 242, 242, 0.7); /* 淺紅 */
+  border-color: var(--cat-hospital);
+}
+.referral-guide--hospital h4 {
+  color: #991b1b;
+}
+
+.referral-guide--social {
+  background: rgba(240, 253, 244, 0.7); /* 淺綠 */
+  border-color: var(--cat-social);
+}
+.referral-guide--social h4 {
+  color: #166534;
+}
+
 
 
 

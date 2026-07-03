@@ -133,7 +133,6 @@ function showInfoWindow(loc, db) {
       <div class="iw__title">${escapeHtml(loc.name)}</div>
       <div class="iw__address">${escapeHtml(loc.addressZh || '')}</div>
       <div class="iw__count">${therapists.length} 位註冊心理治療師</div>
-      <div class="iw__hint">點擊查看詳情</div>
     </div>`;
 
   infoWindow.setContent(content);
