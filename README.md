@@ -6,19 +6,24 @@
 
 ## ✨ 功能
 
-- 🗺️ **互動地圖**：高德地圖顯示所有執業地點，依機構類型配色
+- 🗺️ **互動地圖**：MapLibre + OpenStreetMap 顯示所有執業地點，依機構類型配色（免地圖 API key）
 - 🔍 **即時搜尋**：依治療師姓名、機構名稱、地址搜尋
 - 🏷️ **分類篩選**：依機構類型（醫院／醫療中心／心理中心／社服機構等）篩選
-- 📋 **地點詳情**：點擊查看機構資訊、電話、診症時間、該處所有心理治療師
-- 🧭 **一鍵導航**：整合高德導航
-- 📱 **響應式設計**：手機、平板、桌面皆適用
+- ⏰ **時段篩選**：「現在營業」「週末開診」「夜間開診」一鍵篩選，列表顯示「營業中」徽章
+- 📍 **附近優先**：一鍵以自身位置排序，顯示步行距離（自動處理 GCJ-02 座標偏移）
+- 🔗 **深連結分享**：`#loc=<id>` 直達特定機構，詳情面板一鍵複製分享連結（轉介場景）
+- 📋 **地點詳情**：點擊查看機構資訊、電話（可直撥）、診症時間、該處所有心理治療師
+- 🧭 **一鍵導航**：整合高德／Google 地圖 App 喚醒
+- 🤖 **AI 智能助理**：免 Key 對話式查詢（Deepseek agent + 10 個工具），可控制地圖與篩選
+- 📱 **響應式設計 + PWA**：手機、平板、桌面皆適用；支援離線快取與安裝到主畫面
+- ☎️ **官方求助資源**：自我心理狀態快測、明愛生命熱線、社工局心理熱線常駐入口
 
 ## 🚀 快速開始
 
 ### 前置需求
 
 - Node.js 18+
-- 一個 [高德開放平台](https://lbs.amap.com/dev/) 帳號（免費）
+- （僅資料採集需要）一個 [高德開放平台](https://lbs.amap.com/dev/) 帳號的 Web 服務 key，前端地圖本身**不需要任何 API key**
 
 ### 安裝與本地運行
 
@@ -29,19 +34,17 @@ npm run dev
 
 開啟 <http://localhost:5173>
 
-### 設定高德 API Key（必要）
+```bash
+npm test   # 單元測試（診時解析、座標轉換、資料索引、代理驗證）
+```
 
-地圖功能需要高德 API key。請至 [高德開放平台](https://lbs.amap.com/dev/) 申請：
+### 地圖 API Key
 
-1. **JS API 應用**（前端地圖顯示）：
-   - 建立「Web端(JS API)」類型應用
-   - 在「綁定網域」加入你的網域（如 `localhost`、`xxx.github.io`）
-   - 取得 **key** 與 **安全金鑰(securityJsCode)**
-   - 填入 `src/config.js` 的 `AMAP_CONFIG`
+**前端不需要任何 key** — 底圖為 MapLibre GL + OSM/CARTO 免費瓦片。
 
-2. **Web 服務應用**（採集腳本 geocoding 用，可選）：
-   - 建立「Web服務」類型應用
-   - 設定環境變數：`export AMAP_WEB_KEY=你的key`
+僅**資料採集腳本**（geocoding）需要高德 **Web 服務 key**：
+- 至 [高德開放平台](https://lbs.amap.com/dev/) 建立「Web服務」類型應用
+- 本機：`export AMAP_WEB_KEY=你的key`；CI：設定 GitHub Secrets 的 `AMAP_WEB_KEY`
 
 ## 📊 資料更新
 
@@ -66,7 +69,7 @@ open scripts/preview.html        # 人工校驗座標
 | 項目 | 技術 |
 |------|------|
 | 前端 | Vite + 原生 JavaScript (ES Modules) |
-| 地圖 | 高德地圖 JS API 2.0 |
+| 地圖 | MapLibre GL JS + OSM/CARTO 底圖（免 key、WGS-84） |
 | 樣式 | 手寫 CSS（響應式） |
 | 資料 | 靜態 JSON |
 | 採集 | Python + requests + BeautifulSoup |
@@ -111,14 +114,13 @@ npm run build
 # 上傳 dist/ 目錄，或連結 Git repo 自動部署
 ```
 
-> ⚠️ 部署後記得在高德後台將部署網域加入 JS API 的「綁定網域」白名單。
-
 ### 部署前安全檢查清單
 
-- [ ] 高德 **JS API key**（`src/config.js`）已在高德後台綁定正式部署網域的白名單。
-- [ ] 高德 **JS API key** 與**Web 服務 key**（採集腳本用）已分離為兩組獨立 key，避免前端公開 key 與後端 geocoding key 混用。
+- [ ] 前端**不含任何地圖 API key**（底圖免 key；舊高德 JS key 已隨遷移移除，若曾洩漏請至高德後台作廢）。
+- [ ] 高德 **Web 服務 key**（採集腳本用）只存在於 GitHub Secrets（`AMAP_WEB_KEY`），workflow 檔內無任何硬編碼 fallback。若 key 曾出現在版控歷史，須至高德後台**作廢舊 key 並換新**。
 - [ ] Vercel 環境變數 `DEEPSEEK_API_KEY` 已設定，且未提交至版本控制。
 - [ ] `.env` 未被意外提交（已列於 `.gitignore`）。
+- [ ] `/api/copilot` 淨化邏輯（`lib/copilot-proxy.js`）未被繞過 — model/max_tokens 由伺服器強制，tools 走白名單。
 
 ## ⚖️ 免責聲明
 

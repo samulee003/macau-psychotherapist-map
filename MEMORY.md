@@ -15,11 +15,14 @@
 - **理由**：資料量小（~90 人）、更新頻率低（半年一次）、公益性質。靜態網站零伺服器成本、易分享、SEO 友好、無需上架審核。
 - **否決方案**：跨平台 App（React Native/Flutter）過重；前後端分離對 MVP 殺雞用牛刀。
 
-### 2. 地圖服務：高德（非 Google/OSM）
+### 2. 地圖服務：MapLibre + OSM（v2.1 起；原為高德）
 
-- **決策**：高德地圖 JS API 2.0。
-- **理由**：澳門街道細節完整、Web JS API 免費穩定、文件清楚、面向中文使用者體驗好。
-- **考量**：Leaflet+OSM 雖免費但使用者偏好高德；Google Maps 有額度收費。
+- **原決策（v1–v2）**：高德地圖 JS API 2.0，理由是澳門街道細節完整、免費穩定、中文體驗好。
+- **v2.1 改為 MapLibre GL + OSM/CARTO 底圖**（使用者拍板）：
+  - 免 API key — 消滅了 key 管理、網域白名單、洩漏風險整類問題（正是 v2.1 修復的 key 洩漏事故的根源）
+  - WGS-84 底圖無座標偏移；澳門 OSM 資料品質良好；澳門居民日常以 Google Maps 為主，對高德無偏好
+  - **座標系鐵律**：data.json 座標仍是 GCJ-02（高德 geocoding 產出），顯示/測距前必經 `geo.js` 轉換；高德導航 URL 仍用原始 GCJ-02 值
+- **導航不受影響**：詳情面板的「高德導航／Google 地圖」App 喚醒按鈕與底圖無關，維持不變。
 
 ### 3. 資料來源與採集方式：官方衛生局直接爬取（突破 Cloudflare 驗證）
 
@@ -69,6 +72,17 @@
 ### 11. 手機 App 喚醒與微信沙盒相容
 - **決策**：行動端點擊導航優先調起原生 App（高德使用 `amapuri://`，Google 地圖在 iOS 使用 `comgooglemaps://`，Android 使用 `geo:`）。若 1.5 秒內未喚起則降級至 Web 瀏覽器版。特別是在微信內置瀏覽器中，會彈出高質感的磨砂 Dialog，引導使用者在外部瀏覽器開啟，或直接點擊按鈕跳轉至 H5 網頁版。
 - **理由**：提供流暢的一鍵 App 導航體驗，並解決微信沙盒對自定義 URL Schemes 屏蔽的痛點。
+
+### 12. v2.1 便民與安全升級（2026-07-06）
+- **時段篩選走結構化解析而非 AI**：`hours.js` 把診時文字解析為可計算時段，「現在營業/週末/夜間」做成一鍵篩選按鈕。理由：最常用的查詢不該有 AI 延遲與不確定性；AI 透過 `find_open_locations` 工具共用同一套解析，答案與 UI 一致。
+- **薄代理鎖定**：發現代理原樣轉發 `req.body`，任何人可直接 POST 指定貴的模型把網站當免費 LLM API。修復：`lib/copilot-proxy.js` 統一淨化 — model/max_tokens/temperature 伺服器強制、tools 白名單，dev 與正式共用同一邏輯。
+- **金鑰洩漏修復**：`update_data.yml` 曾有硬編碼的高德 key fallback（且與前端 JS key 同一把）。已移除 fallback 並改為缺 secret 即報錯。**該 key 已進過版控歷史，需人工到高德後台作廢換新**。
+- **深連結 + 分享**：`#loc=<id>` 直達機構，詳情面板「分享連結」。理由：心理健康資源的真實傳播路徑是社工/老師/親友轉介，可分享的連結比任何站內功能更便民。
+- **附近優先**：Geolocation（WGS-84）→ `wgs84ToGcj02` 轉換後與高德座標比距離。澳門地區不轉換會偏數十至數百米。
+- **分析隱私**：Vercel Analytics 停止上報搜尋詞內容，只記 `search_used` 行為 — 心理健康網站搜尋詞屬敏感資料。
+- **資料漂移守衛**：`validate.py --baseline` 若治療師/地點數驟減 >30% 即失敗，防止官網改版導致每週自動更新靜默寫入殘缺資料；workflow 失敗自動開 issue 通知。
+- **AI prompt 瘦身**：system prompt 的地點清單從全欄位 JSON 縮為 `id|名稱|分類` 索引，電話/診時/地址改由工具按需查詢，大幅降低每輪 token 消耗。
+- **PWA**：manifest + Service Worker（stale-while-revalidate），資料僅數百 KB，離線可用成本極低。
 
 ---
 

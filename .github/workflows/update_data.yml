@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write # 必須授予寫入權限以推送更新數據
+  issues: write   # 失敗時開 issue 通知
 
 jobs:
   update-data:
@@ -35,6 +36,22 @@ jobs:
           sudo npx playwright install-deps chromium
           sudo apt-get update && sudo apt-get install -y xvfb
 
+      - name: Check required secrets
+        env:
+          AMAP_WEB_KEY: ${{ secrets.AMAP_WEB_KEY }}
+        run: |
+          # 安全約定：AMAP_WEB_KEY 必須來自 repo secrets，
+          # 絕不可在 workflow 檔硬編碼（且必須與前端 JS API key 分離）
+          if [ -z "$AMAP_WEB_KEY" ]; then
+            echo "::error::缺少 secrets.AMAP_WEB_KEY。請在 repo Settings → Secrets 設定高德 Web 服務 key（與前端 JS API key 分離的獨立 key）。"
+            exit 1
+          fi
+
+      - name: Save baseline data for drift check
+        run: |
+          # 保留更新前的 data.json 作為基準線，供 validate.py 檢測資料驟減
+          cp data/data.json /tmp/baseline-data.json
+
       - name: Run Scraper (Headed stealth with Xvfb)
         run: |
           # 使用 xvfb-run 模擬顯示器，繞過 Cloudflare Turnstile 驗證
@@ -42,7 +59,7 @@ jobs:
 
       - name: Run Geocoder
         env:
-          AMAP_WEB_KEY: ${{ secrets.AMAP_WEB_KEY || '2d18f3c179911110648c3c63229da1a6' }}
+          AMAP_WEB_KEY: ${{ secrets.AMAP_WEB_KEY }}
         run: |
           python scripts/geocode.py
 
@@ -50,9 +67,11 @@ jobs:
         run: |
           python scripts/build_data.py
 
-      - name: Validate Data
+      - name: Validate Data (with drift guard)
         run: |
-          python scripts/validate.py
+          # --baseline：若治療師/地點數量較上一版驟減 >30%，
+          # 視為採集異常（如官網改版），使 job 失敗以阻止髒資料進版
+          python scripts/validate.py --baseline /tmp/baseline-data.json
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -70,10 +89,27 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add data/data.json
-          
+
           if git diff --staged --quiet; then
             echo "沒有檢測到數據變動，無需更新。"
           else
             git commit -m "auto: 衛生局註冊資料自動更新 [skip ci]"
             git push
+          fi
+
+      - name: Notify on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # 採集/校驗失敗時開 issue 通知（避免每週靜默失敗無人知曉）。
+          # 若已有相同標題的 open issue 則追加留言，不重複開新 issue。
+          TITLE="自動資料更新失敗（update_data workflow）"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          BODY="每週資料自動更新於 $(date -u '+%Y-%m-%d %H:%M UTC') 失敗。可能原因：官網改版、Cloudflare 驗證策略變更、geocoding 額度不足或資料驟減觸發漂移守衛。請查看執行紀錄：${RUN_URL}"
+          EXISTING=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY"
           fi

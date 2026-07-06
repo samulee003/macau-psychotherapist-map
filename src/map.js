@@ -1,85 +1,103 @@
 /* ============================================================
-   地圖模組：高德 JS API 整合、marker 渲染、資訊窗、視角控制
+   地圖模組：MapLibre GL + OSM/CARTO 光柵底圖
+   ─ 免 API key、無網域白名單、底圖為 WGS-84 無座標偏移。
+   ─ data.json 座標為 GCJ-02（高德 geocoding 產出），渲染前
+     一律經 getWgsCoords() 轉為 WGS-84（見 geo.js）。
+   ─ 對外介面與舊高德版完全相同：initMap / renderMarkers /
+     onMarkerClick / highlightMarker / closeInfoWindow /
+     fitToMarkers / showUserLocation / hideUserLocation。
    ============================================================ */
 
-import AMapLoader from '@amap/amap-jsapi-loader';
-import { AMAP_CONFIG, MACAO_VIEW, CATEGORIES } from './config.js';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { MACAO_VIEW, CATEGORIES } from './config.js';
+import { getWgsCoords } from './geo.js';
 
 let map = null;
-let AMap = null;
-let markerLayer = null;        // 目前顯示的 marker 集合
-let infoWindow = null;
+let markerLayer = null;        // 目前顯示的 Marker 集合
+let popup = null;              // 共用資訊窗
 let onMarkerClickCb = null;    // 外部注入：marker 點擊回呼
+let userMarker = null;         // 「離我最近」的使用者定位點
+
+// 底圖：CARTO Positron（基於 OSM 的淺色底圖，凸顯 marker；
+// 免 key，須保留 attribution）。CARTO 掛掉時瀏覽器只會缺磚，
+// 不影響 marker 與其他功能。
+const BASEMAP_STYLE = {
+  version: 8,
+  sources: {
+    carto: {
+      type: 'raster',
+      tiles: [
+        'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+        'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+        'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+      ],
+      tileSize: 256,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
+    },
+  },
+  layers: [{ id: 'carto', type: 'raster', source: 'carto' }],
+};
 
 /**
- * 初始化高德地圖。
+ * 初始化地圖。
  * @param {HTMLElement} container 地圖容器 DOM
  */
 export async function initMap(container) {
-  // 設定安全金鑰（高德 2.0 要求；若未啟用安全密鑰則不設）
-  if (AMAP_CONFIG.securityJsCode) {
-    window._AMapSecurityConfig = {
-      securityJsCode: AMAP_CONFIG.securityJsCode,
-    };
-  }
-
-  // 防禦：確保容器存在
   if (!container) {
     throw new Error('找不到地圖容器元素');
   }
-  // 高德 SDK 偏好以「容器 id 字串」初始化（官方推薦寫法，避免 DOM 元素
-  // 偵測的邊界問題）。取容器的 id；若無則回退用元素本身。
-  const mapTarget = container.id || container;
 
-  AMap = await AMapLoader.load({
-    key: AMAP_CONFIG.key,
-    version: AMAP_CONFIG.version,
-    plugins: ['AMap.Scale', 'AMap.ToolBar'],
-  });
-
-  // 等待下一幀，確保瀏覽器已完成版面計算（避免極端時序下 container 未就緒）
-  await new Promise((r) => requestAnimationFrame(() => r()));
-
-  map = new AMap.Map(mapTarget, {
-    zoom: MACAO_VIEW.zoom,
+  map = new maplibregl.Map({
+    container,
+    style: BASEMAP_STYLE,
     center: MACAO_VIEW.center,
-    mapStyle: 'amap://styles/whitesmoke', // 淺色底圖，凸顯 marker
-    resizeEnable: true,
+    zoom: MACAO_VIEW.zoom,
+    attributionControl: { compact: true },
   });
 
-  map.addControl(new AMap.Scale());
-  // ToolBar 僅桌面顯示（行動裝置高德有原生手勢）
-  map.addControl(new AMap.ToolBar({ position: 'RB', locate: false }));
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+  map.addControl(new maplibregl.ScaleControl({ maxWidth: 90, unit: 'metric' }));
 
-  // 建立資訊窗（共用一個，點擊時填內容）
-  infoWindow = new AMap.InfoWindow({
-    offset: new AMap.Pixel(0, -32),
-    closeWhenClickMap: true,
-    autoMove: true,
+  popup = new maplibregl.Popup({
+    offset: 38,
+    closeButton: true,
+    closeOnClick: true,
+    maxWidth: '280px',
+  });
+
+  // 等待樣式就緒；個別底圖磚載入失敗不阻擋（marker 不依賴底圖），
+  // 8 秒逾時亦放行讓其餘功能照常運作
+  await new Promise((resolve) => {
+    let settled = false;
+    const done = () => {
+      if (!settled) {
+        settled = true;
+        resolve();
+      }
+    };
+    map.on('load', done);
+    setTimeout(done, 8000);
   });
 
   return map;
 }
 
 /**
- * 產生分類 marker 的 SVG 圖示（圓點 + 類型色）。
- * 高德 Marker 的 icon 接受 data URI。
+ * 產生分類 marker 的 DOM 元素（SVG 圓點 pin + 類型色）。
  */
-function makeMarkerIcon(category) {
+function makeMarkerElement(category) {
   const cat = CATEGORIES[category] || CATEGORIES.other;
-  const color = cat.color;
-  const svg = `
+  const el = document.createElement('div');
+  el.className = 'map-marker';
+  el.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
       <path d="M14 0C6.27 0 0 6.27 0 14c0 9.5 12.5 21 13 21.5a1.4 1.4 0 0 0 2 0C15.5 35 28 23.5 28 14 28 6.27 21.73 0 14 0z"
-        fill="${color}" stroke="#fff" stroke-width="2"/>
+        fill="${cat.color}" stroke="#fff" stroke-width="2"/>
       <circle cx="14" cy="14" r="5.5" fill="#fff"/>
     </svg>`;
-  const uri = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
-  return new AMap.Icon({
-    image: uri,
-    size: new AMap.Size(28, 36),
-    imageSize: new AMap.Size(28, 36),
-  });
+  return el;
 }
 
 /**
@@ -88,21 +106,21 @@ function makeMarkerIcon(category) {
  * @param {Database} db 資料庫（用於資訊窗顯示治療師數）
  */
 export function renderMarkers(locations, db) {
-  if (!map || !AMap) return;
+  if (!map) return;
   clearMarkers();
 
   markerLayer = [];
   for (const loc of locations) {
-    if (loc.lng == null || loc.lat == null) continue;
+    const coords = getWgsCoords(loc);
+    if (!coords) continue;
 
-    const marker = new AMap.Marker({
-      position: [loc.lng, loc.lat],
-      icon: makeMarkerIcon(loc.category),
-      offset: new AMap.Pixel(-14, -36),
-      map,
-    });
+    const el = makeMarkerElement(loc.category);
+    const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+      .setLngLat(coords)
+      .addTo(map);
 
-    marker.on('click', () => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
       showInfoWindow(loc, db);
       if (onMarkerClickCb) onMarkerClickCb(loc.id);
     });
@@ -116,7 +134,7 @@ export function renderMarkers(locations, db) {
 export function clearMarkers() {
   if (!markerLayer) return;
   for (const m of markerLayer) {
-    map.remove(m);
+    m.remove();
   }
   markerLayer = null;
 }
@@ -125,9 +143,11 @@ export function clearMarkers() {
  * 顯示地點的資訊窗（彈窗）。點擊 marker 時觸發。
  */
 function showInfoWindow(loc, db) {
-  const cat = CATEGORIES[loc.category] || CATEGORIES.other;
-  const therapists = db.getTherapistsByLocation(loc.id);
+  if (!map || !popup) return;
+  const coords = getWgsCoords(loc);
+  if (!coords) return;
 
+  const therapists = db.getTherapistsByLocation(loc.id);
   const content = `
     <div class="iw">
       <div class="iw__title">${escapeHtml(loc.name)}</div>
@@ -135,8 +155,7 @@ function showInfoWindow(loc, db) {
       <div class="iw__count">${therapists.length} 位註冊心理治療師</div>
     </div>`;
 
-  infoWindow.setContent(content);
-  infoWindow.open(map, [loc.lng, loc.lat]);
+  popup.setLngLat(coords).setHTML(content).addTo(map);
 }
 
 /**
@@ -150,8 +169,10 @@ export function onMarkerClick(cb) {
  * 聚焦到某地點：移動地圖、開啟資訊窗。
  */
 export function focusLocation(loc, db) {
-  if (!map || loc.lng == null) return;
-  map.setZoomAndCenter(15, [loc.lng, loc.lat]);
+  if (!map) return;
+  const coords = getWgsCoords(loc);
+  if (!coords) return;
+  map.flyTo({ center: coords, zoom: 15, duration: 700 });
   showInfoWindow(loc, db);
 }
 
@@ -165,7 +186,34 @@ export function highlightMarker(locationId, db) {
 
 /** 關閉資訊窗 */
 export function closeInfoWindow() {
-  if (infoWindow) infoWindow.close();
+  if (popup) popup.remove();
+}
+
+/**
+ * 顯示使用者目前位置（藍點）。座標為 WGS-84（Geolocation 原生值）。
+ * @param {[number, number]} lngLat
+ */
+export function showUserLocation(lngLat) {
+  if (!map) return;
+  hideUserLocation();
+  const el = document.createElement('div');
+  el.className = 'map-user-dot';
+  el.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22">
+      <circle cx="11" cy="11" r="10" fill="#2563eb" fill-opacity="0.2"/>
+      <circle cx="11" cy="11" r="5.5" fill="#2563eb" stroke="#fff" stroke-width="2"/>
+    </svg>`;
+  userMarker = new maplibregl.Marker({ element: el, anchor: 'center' })
+    .setLngLat(lngLat)
+    .addTo(map);
+}
+
+/** 移除使用者定位點 */
+export function hideUserLocation() {
+  if (userMarker) {
+    userMarker.remove();
+    userMarker = null;
+  }
 }
 
 /**
@@ -173,17 +221,21 @@ export function closeInfoWindow() {
  * 當 markers 數量變化時呼叫（例如篩選後）。
  */
 export function fitToMarkers(locations) {
-  if (!map || !AMap) return;
-  if (!markerLayer || markerLayer.length === 0) {
+  if (!map) return;
+  const coordsList = (locations || []).map((l) => getWgsCoords(l)).filter(Boolean);
+
+  if (coordsList.length === 0) {
     // 無可定位點，回到澳門全景
-    map.setZoomAndCenter(MACAO_VIEW.zoom, MACAO_VIEW.center);
+    map.flyTo({ center: MACAO_VIEW.center, zoom: MACAO_VIEW.zoom, duration: 600 });
     return;
   }
-  if (markerLayer.length === 1) {
-    map.setZoomAndCenter(16, markerLayer[0].getPosition());
+  if (coordsList.length === 1) {
+    map.flyTo({ center: coordsList[0], zoom: 16, duration: 600 });
     return;
   }
-  map.setFitView(markerLayer, false, [60, 60, 60, 60]);
+  const bounds = new maplibregl.LngLatBounds();
+  for (const c of coordsList) bounds.extend(c);
+  map.fitBounds(bounds, { padding: 60, maxZoom: 16, duration: 600 });
 }
 
 /** 基本HTML跳脫，避免資料含特殊字元 */
