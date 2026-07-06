@@ -155,7 +155,10 @@ open scripts/preview.html        # 人工校驗座標
 ### 地圖與座標系（關鍵約定）
 - 底圖為 **MapLibre GL + CARTO light（基於 OSM）**，免 API key；attribution 必須保留（OSM/CARTO 授權要求）。
 - **座標系鐵律**：`data.json` 的 `lng`/`lat` 是 **GCJ-02**（高德 geocoding 產出），底圖與 Geolocation 是 **WGS-84**。任何「顯示於地圖」或「與定位比較」都必須經 `geo.js` 的 `getWgsCoords(loc)`（記憶化）轉換；**勿就地覆寫 data.json 座標** — `detail.js` 的高德導航 URL 仍需原始 GCJ-02 值（`coordinate=gcj02`）。
-- `initMap()` 等待 style `load` 事件，但設 8 秒逾時放行 — 底圖磚載入失敗不阻擋 marker 與其他功能。
+- `initMap()` 等待 `style.load`（只等內嵌樣式 JSON，不等底圖磚），另設 8 秒逾時放行 — 底圖磚載入失敗不阻擋 marker 與其他功能。
+- **map.js 必須動態載入**：`main.js` 以 `import('./map.js')` 延後載入（maplibre-gl 285KB gzip），列表/篩選/AI 不等地圖庫；載入前的地圖呼叫經 `mapApi` 包裝為 no-op。勿改回靜態 import。
+- **marker 聚合**：GeoJSON source（`cluster: true`）+ 一層半徑 0 的隱形 circle layer（**必要** — 無 layer 引用的 source 不會載入 tile，`querySourceFeatures` 永遠回空）+ DOM marker 呈現（聚合 = `.map-cluster` 數字圓點、單點 = SVG pin）。
+- **第三方資源不得阻塞首屏**：Google Fonts 以 `media="print"` + onload 非同步載入、Vercel Analytics 用 `async` — 兩者被牆或逾時（內地訪客常態）時列表仍須在數百毫秒內渲染。
 
 ### 採集腳本
 - **Python 3**，獨立於前端，產出 JSON 後即完成任務。

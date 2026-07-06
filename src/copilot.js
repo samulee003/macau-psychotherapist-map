@@ -88,7 +88,7 @@ function setupDom() {
       </div>
     </div>
 
-    <!-- 建議提問與熱門搜尋（初始顯示，桌面版專用） -->
+    <!-- 建議提問與熱門搜尋（初始顯示；桌面 Spotlight 與手機覆蓋層共用） -->
     <div id="modal-suggested-tips" class="modal-tips">
       <div class="modal-tips__title">推薦詢問 AI 助理：</div>
       <ul class="modal-tips__list">
@@ -820,13 +820,11 @@ function escapeHtml(s) {
 }
 
 /**
- * 更新 Spotlight 模態框元件顯示狀態 (桌面版專用)。
+ * 更新搜尋/AI 面板元件顯示狀態（桌面 Spotlight 與手機 AI 覆蓋層共用）。
  * 用於切換：Suggested Tips -> Search Results -> Chat Messages
+ * 手機版也顯示推薦提問 — 否則 AI 覆蓋層初始是一整屏空白。
  */
 export function updateModalUiState(query) {
-  // 手機版時不執行此邏輯
-  if (window.innerWidth <= 768) return;
-
   const tips = document.getElementById('modal-suggested-tips');
   const results = document.getElementById('modal-search-results');
   const chat = document.getElementById('chat-messages');

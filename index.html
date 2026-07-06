@@ -11,23 +11,29 @@
   <meta property="og:url" content="https://macau-psychotherapist-map.vercel.app/" />
   <meta property="og:title" content="澳門註冊心理治療師執業地點地圖" />
   <meta property="og:description" content="在地圖上查找澳門註冊心理治療師的執業地點分布。提供分類檢索與 AI 智能助理對話。" />
-  <meta property="og:image" content="https://macau-psychotherapist-map.vercel.app/og-image.png" />
+  <meta property="og:image" content="https://macau-psychotherapist-map.vercel.app/og-image.jpg" />
 
   <!-- Twitter / X -->
   <meta property="twitter:card" content="summary_large_image" />
   <meta property="twitter:url" content="https://macau-psychotherapist-map.vercel.app/" />
   <meta property="twitter:title" content="澳門註冊心理治療師執業地點地圖" />
   <meta property="twitter:description" content="在地圖上查找澳門註冊心理治療師的執業地點分布。提供分類檢索與 AI 智能助理對話。" />
-  <meta property="twitter:image" content="https://macau-psychotherapist-map.vercel.app/og-image.png" />
+  <meta property="twitter:image" content="https://macau-psychotherapist-map.vercel.app/og-image.jpg" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- 字型非同步載入：media=print 先不套用、onload 後切換。
+       避免 Google Fonts 網路慢/被牆時阻塞首屏與 script 執行
+       （CSS 字型堆疊已含 PingFang / 微軟正黑 fallback） -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" /></noscript>
   <link rel="stylesheet" href="./src/styles.css" />
 
   <!-- PWA -->
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <!-- iOS「加入主畫面」不支援 SVG manifest icon，需獨立 PNG -->
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
   <meta name="theme-color" content="#2c6e7f" />
 </head>
 <body>
@@ -222,6 +228,7 @@
   <script>
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
   </script>
-  <script defer src="https://va.vercel-scripts.com/v1/script.js"></script>
+  <!-- async：analytics 網路慢/被牆時不得阻塞 DOMContentLoaded -->
+  <script async src="https://va.vercel-scripts.com/v1/script.js"></script>
 </body>
 </html>

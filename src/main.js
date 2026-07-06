@@ -7,7 +7,6 @@
    ============================================================ */
 
 import { loadData } from './data-loader.js';
-import { initMap, renderMarkers, onMarkerClick, highlightMarker, closeInfoWindow, fitToMarkers, showUserLocation, hideUserLocation } from './map.js';
 import { initFilters, initTimeFilters, setQuery, selectCategoryProgrammatic, resetFiltersProgrammatic } from './search.js';
 import { initDetail, showLocationDetail } from './detail.js';
 import { CATEGORIES } from './config.js';
@@ -20,6 +19,18 @@ let db = null;
 let currentLocations = []; // 目前篩選後顯示的地點
 let activeModalResultIndex = -1; // Spotlight 搜尋結果鍵盤選取索引
 let userPosition = null; // 「附近優先」的使用者座標（WGS-84，[lng, lat]），null = 未啟用
+
+// map.js（連同 maplibre-gl 這個大依賴）採動態載入，
+// 讓列表/篩選/AI 等 app shell 不被地圖庫的下載與解析阻塞。
+// 載入完成前所有地圖操作都是 no-op。
+let mapApi = null;
+
+function renderMarkers(...args) { mapApi?.renderMarkers(...args); }
+function highlightMarker(...args) { mapApi?.highlightMarker(...args); }
+function closeInfoWindow() { mapApi?.closeInfoWindow(); }
+function fitToMarkers(...args) { mapApi?.fitToMarkers(...args); }
+function showUserLocation(...args) { mapApi?.showUserLocation(...args); }
+function hideUserLocation() { mapApi?.hideUserLocation(); }
 
 async function main() {
   // 儘早偵測並提示 App 內置瀏覽器（不等待資料載入）
@@ -54,19 +65,37 @@ async function main() {
     disclaimer.textContent = db.meta.note;
   }
 
-  showLoader('初始化地圖中…');
-
-  const mapContainer = document.getElementById('map-container');
-  try {
-    await initMap(mapContainer);
-  } catch (err) {
-    console.error('地圖初始化失敗:', err);
-    // AMap loader 失敗時 err 可能是 Event 而非 Error，需給出可讀訊息
-    const msg = (err && err.message) ? err.message : '無法連線至高德地圖服務';
-    showMapLoadError(mapContainer, msg);
-  }
-
   hideLoader();
+
+  // 地圖與 UI 並行初始化：map.js（含 maplibre-gl）動態載入，
+  // 列表、篩選、AI 一律不等待。底圖就緒後補渲染 marker、
+  // 綁定 marker 點擊，並重新聚焦深連結指定的地點（若有）。
+  const mapContainer = document.getElementById('map-container');
+  import('./map.js')
+    .then(async (mod) => {
+      await mod.initMap(mapContainer);
+      mapApi = mod;
+
+      // marker 點擊 → 開啟詳情 + 標記列表 active
+      // （手機版不再收合側欄，因為列表常駐下半屏；地圖上半屏仍可見）
+      mod.onMarkerClick((locationId) => {
+        const loc = db.getLocationById(locationId);
+        if (loc) openLocation(loc, { focusMap: false });
+      });
+
+      renderAll(currentLocations);
+      const locId = new URLSearchParams(window.location.hash.slice(1)).get('loc');
+      if (locId) {
+        const loc = db.getLocationById(locId);
+        if (loc) highlightMarker(loc.id, db);
+      }
+      if (userPosition) showUserLocation(userPosition);
+    })
+    .catch((err) => {
+      console.error('地圖初始化失敗:', err);
+      const msg = (err && err.message) ? err.message : '無法連線至地圖服務';
+      showMapLoadError(mapContainer, msg);
+    });
 
   // ---- 手機版 Copilot 容器 id 切換 ----
   // copilot.js 的 setupDom() 寫死尋找 #copilot-sidebar-container。
@@ -90,13 +119,6 @@ async function main() {
   bindSplitHandle();
   bindAiFab();
   bindNearbyButtons();
-
-  // marker 點擊 → 開啟詳情 + 標記列表 active
-  // （手機版不再收合側欄，因為列表常駐下半屏；地圖上半屏仍可見）
-  onMarkerClick((locationId) => {
-    const loc = db.getLocationById(locationId);
-    if (loc) openLocation(loc, { focusMap: false });
-  });
 
   // 桌面版側欄開合與大小調整
   bindSidebarToggle();

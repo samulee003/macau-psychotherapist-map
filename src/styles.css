@@ -1198,7 +1198,8 @@ html, body {
     align-items: center;
     justify-content: center;
     position: absolute;
-    bottom: 16px;
+    /* iPhone 底部橫條安全區 */
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     right: 14px;
     width: 48px;
     height: 48px;
@@ -1300,6 +1301,8 @@ html, body {
     border-top: 1px solid var(--color-border);
     box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.15);
     z-index: 1100;
+    /* iPhone 底部橫條安全區 */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .drawer[hidden] {
@@ -1842,7 +1845,8 @@ html, body {
 }
 
 @media (max-width: 768px) {
-  .modal-tips,
+  /* 搜尋結果快速預覽為桌面 Spotlight 專用（手機下半屏列表已即時反映）；
+     推薦提問（.modal-tips）手機也要顯示，否則 AI 覆蓋層初始一片空白 */
   .modal-results {
     display: none !important;
   }
@@ -2184,4 +2188,41 @@ html, body {
 /* 手機版時段篩選列：與分類列同樣式，但貼近上方快捷條 */
 .mobile-filters--time {
   padding-bottom: 0;
+}
+
+/* 聚合圓點（低縮放時多個地點合併為一顆，點擊展開） */
+.map-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.map-cluster:hover {
+  transform: scale(1.1);
+}
+
+.map-cluster--lg {
+  width: 42px;
+  height: 42px;
+  font-size: 15px;
+}
+
+/* 手機列表的治療師數/距離標籤（先前未定義而繼承 16px 預設，
+   比機構名稱還大，視覺主次顛倒） */
+.mobile-list__item-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-top: 3px;
 }
