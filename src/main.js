@@ -14,12 +14,12 @@ import { CATEGORIES } from './config.js';
 import { initCopilot, updateModalUiState } from './copilot.js';
 import { initInAppBrowserBanner } from './inapp-browser.js';
 import { isLocationOpenNow } from './hours.js';
-import { wgs84ToGcj02, distanceMeters, formatDistance } from './geo.js';
+import { getWgsCoords, distanceMeters, formatDistance } from './geo.js';
 
 let db = null;
 let currentLocations = []; // 目前篩選後顯示的地點
 let activeModalResultIndex = -1; // Spotlight 搜尋結果鍵盤選取索引
-let userPosition = null; // 「附近優先」的使用者座標（GCJ-02，[lng, lat]），null = 未啟用
+let userPosition = null; // 「附近優先」的使用者座標（WGS-84，[lng, lat]），null = 未啟用
 
 async function main() {
   // 儘早偵測並提示 App 內置瀏覽器（不等待資料載入）
@@ -174,8 +174,10 @@ function sortForDisplay(locations) {
 }
 
 function locDistance(loc, ulng, ulat) {
-  if (loc.lng == null || loc.lat == null) return Infinity;
-  return distanceMeters(ulng, ulat, loc.lng, loc.lat);
+  // 地點座標為 GCJ-02，需轉 WGS-84 後才能與 Geolocation 座標比較
+  const coords = getWgsCoords(loc);
+  if (!coords) return Infinity;
+  return distanceMeters(ulng, ulat, coords[0], coords[1]);
 }
 
 /**
@@ -585,8 +587,9 @@ function bindNearbyButtons() {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           buttons.forEach((b) => b.classList.remove('is-loading'));
-          // 高德底圖與資料座標為 GCJ-02，需轉換後才能比較
-          userPosition = wgs84ToGcj02(pos.coords.longitude, pos.coords.latitude);
+          // OSM 底圖與 Geolocation 皆為 WGS-84，原生座標直接可用；
+          // 與資料座標（GCJ-02）比較時由 locDistance 統一轉換
+          userPosition = [pos.coords.longitude, pos.coords.latitude];
           showUserLocation(userPosition);
           setActive(true);
           renderAll(currentLocations);
@@ -908,7 +911,7 @@ function showMapLoadError(container, errorMsg) {
       </div>
       <div class="map-error-card__title">地圖服務暫時無法載入</div>
       <div class="map-error-card__desc">
-        可能是您的網絡連接受限（例如身處內地需使用 VPN 訪問高德地圖），或者高德 API 服務繁忙。您仍可透過左側欄列表或 AI 助理檢索資源。
+        可能是您的網絡連接受限或底圖服務暫時繁忙。您仍可透過列表、搜尋、篩選或 AI 助理檢索資源。
       </div>
       <div class="map-error-card__tech">錯誤詳情：${escapeHtml(errorMsg)}</div>
       <button class="btn btn--primary map-error-card__retry" onclick="window.location.reload()">重新整理網頁</button>

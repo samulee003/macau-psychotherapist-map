@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { wgs84ToGcj02, distanceMeters, formatDistance } from '../src/geo.js';
+import { wgs84ToGcj02, gcj02ToWgs84, getWgsCoords, distanceMeters, formatDistance } from '../src/geo.js';
 
 describe('wgs84ToGcj02', () => {
   it('澳門地區的偏移量在合理範圍（數十至數百公尺級）', () => {
@@ -8,6 +8,28 @@ describe('wgs84ToGcj02', () => {
     const shift = distanceMeters(113.5439, 22.1987, lng, lat);
     expect(shift).toBeGreaterThan(10);
     expect(shift).toBeLessThan(1000);
+  });
+});
+
+describe('gcj02ToWgs84', () => {
+  it('往返轉換誤差小於 1 公尺（OSM 底圖顯示精度足夠）', () => {
+    const orig = [113.5439, 22.1987];
+    const gcj = wgs84ToGcj02(orig[0], orig[1]);
+    const back = gcj02ToWgs84(gcj[0], gcj[1]);
+    expect(distanceMeters(orig[0], orig[1], back[0], back[1])).toBeLessThan(1);
+  });
+});
+
+describe('getWgsCoords', () => {
+  it('轉換結果記憶化在 location 物件上', () => {
+    const loc = { lng: 113.55, lat: 22.16 };
+    const first = getWgsCoords(loc);
+    expect(getWgsCoords(loc)).toBe(first); // 同一個陣列參照
+    expect(first[0]).not.toBe(loc.lng); // 有實際偏移
+  });
+
+  it('缺座標回傳 null', () => {
+    expect(getWgsCoords({ lng: null, lat: null })).toBeNull();
   });
 });
 

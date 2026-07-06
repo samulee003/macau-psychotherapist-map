@@ -18,7 +18,7 @@
 | 層 | 技術 |
 |----|------|
 | 前端 | Vite + 原生 JavaScript（ES Modules，**不用框架**） |
-| 地圖 | 高德地圖 JS API 2.0 |
+| 地圖 | MapLibre GL JS + OSM/CARTO 光柵底圖（**免 key、WGS-84**；資料座標為 GCJ-02，顯示前經 `geo.js` 轉換） |
 | 樣式 | 手寫 CSS（響應式、手機優先，融入玻璃擬態磨砂視覺） |
 | 資料 | 靜態 JSON（`data/data.json`） |
 | 採集 | Python 3 + Playwright Stealth（分頁抓取官方衛生局網頁） |
@@ -30,12 +30,12 @@
 ├── index.html              # 單頁應用入口
 ├── vite.config.js          # Vite 設定（closeBundle 複製 data/；dev 代理與正式版共用淨化邏輯）
 ├── src/                    # 前端原始碼（ES Modules）
-│   ├── config.js           # 高德 key、機構分類定義（單一真相來源）
+│   ├── config.js           # 機構分類定義、地圖初始視角（單一真相來源）
 │   ├── data-loader.js      # 載入 data.json + 建立雙向查詢索引
-│   ├── map.js              # 高德地圖渲染、marker、資訊窗、使用者定位點
+│   ├── map.js              # MapLibre 地圖渲染、marker、資訊窗、使用者定位點
 │   ├── search.js           # 搜尋、分類篩選、時段篩選（現在營業/週末/夜間）
 │   ├── hours.js            # 診症時間結構化解析（hours 文字 → 可計算時段）
-│   ├── geo.js              # 距離計算 + WGS-84→GCJ-02 座標轉換（附近優先用）
+│   ├── geo.js              # 距離計算 + GCJ-02↔WGS-84 座標轉換
 │   ├── detail.js           # 詳情抽屜面板（含分享深連結、營業狀態）
 │   ├── copilot.js          # AI 智能助理（agent loop + 10 個工具）
 │   ├── main.js             # 入口，串接所有模組 + 深連結 + SW 註冊
@@ -140,20 +140,22 @@ open scripts/preview.html        # 人工校驗座標
 - 開啟地點時用 `history.replaceState` 更新 hash（不進瀏覽歷史）；關閉抽屜時清除。
 
 ### 📍 附近優先（geo.js）
-- 「附近優先」按鈕：Geolocation 取得 WGS-84 座標後**必須經 `wgs84ToGcj02` 轉換**再與資料座標（高德 GCJ-02）比較，否則距離有數十至數百米偏差。
+- 「附近優先」按鈕：Geolocation 原生 WGS-84 座標直接使用；與資料座標（GCJ-02）比較時由 `locDistance` 經 `getWgsCoords` 統一轉換，否則距離有數十至數百米偏差。
 - 排序只在顯示層（`main.js` 的 `sortForDisplay`），不改動 data-loader 的名稱筆劃基準排序。
 
 ### 🛡️ 薄代理安全鎖定（lib/copilot-proxy.js）
 - 代理**不信任前端傳入的模型參數**：`model`、`temperature`、`max_tokens`、`stream` 一律由 `lib/copilot-proxy.js` 強制指定；`tools` 僅允許白名單（`ALLOWED_TOOL_NAMES`，須與 `src/copilot.js` 的 TOOLS 同步）。
 - `api/copilot.js`（正式）與 `vite.config.js` dev middleware（本地）都必須經 `sanitizeCopilotRequest`，勿讓任一邊直通。
-- **金鑰紀律**：`AMAP_WEB_KEY`（採集）只能存在於 GitHub Secrets，workflow 檔內**嚴禁**硬編碼 fallback；前端 JS API key 與 Web 服務 key 必須是兩把獨立的 key。
+- **金鑰紀律**：前端**不持有任何地圖 key**（MapLibre + OSM 免 key）。`AMAP_WEB_KEY`（採集 geocoding 用）只能存在於 GitHub Secrets / 環境變數，workflow 檔內**嚴禁**硬編碼 fallback。
 
 ### 🧭 手機端 App 喚醒與微信沙盒相容
 - **地圖 App 喚醒**：點擊「高德導航」或「Google 地圖」按鈕時，行動端優先調起原生 App（透過各自特定的 URL Schemes / `geo:` 協議）。若手機未安裝該 App，設置 1.5 秒延遲計時器優雅降級跳轉至地圖 Web 行動版。
 - **微信瀏覽器相容**：由於微信屏蔽 App 跳轉，檢測到微信內置瀏覽器時會自動觸發一個高質感的磨砂玻璃擬態彈窗，引導使用者「在瀏覽器中打開」以調起 App，或點擊按鈕直接在微信內瀏覽網頁版地圖。
 
-### 地圖初始化（已驗證的關鍵約定）
-高德 JS API 偏好以**容器 id 字串**初始化，直接傳 DOM 元素會在內部偵測時報 `Map container div not exist`。`map.js` 的 `initMap()` 已處理：取 `container.id` 傳遞，並用 `requestAnimationFrame` 確保版面就緒。**勿改回傳 DOM 元素**。
+### 地圖與座標系（關鍵約定）
+- 底圖為 **MapLibre GL + CARTO light（基於 OSM）**，免 API key；attribution 必須保留（OSM/CARTO 授權要求）。
+- **座標系鐵律**：`data.json` 的 `lng`/`lat` 是 **GCJ-02**（高德 geocoding 產出），底圖與 Geolocation 是 **WGS-84**。任何「顯示於地圖」或「與定位比較」都必須經 `geo.js` 的 `getWgsCoords(loc)`（記憶化）轉換；**勿就地覆寫 data.json 座標** — `detail.js` 的高德導航 URL 仍需原始 GCJ-02 值（`coordinate=gcj02`）。
+- `initMap()` 等待 style `load` 事件，但設 8 秒逾時放行 — 底圖磚載入失敗不阻擋 marker 與其他功能。
 
 ### 採集腳本
 - **Python 3**，獨立於前端，產出 JSON 後即完成任務。

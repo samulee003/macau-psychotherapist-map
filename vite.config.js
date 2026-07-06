@@ -13,6 +13,13 @@ export default defineConfig(({ mode }) => {
       // data/data.json 透過 fetch() 動態載入，Vite 不會自動打包。
       // 用 closeBundle 在打包後原樣複製到 dist/data/，確保部署後可存取。
       emptyOutDir: true,
+      chunkSizeWarningLimit: 1200,
+      rollupOptions: {
+        output: {
+          // maplibre-gl 體積大且極少變動，拆成獨立 chunk 利於長期快取
+          manualChunks: { maplibre: ['maplibre-gl'] },
+        },
+      },
     },
     server: {
       port: 5173,

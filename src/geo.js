@@ -1,9 +1,11 @@
 /* ============================================================
    地理工具：距離計算與座標系轉換
-   ─ data.json 的座標由高德 API 產出，屬 GCJ-02 座標系；
-     瀏覽器 Geolocation API 回傳 WGS-84。計算「離我最近」時
-     需先把使用者位置轉為 GCJ-02，否則澳門地區有數十至
-     數百米偏差，會影響排序與距離顯示。
+   ─ data.json 的座標由高德 geocoding 產出，屬 GCJ-02 座標系；
+     地圖底圖（MapLibre + OSM）與瀏覽器 Geolocation 都是 WGS-84。
+     顯示與距離計算前必須把資料座標轉為 WGS-84（gcj02ToWgs84），
+     否則澳門地區有數十至數百米偏差。
+   ─ 例外：高德導航 URL（detail.js）仍需原始 GCJ-02 座標，
+     勿把 data.json 的座標就地覆寫。
    ============================================================ */
 
 const PI = Math.PI;
@@ -42,6 +44,37 @@ export function wgs84ToGcj02(lng, lat) {
   dLat = (dLat * 180.0) / (((A * (1 - EE)) / (magic * sqrtMagic)) * PI);
   dLng = (dLng * 180.0) / ((A / sqrtMagic) * Math.cos(radLat) * PI);
   return [lng + dLng, lat + dLat];
+}
+
+/**
+ * GCJ-02 → WGS-84（迭代反算：正向轉換無封閉逆式，
+ * 以殘差修正迭代 3 輪即收斂到公分級，遠高於底圖顯示精度）。
+ * @returns {[number, number]} [lng, lat]
+ */
+export function gcj02ToWgs84(lng, lat) {
+  let wlng = lng;
+  let wlat = lat;
+  for (let i = 0; i < 3; i++) {
+    const [glng, glat] = wgs84ToGcj02(wlng, wlat);
+    wlng += lng - glng;
+    wlat += lat - glat;
+  }
+  return [wlng, wlat];
+}
+
+/**
+ * 取地點的 WGS-84 座標（記憶化掛在 location 物件上）。
+ * data.json 的 lng/lat 為 GCJ-02，顯示於 OSM 底圖或與
+ * Geolocation 座標比較前須經此轉換。
+ * @param {Object} loc data.json 的 location
+ * @returns {[number, number]|null}
+ */
+export function getWgsCoords(loc) {
+  if (loc.lng == null || loc.lat == null) return null;
+  if (!loc._wgs) {
+    loc._wgs = gcj02ToWgs84(loc.lng, loc.lat);
+  }
+  return loc._wgs;
 }
 
 /**
