@@ -12,6 +12,7 @@
 
 import { CATEGORIES } from './config.js';
 import { getParsedHours, isOpenAt, opensOnWeekend, opensEvening } from './hours.js';
+import { t, getLang, applyI18nDom } from './i18n.js';
 
 let database = null;
 let controls = {};
@@ -66,6 +67,7 @@ function setupDom() {
           class="search__input"
           type="text"
           placeholder="搜尋或問問 AI 智能助理..."
+          data-i18n-placeholder="cp_placeholder"
           autocomplete="off"
           aria-label="輸入 AI 智能助理問題"
         />
@@ -90,11 +92,11 @@ function setupDom() {
 
     <!-- 建議提問與熱門搜尋（初始顯示；桌面 Spotlight 與手機覆蓋層共用） -->
     <div id="modal-suggested-tips" class="modal-tips">
-      <div class="modal-tips__title">推薦詢問 AI 助理：</div>
+      <div class="modal-tips__title" data-i18n="cp_tips_title">推薦詢問 AI 助理：</div>
       <ul class="modal-tips__list">
-        <li class="modal-tips__item" data-query="我有焦慮情緒，官方有自我評估檢測或諮詢熱線嗎？">我有焦慮情緒，官方有自我評估檢測或諮詢熱線嗎？</li>
-        <li class="modal-tips__item" data-query="衛生局社區衛生中心提供免費心理諮詢嗎？">衛生局社區衛生中心提供免費心理諮詢嗎？</li>
-        <li class="modal-tips__item" data-query="幫我找星期六下午開診的心理中心">幫我找星期六下午開診的心理中心</li>
+        <li class="modal-tips__item" data-tip-key="cp_tip1" data-i18n="cp_tip1">我有焦慮情緒，官方有自我評估檢測或諮詢熱線嗎？</li>
+        <li class="modal-tips__item" data-tip-key="cp_tip2" data-i18n="cp_tip2">衛生局社區衛生中心提供免費心理諮詢嗎？</li>
+        <li class="modal-tips__item" data-tip-key="cp_tip3" data-i18n="cp_tip3">幫我找星期六下午開診的心理中心</li>
       </ul>
     </div>
 
@@ -108,12 +110,13 @@ function setupDom() {
     <div id="search-results-count" class="search__count"></div>
 
     <!-- AI 免責聲明 -->
-    <div class="search-ai__disclaimer">
+    <div class="search-ai__disclaimer" data-i18n="cp_disclaimer">
       AI 助理回覆由人工智慧生成，僅供學習參考。最新與權威資訊請務必以衛生局官方登載為準。
     </div>
   `;
 
-
+  // 套用當前語言（setupDom 產生的節點晚於 main.js 的首次 applyI18nDom）
+  applyI18nDom(container);
 }
 
 function bindEvents() {
@@ -130,12 +133,12 @@ function bindEvents() {
     };
   }
 
-  // 推薦提問點擊事件
+  // 推薦提問點擊事件（以 key 取當前語言字串，換語言後點擊即為新語言）
   const tipsList = document.getElementById('modal-suggested-tips');
   tipsList?.addEventListener('click', (e) => {
     const item = e.target.closest('.modal-tips__item');
     if (item) {
-      const query = item.dataset.query;
+      const query = t(item.dataset.tipKey);
       if (chatInput) {
         chatInput.value = query;
         // 觸發輸入框的 input 事件以同步過濾
@@ -160,7 +163,7 @@ function bindEvents() {
   // 清除對話歷史 (Memory)
   clearBtn?.addEventListener('click', () => {
     clearChatMemory();
-    addMessage('system', '已清除對話歷史，助理記憶已重置。');
+    addMessage('system', t('cp_cleared'));
   });
 
   // 發送訊息
@@ -237,7 +240,7 @@ async function handleUserMsg(text) {
   const container = document.getElementById('chat-messages');
   const loader = document.createElement('div');
   loader.className = 'chat-message chat-message--assistant chat-message--loading';
-  loader.innerHTML = '<span class="loading-dots">思考中<span>.</span><span>.</span><span>.</span></span>';
+  loader.innerHTML = `<span class="loading-dots">${t('cp_thinking')}<span>.</span><span>.</span><span>.</span></span>`;
   container.appendChild(loader);
   container.scrollTop = container.scrollHeight;
 
@@ -267,7 +270,7 @@ async function handleUserMsg(text) {
       const localResult = parseLocalAgent(text);
       const formattedLocal = formatAssistantMessage(localResult.reply);
       result = {
-        reply: `${formattedLocal}<br><small style="color:#94a3b8;display:block;margin-top:4px">已切換至本地離線搜尋模式（AI 服務目前不可用）</small>`,
+        reply: `${formattedLocal}<br><small style="color:#94a3b8;display:block;margin-top:4px">${t('cp_offline_note')}</small>`,
         actions: localResult.actions
       };
     }
@@ -278,24 +281,24 @@ async function handleUserMsg(text) {
   } catch (err) {
     console.error('Agent 執行失敗:', err);
     loader.remove();
-    addMessage('assistant', `處理請求時發生錯誤：${escapeHtml(err.message)}<br><small style="color:#94a3b8;display:block;margin-top:4px">AI 服務暫時無法使用。您仍可使用地圖的搜尋與篩選功能查找資料。</small>`);
+    addMessage('assistant', `${t('cp_error', { msg: escapeHtml(err.message) })}<br><small style="color:#94a3b8;display:block;margin-top:4px">${t('cp_error_hint')}</small>`);
   }
 }
 
 function parseLocalAgent(text) {
-  const t = text.toLowerCase();
+  const txt = text.toLowerCase();
   const result = { reply: '', actions: [] };
 
-  if (t.includes('全部') || t.includes('清除') || t.includes('重置') || t.includes('還原')) {
-    result.reply = '已為您重置所有篩選條件，展示全部執業地點。';
+  if (txt.includes('全部') || txt.includes('清除') || txt.includes('重置') || txt.includes('還原') || txt.includes('reset') || txt.includes('todos')) {
+    result.reply = t('la_reset');
     result.actions.push({ type: 'reset', value: true });
     chatHistory = []; // 清空記憶
     return result;
   }
 
-  if (t.includes('統計') || t.includes('人數') || t.includes('多少人') || t.includes('多少位') || t.includes('規模')) {
+  if (txt.includes('統計') || txt.includes('人數') || txt.includes('多少人') || txt.includes('多少位') || txt.includes('規模') || txt.includes('how many') || txt.includes('quantos')) {
     const stats = database.meta?.stats || { therapists: database.therapists.length, locations: database.locations.length, practices: database.practices.length };
-    result.reply = `目前地圖共收錄了 <strong>${stats.therapists}</strong> 位完全註冊的心理治療師（不計實習生），分佈在 <strong>${stats.locations}</strong> 個執業地點，共有 <strong>${stats.practices}</strong> 個執業關聯。`;
+    result.reply = t('la_stats', { t: stats.therapists, l: stats.locations, p: stats.practices });
     return result;
   }
 
@@ -309,31 +312,30 @@ function parseLocalAgent(text) {
   ];
 
   for (const m of catMatches) {
-    if (m.keywords.some(k => t.includes(k))) {
-      const catLabel = getCategoryLabel(m.key);
-      result.reply = `已為您篩選出 <strong>${catLabel}</strong> 類別的執業點。`;
+    if (m.keywords.some(k => txt.includes(k))) {
+      result.reply = t('la_filtered', { cat: getCategoryLabel(m.key) });
       result.actions.push({ type: 'filter_category', value: m.key });
       return result;
     }
   }
 
   for (const loc of database.locations) {
-    if (t.includes(loc.name.toLowerCase()) || loc.name.toLowerCase().includes(t)) {
-      result.reply = `已在地圖上為您找到 <strong>${escapeHtml(loc.name)}</strong>，並已為您開啟了詳情抽屜。`;
+    if (txt.includes(loc.name.toLowerCase()) || loc.name.toLowerCase().includes(txt)) {
+      result.reply = t('la_found_loc', { name: escapeHtml(loc.name) });
       result.actions.push({ type: 'select_location', value: loc.id });
       return result;
     }
   }
 
   for (const th of database.therapists) {
-    if (t.includes(th.nameZh) || (th.nameEn && t.includes(th.nameEn.toLowerCase()))) {
-      result.reply = `已搜尋到治療師 <strong>${escapeHtml(th.nameZh)}</strong> (${th.licenseNo})。已為您篩選出其所在的執業地點。`;
+    if (txt.includes(th.nameZh) || (th.nameEn && txt.includes(th.nameEn.toLowerCase()))) {
+      result.reply = t('la_found_therapist', { name: escapeHtml(th.nameZh), lic: escapeHtml(th.licenseNo || '') });
       result.actions.push({ type: 'search', value: th.nameZh });
       return result;
     }
   }
 
-  result.reply = `已為您在數據庫中搜尋關鍵字：『<strong>${escapeHtml(text)}</strong>』。`;
+  result.reply = t('la_searched', { q: escapeHtml(text) });
   result.actions.push({ type: 'search', value: text });
   return result;
 }
@@ -604,10 +606,17 @@ function getSystemInstruction() {
     practices: database.practices.length
   };
 
+  // 回覆語言跟隨 UI 語言（介面三語：繁中/葡文/英文）
+  const langRule = {
+    zh: '你必須只使用繁體中文(zh-Hant)回答。',
+    pt: '你必須只使用葡萄牙語（português）回答使用者。工具參數與資料庫查詢仍使用原始中文名稱。',
+    en: '你必須只使用英文（English）回答使用者。工具參數與資料庫查詢仍使用原始中文名稱。',
+  }[getLang()] || '你必須只使用繁體中文(zh-Hant)回答。';
+
   return `
 你現在是澳門心理治療師地圖 (Macau Psychotherapist Map) 的 AI 智能助理。
 你的目標是協助使用者解答疑問，並通過調用工具來控制地圖界面與過濾診所。
-你必須只使用繁體中文(zh-Hant)回答。
+${langRule}
 你擁有「對話歷史記憶」，能看到先前的對話歷史與執行的指令。
 
 【資料庫現狀】
@@ -808,7 +817,7 @@ function executeAgentActions(actions) {
 }
 
 function getCategoryLabel(key) {
-  return CATEGORIES[key]?.label || key;
+  return CATEGORIES[key] ? t('cat_' + key) : key;
 }
 
 function escapeHtml(s) {

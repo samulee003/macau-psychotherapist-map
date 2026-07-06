@@ -8,6 +8,8 @@
      勿把 data.json 的座標就地覆寫。
    ============================================================ */
 
+import { t } from './i18n.js';
+
 const PI = Math.PI;
 const A = 6378245.0; // 克拉索夫斯基橢球長半軸
 const EE = 0.00669342162296594323; // 偏心率平方
@@ -91,9 +93,9 @@ export function distanceMeters(lng1, lat1, lng2, lat2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-/** 距離顯示：850 公尺 / 1.2 公里 */
+/** 距離顯示：850 公尺 / 1.2 公里（單位文案走 i18n） */
 export function formatDistance(meters) {
   if (meters == null || !isFinite(meters)) return '';
-  if (meters < 1000) return `${Math.round(meters)} 公尺`;
-  return `${(meters / 1000).toFixed(1)} 公里`;
+  if (meters < 1000) return t('dist_m', { n: Math.round(meters) });
+  return t('dist_km', { n: (meters / 1000).toFixed(1) });
 }

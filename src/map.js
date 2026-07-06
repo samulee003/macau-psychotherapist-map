@@ -12,6 +12,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { MACAO_VIEW, CATEGORIES } from './config.js';
 import { getWgsCoords } from './geo.js';
+import { t } from './i18n.js';
 
 let map = null;
 let markerLayer = null;        // 目前顯示的 DOM Marker 集合
@@ -298,7 +299,7 @@ function showInfoWindow(loc, db) {
     <div class="iw">
       <div class="iw__title">${escapeHtml(loc.name)}</div>
       <div class="iw__address">${escapeHtml(loc.addressZh || '')}</div>
-      <div class="iw__count">${therapists.length} 位註冊心理治療師</div>
+      <div class="iw__count">${t('iw_count', { n: therapists.length })}</div>
     </div>`;
 
   popup.setLngLat(coords).setHTML(content).addTo(map);

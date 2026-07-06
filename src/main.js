@@ -7,13 +7,14 @@
    ============================================================ */
 
 import { loadData } from './data-loader.js';
-import { initFilters, initTimeFilters, setQuery, selectCategoryProgrammatic, resetFiltersProgrammatic } from './search.js';
-import { initDetail, showLocationDetail } from './detail.js';
+import { initFilters, initTimeFilters, setQuery, selectCategoryProgrammatic, applyCategoriesProgrammatic, resetFiltersProgrammatic, getFilterSnapshot, applyTimeFiltersProgrammatic } from './search.js';
+import { initDetail, showLocationDetail, hideDetail } from './detail.js';
 import { CATEGORIES } from './config.js';
 import { initCopilot, updateModalUiState } from './copilot.js';
 import { initInAppBrowserBanner } from './inapp-browser.js';
 import { isLocationOpenNow } from './hours.js';
 import { getWgsCoords, distanceMeters, formatDistance } from './geo.js';
+import { t, getLang, setLang, onLangChange, applyI18nDom } from './i18n.js';
 
 let db = null;
 let currentLocations = []; // 目前篩選後顯示的地點
@@ -36,34 +37,21 @@ async function main() {
   // 儘早偵測並提示 App 內置瀏覽器（不等待資料載入）
   initInAppBrowserBanner();
 
-  showLoader('載入資料中…');
+  // 套用已保存的語言（DOM 靜態文案）並綁定切換器
+  applyI18nDom();
+  bindLangSwitch();
+
+  showLoader(t('loading_data'));
 
   try {
     db = await loadData();
   } catch (err) {
     console.error(err);
-    showLoader('資料載入失敗：' + err.message);
+    showLoader(t('loading_failed') + err.message);
     return;
   }
 
-  // 顯示採集日期與動態來源資訊（從 data.json 的 meta 填入）
-  const collectedAt = document.getElementById('collected-at');
-  if (collectedAt && db.meta.collectedAt) {
-    collectedAt.textContent = db.meta.collectedAt;
-  }
-  const sourceLink = document.getElementById('meta-source-link');
-  if (sourceLink && db.meta.source) {
-    sourceLink.textContent = db.meta.source;
-    if (db.meta.sourceUrl) sourceLink.href = db.meta.sourceUrl;
-  }
-  const officialLink = document.getElementById('meta-official-link');
-  if (officialLink && db.meta.officialSourceUrl) {
-    officialLink.href = db.meta.officialSourceUrl;
-  }
-  const disclaimer = document.getElementById('meta-disclaimer');
-  if (disclaimer && db.meta.note) {
-    disclaimer.textContent = db.meta.note;
-  }
+  updateFooterMeta();
 
   hideLoader();
 
@@ -93,7 +81,7 @@ async function main() {
     })
     .catch((err) => {
       console.error('地圖初始化失敗:', err);
-      const msg = (err && err.message) ? err.message : '無法連線至地圖服務';
+      const msg = (err && err.message) ? err.message : t('map_error_fallback');
       showMapLoadError(mapContainer, msg);
     });
 
@@ -129,8 +117,21 @@ async function main() {
   currentLocations = db.getGeocodedLocations();
   renderAll(currentLocations);
 
-  // 深連結：支援 #loc=<id>（開啟特定地點）、#cat=<key>、#q=<關鍵字>
+  // 深連結：支援 #loc=<id>（開啟特定地點）、#cat=<key>、#q=<關鍵字>、#tf=<時段>
   applyDeepLink();
+
+  // 返回鍵 / 手動改 hash：重新套用深連結狀態（可用返回鍵關閉詳情抽屜）
+  window.addEventListener('hashchange', onHashChange);
+
+  // 語言切換後重繪所有由 JS 產生的文案
+  onLangChange(() => {
+    updateFooterMeta();
+    initFilters(db, onFilterResult);
+    initTimeFilters(db, ['time-filter-list', 'mobile-time-filters']);
+    renderMobileFilters(db);
+    renderAll(currentLocations);
+    hideDetail(); // 抽屜內容為舊語言，關閉讓使用者重開即新語言
+  });
 
   // 註冊 Service Worker（離線快取；不支援或失敗時靜默略過）
   registerServiceWorker();
@@ -170,6 +171,7 @@ async function main() {
 function onFilterResult(filteredLocations, database) {
   currentLocations = filteredLocations;
   renderAll(filteredLocations);
+  syncFilterHash();
 }
 
 function renderAll(locations) {
@@ -205,19 +207,20 @@ function locDistance(loc, ulng, ulat) {
 /**
  * 統一的「開啟地點」入口：詳情抽屜 + 地圖聚焦 + 列表 active + 深連結 hash。
  * marker 點擊時 focusMap 傳 false（地圖已在該處，避免多餘動畫）。
+ * 用 pushState 讓「返回鍵」可以關閉抽屜（hashchange 會觸發 onHashChange）。
  */
 function openLocation(loc, { focusMap = true, updateHash = true } = {}) {
   showLocationDetail(loc, db);
   if (focusMap) highlightMarker(loc.id, db);
   setActiveListItem(loc.id);
   if (updateHash) {
-    history.replaceState(null, '', `#loc=${encodeURIComponent(loc.id)}`);
+    history.pushState(null, '', `#loc=${encodeURIComponent(loc.id)}`);
   }
 }
 
 /**
  * 解析網址 hash 深連結並套用。
- * 格式：#loc=<地點id> 或 #cat=<分類key> 或 #q=<關鍵字>（可用 & 組合 cat/q）。
+ * 格式：#loc=<地點id>，或 #cat=<分類key>&q=<關鍵字>&tf=<時段,逗號分隔>。
  */
 function applyDeepLink() {
   const hash = window.location.hash.replace(/^#/, '');
@@ -236,18 +239,69 @@ function applyDeepLink() {
     return;
   }
 
-  const cat = params.get('cat');
-  if (cat && CATEGORIES[cat]) {
-    selectCategoryProgrammatic(cat, db);
+  suppressHashSync = true;
+  try {
+    const cat = params.get('cat');
+    if (cat) {
+      const cats = cat.split(',').filter((c) => CATEGORIES[c]);
+      if (cats.length === 1) {
+        selectCategoryProgrammatic(cats[0], db);
+      } else if (cats.length > 1) {
+        applyCategoriesProgrammatic(cats, db);
+      }
+    }
+    const tf = params.get('tf');
+    if (tf) {
+      applyTimeFiltersProgrammatic(tf.split(','), db);
+    }
+    const q = params.get('q');
+    if (q) {
+      const chatInput = document.getElementById('chat-input');
+      if (chatInput) chatInput.value = q;
+      const mobileSearch = document.getElementById('mobile-search-input');
+      if (mobileSearch) mobileSearch.value = q;
+      setQuery(q, db);
+    }
+  } finally {
+    suppressHashSync = false;
   }
-  const q = params.get('q');
-  if (q) {
-    const chatInput = document.getElementById('chat-input');
-    if (chatInput) chatInput.value = q;
-    const mobileSearch = document.getElementById('mobile-search-input');
-    if (mobileSearch) mobileSearch.value = q;
-    setQuery(q, db);
+}
+
+// 篩選 → hash 同步：避免深連結還原過程反向覆寫 hash
+let suppressHashSync = false;
+
+/**
+ * 把目前篩選狀態寫回網址 hash（replaceState，不進瀏覽歷史），
+ * 讓「週末開診的心理中心」這類篩選視圖也能直接分享。
+ * 詳情抽屜開啟（#loc=）時不覆寫。
+ */
+function syncFilterHash() {
+  if (suppressHashSync) return;
+  if (window.location.hash.startsWith('#loc=')) return;
+
+  const { query, categories, timeFilters } = getFilterSnapshot();
+  const params = new URLSearchParams();
+  if (categories.length > 0) params.set('cat', categories.join(','));
+  if (timeFilters.length > 0) params.set('tf', timeFilters.join(','));
+  if (query) params.set('q', query);
+
+  const str = params.toString();
+  const base = window.location.pathname + window.location.search;
+  history.replaceState(null, '', str ? `${base}#${str}` : base);
+}
+
+/**
+ * hashchange（返回鍵 / 手動改網址）：重新套用狀態。
+ * 沒有 #loc 時關閉詳情抽屜 — 這讓返回鍵成為「關閉抽屜」。
+ */
+function onHashChange() {
+  const hash = window.location.hash.replace(/^#/, '');
+  if (hash.startsWith('loc=')) {
+    applyDeepLink();
+    return;
   }
+  hideDetail();
+  if (hash) applyDeepLink();
 }
 
 /** 註冊 PWA Service Worker（僅 https 或 localhost 生效） */
@@ -277,7 +331,7 @@ function renderLocationList(locations) {
   if (!ul) return;
   ul.innerHTML = '';
   if (locations.length === 0) {
-    ul.innerHTML = '<li style="padding:16px 0;color:#9ca3af;font-size:13px;text-align:center">沒有符合條件的地點</li>';
+    ul.innerHTML = `<li style="padding:16px 0;color:#9ca3af;font-size:13px;text-align:center">${t('no_results_list')}</li>`;
     return;
   }
 
@@ -291,17 +345,33 @@ function renderLocationList(locations) {
       <div class="list__item-name">
         <span class="list__item-dot" style="background:${cat.color}"></span>
         ${escapeHtml(loc.name)}
-        ${isLocationOpenNow(loc) ? '<span class="badge-open">營業中</span>' : ''}
+        ${isLocationOpenNow(loc) ? `<span class="badge-open">${t('open_now_badge')}</span>` : ''}
       </div>
-      <div class="list__item-address">${escapeHtml(loc.addressZh || '地址不詳')}</div>
-      ${therapistCount ? `<div class="list__item-count">${therapistCount} 位心理治療師${distanceLabel(loc)}</div>` : `<div class="list__item-count">${distanceLabel(loc, true)}</div>`}
-      ${loc.lng == null ? '<div class="list__item-count" style="color:#9ca3af">無法定位</div>' : ''}
+      <div class="list__item-address">${escapeHtml(loc.addressZh || t('detail_addr_unknown'))}</div>
+      ${therapistCount ? `<div class="list__item-count">${t('therapist_count', { n: therapistCount })}${distanceLabel(loc)}</div>` : `<div class="list__item-count">${distanceLabel(loc, true)}</div>`}
+      ${loc.lng == null ? `<div class="list__item-count" style="color:#9ca3af">${t('cannot_locate')}</div>` : ''}
     `;
-    li.addEventListener('click', () => {
-      openLocation(loc);
-    });
+    makeListItemInteractive(li, loc);
     ul.appendChild(li);
   }
+}
+
+/**
+ * 列表項的互動與鍵盤可及性：click + Tab 聚焦 + Enter/Space 開啟。
+ */
+function makeListItemInteractive(li, loc) {
+  li.tabIndex = 0;
+  li.setAttribute('role', 'button');
+  li.setAttribute('aria-label', loc.name);
+  li.addEventListener('click', () => {
+    openLocation(loc);
+  });
+  li.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openLocation(loc);
+    }
+  });
 }
 
 /**
@@ -326,7 +396,7 @@ function renderMobileLocationList(locations) {
   if (!ul) return;
   ul.innerHTML = '';
   if (locations.length === 0) {
-    ul.innerHTML = '<li style="padding:24px 0;color:#9ca3af;font-size:13px;text-align:center">沒有符合條件的地點</li>';
+    ul.innerHTML = `<li style="padding:24px 0;color:#9ca3af;font-size:13px;text-align:center">${t('no_results_list')}</li>`;
     return;
   }
 
@@ -340,14 +410,14 @@ function renderMobileLocationList(locations) {
       <div class="mobile-list__item-name">
         <span class="mobile-list__item-dot" style="background:${cat.color}"></span>
         ${escapeHtml(loc.name)}
-        ${isLocationOpenNow(loc) ? '<span class="badge-open">營業中</span>' : ''}
+        ${isLocationOpenNow(loc) ? `<span class="badge-open">${t('open_now_badge')}</span>` : ''}
       </div>
-      <div class="mobile-list__item-address">${escapeHtml(loc.addressZh || '地址不詳')}</div>
-      ${therapistCount ? `<div class="mobile-list__item-count">${therapistCount} 位心理治療師${distanceLabel(loc)}</div>` : `<div class="mobile-list__item-count">${distanceLabel(loc, true)}</div>`}
-      ${loc.lng == null ? '<div class="mobile-list__item-count" style="color:#9ca3af">無法定位</div>' : ''}
+      <div class="mobile-list__item-address">${escapeHtml(loc.addressZh || t('detail_addr_unknown'))}</div>
+      ${therapistCount ? `<div class="mobile-list__item-count">${t('therapist_count', { n: therapistCount })}${distanceLabel(loc)}</div>` : `<div class="mobile-list__item-count">${distanceLabel(loc, true)}</div>`}
+      ${loc.lng == null ? `<div class="mobile-list__item-count" style="color:#9ca3af">${t('cannot_locate')}</div>` : ''}
     `;
+    makeListItemInteractive(li, loc);
     li.addEventListener('click', () => {
-      openLocation(loc);
       setActiveMobileListItem(loc.id);
     });
     ul.appendChild(li);
@@ -392,8 +462,40 @@ function updateResultCount(locations) {
   const el = document.getElementById('search-results-count');
   if (!el) return;
   el.textContent = locations.length === 0
-    ? '沒有符合的結果'
-    : `顯示 ${locations.length} 個執業地點`;
+    ? t('results_count_none')
+    : t('results_count', { n: locations.length });
+}
+
+/**
+ * 頁尾來源資訊（從 data.json 的 meta 填入）。
+ * 免責聲明：中文顯示 meta.note 原文，其他語言用通用翻譯。
+ */
+function updateFooterMeta() {
+  const collectedAt = document.getElementById('collected-at');
+  if (collectedAt && db.meta.collectedAt) {
+    collectedAt.textContent = db.meta.collectedAt;
+  }
+  const sourceLink = document.getElementById('meta-source-link');
+  if (sourceLink && db.meta.source) {
+    sourceLink.textContent = db.meta.source;
+    if (db.meta.sourceUrl) sourceLink.href = db.meta.sourceUrl;
+  }
+  const officialLink = document.getElementById('meta-official-link');
+  if (officialLink && db.meta.officialSourceUrl) {
+    officialLink.href = db.meta.officialSourceUrl;
+  }
+  const disclaimer = document.getElementById('meta-disclaimer');
+  if (disclaimer) {
+    disclaimer.textContent = (getLang() === 'zh' && db.meta.note) ? db.meta.note : t('disclaimer_generic');
+  }
+}
+
+/** 綁定語言切換器（桌面側欄 + 手機快捷條各一組，狀態互相同步） */
+function bindLangSwitch() {
+  document.querySelectorAll('.lang-switch__btn').forEach((btn) => {
+    btn.classList.toggle('is-active', btn.dataset.lang === getLang());
+    btn.addEventListener('click', () => setLang(btn.dataset.lang));
+  });
 }
 
 /* ============================================================
@@ -456,7 +558,7 @@ function renderMobileFilters(db) {
   const allChip = document.createElement('button');
   allChip.className = 'filter-chip';
   allChip.dataset.category = 'all';
-  allChip.innerHTML = `<span>全部</span>`;
+  allChip.innerHTML = `<span>${t('all')}</span>`;
   allChip.addEventListener('click', () => {
     selectCategoryProgrammatic('all', db);
   });
@@ -470,7 +572,7 @@ function renderMobileFilters(db) {
     chip.dataset.category = catKey;
     chip.innerHTML = `
       <span class="filter-chip__dot" style="background:${cat.color}"></span>
-      <span>${escapeHtml(cat.label)}</span>`;
+      <span>${escapeHtml(t('cat_' + catKey))}</span>`;
     chip.addEventListener('click', () => {
       selectCategoryProgrammatic(catKey, db);
     });
@@ -602,7 +704,7 @@ function bindNearbyButtons() {
         return;
       }
       if (!navigator.geolocation) {
-        alert('您的瀏覽器不支援定位功能。');
+        alert(t('geo_unsupported'));
         return;
       }
       buttons.forEach((b) => b.classList.add('is-loading'));
@@ -619,7 +721,7 @@ function bindNearbyButtons() {
         (err) => {
           buttons.forEach((b) => b.classList.remove('is-loading'));
           console.warn('定位失敗:', err);
-          alert('無法取得您的位置。請確認已允許定位權限，或改用搜尋/篩選查找。');
+          alert(t('geo_failed'));
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
       );
@@ -848,17 +950,17 @@ function renderModalSearchResults(locations) {
   if (locations.length === 0) {
     container.innerHTML = `
       <div class="modal-results__empty">
-        沒有找到符合的執業地點，您可以直接按 Enter 詢問 AI 助理。
+        ${t('modal_results_empty')}
       </div>`;
     return;
   }
 
   // 限制只顯示前 5 筆最相關結果，避免撐爆模態框
   const displayLocations = locations.slice(0, 5);
-  
+
   const title = document.createElement('div');
   title.className = 'modal-results__title';
-  title.textContent = `執業地點快速預覽 (${locations.length} 個結果)`;
+  title.textContent = t('modal_results_title', { n: locations.length });
   container.appendChild(title);
 
   const ul = document.createElement('ul');
@@ -876,8 +978,8 @@ function renderModalSearchResults(locations) {
         <div class="modal-results__address">${escapeHtml(loc.addressZh || '')}</div>
       </div>
       <div class="modal-results__item-right">
-        <span class="modal-results__badge">${therapists.length}位治療師</span>
-        <span class="modal-results__go">定位</span>
+        <span class="modal-results__badge">${t('modal_results_badge', { n: therapists.length })}</span>
+        <span class="modal-results__go">${t('modal_results_locate')}</span>
       </div>
     `;
 
@@ -931,12 +1033,12 @@ function showMapLoadError(container, errorMsg) {
       <div class="map-error-card__icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
       </div>
-      <div class="map-error-card__title">地圖服務暫時無法載入</div>
+      <div class="map-error-card__title">${t('map_error_title')}</div>
       <div class="map-error-card__desc">
-        可能是您的網絡連接受限或底圖服務暫時繁忙。您仍可透過列表、搜尋、篩選或 AI 助理檢索資源。
+        ${t('map_error_desc')}
       </div>
-      <div class="map-error-card__tech">錯誤詳情：${escapeHtml(errorMsg)}</div>
-      <button class="btn btn--primary map-error-card__retry" onclick="window.location.reload()">重新整理網頁</button>
+      <div class="map-error-card__tech">${t('map_error_detail')}${escapeHtml(errorMsg)}</div>
+      <button class="btn btn--primary map-error-card__retry" onclick="window.location.reload()">${t('map_error_retry')}</button>
     </div>
   `;
 }

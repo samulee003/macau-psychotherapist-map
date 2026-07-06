@@ -4,12 +4,13 @@
 
 import { CATEGORIES } from './config.js';
 import { getParsedHours, isOpenAt, opensOnWeekend, opensEvening } from './hours.js';
+import { t } from './i18n.js';
 
-/** 時段篩選定義（多選，AND 語意） */
+/** 時段篩選定義（多選，AND 語意）；顯示標籤走 i18n（tf_<key>） */
 export const TIME_FILTERS = {
-  open_now: { label: '現在營業' },
-  weekend: { label: '週末開診' },
-  evening: { label: '夜間開診' },
+  open_now: {},
+  weekend: {},
+  evening: {},
 };
 
 /** 目前生效的篩選狀態 */
@@ -42,9 +43,10 @@ export function initFilters(db, onChange) {
     const chip = document.createElement('button');
     chip.className = 'filter-chip';
     chip.dataset.category = catKey;
+    chip.classList.toggle('is-active', state.activeCategories.has(catKey));
     chip.innerHTML = `
       <span class="filter-chip__dot" style="background:${cat.color}"></span>
-      <span>${cat.label}</span>`;
+      <span>${t('cat_' + catKey)}</span>`;
     chip.addEventListener('click', () => {
       toggleCategory(catKey);
       chip.classList.toggle('is-active');
@@ -73,11 +75,12 @@ export function initTimeFilters(db, containerIds) {
     const container = document.getElementById(containerId);
     if (!container) continue;
     container.innerHTML = '';
-    for (const [key, def] of Object.entries(TIME_FILTERS)) {
+    for (const key of Object.keys(TIME_FILTERS)) {
       const chip = document.createElement('button');
       chip.className = 'filter-chip filter-chip--time';
       chip.dataset.timeFilter = key;
-      chip.innerHTML = `<span>${def.label}</span>`;
+      chip.classList.toggle('is-active', state.activeTimeFilters.has(key));
+      chip.innerHTML = `<span>${t('tf_' + key)}</span>`;
       chip.addEventListener('click', () => {
         toggleTimeFilter(key, db);
       });
@@ -192,6 +195,37 @@ export function selectCategoryProgrammatic(catKey, db) {
       chip.classList.remove('is-active');
     }
   });
+  emit(db);
+}
+
+/**
+ * 目前篩選狀態快照（供 main.js 寫回網址 hash）。
+ */
+export function getFilterSnapshot() {
+  return {
+    query: state.query,
+    categories: [...state.activeCategories],
+    timeFilters: [...state.activeTimeFilters],
+  };
+}
+
+/**
+ * 程式化套用多個分類（深連結還原用；多選語意同桌面 chips）
+ */
+export function applyCategoriesProgrammatic(catKeys, db) {
+  state.activeCategories = new Set(catKeys.filter((k) => CATEGORIES[k]));
+  document.querySelectorAll('.filter-chip[data-category]').forEach((chip) => {
+    chip.classList.toggle('is-active', state.activeCategories.has(chip.dataset.category));
+  });
+  emit(db);
+}
+
+/**
+ * 程式化套用時段篩選（深連結還原用）
+ */
+export function applyTimeFiltersProgrammatic(keys, db) {
+  state.activeTimeFilters = new Set(keys.filter((k) => TIME_FILTERS[k]));
+  syncTimeFilterChips();
   emit(db);
 }
 
