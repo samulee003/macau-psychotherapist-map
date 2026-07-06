@@ -3,6 +3,7 @@
    ============================================================ */
 
 import { CATEGORIES } from './config.js';
+import { getParsedHours, isLocationOpenNow } from './hours.js';
 
 const drawer = () => document.getElementById('detail-drawer');
 const content = () => document.getElementById('detail-content');
@@ -19,20 +20,29 @@ export function showLocationDetail(loc, db) {
   const amapUrl = buildAmapNavUrl(loc);
   const googleUrl = buildGoogleNavUrl(loc);
 
+  // 營業狀態：只有能解析診時的地點才顯示（避免誤導）
+  const parsedHours = getParsedHours(loc);
+  const openBadge = parsedHours
+    ? (isLocationOpenNow(loc)
+        ? '<span class="detail__open-badge is-open">現在營業中</span>'
+        : '<span class="detail__open-badge">目前非開診時間</span>')
+    : '';
+
   const html = `
     <span class="detail__category" style="background:${cat.color}22;color:${cat.color}">
-      ${cat.icon} ${cat.label}
+      ${cat.label}
     </span>
     <h2 class="detail__name">${escapeHtml(loc.name)}</h2>
-    <div class="detail__address">📍 ${escapeHtml(loc.addressZh || '地址不詳')}</div>
+    <div class="detail__address">${escapeHtml(loc.addressZh || '地址不詳')}</div>
 
-    ${loc.phone ? row('電話', escapeHtml(loc.phone)) : ''}
-    ${loc.hours ? row('時間', escapeHtml(loc.hours)) : ''}
+    ${loc.phone ? row('電話', `<a href="tel:${escapeHtml(loc.phone.replace(/\s/g, ''))}" class="detail__tel-link">${escapeHtml(loc.phone)}</a>`) : ''}
+    ${loc.hours ? row('時間', `${escapeHtml(loc.hours)} ${openBadge}`) : ''}
 
     <div class="detail__actions">
-      ${amapUrl ? `<button class="btn btn--primary" id="nav-amap-btn">🧭 高德導航</button>` : ''}
-      ${googleUrl ? `<button class="btn btn--ghost" id="nav-google-btn">🗺️ Google 地圖</button>` : ''}
-      <button class="btn btn--ghost" id="copy-addr-btn">📋 複製地址</button>
+      ${amapUrl ? `<button class="btn btn--primary" id="nav-amap-btn">高德導航</button>` : ''}
+      ${googleUrl ? `<button class="btn btn--ghost" id="nav-google-btn">Google 地圖</button>` : ''}
+      <button class="btn btn--ghost" id="copy-addr-btn">複製地址</button>
+      <button class="btn btn--ghost" id="share-loc-btn">分享連結</button>
     </div>
 
     <h3 class="detail__section-title">此處執業的心理治療師（${therapists.length}）</h3>
@@ -137,21 +147,45 @@ export function showLocationDetail(loc, db) {
   const copyBtn = document.getElementById('copy-addr-btn');
   if (copyBtn) {
     copyBtn.addEventListener('click', () => {
-      const textToCopy = loc.addressZh || loc.name;
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(textToCopy)
-          .then(() => {
-            copyBtn.textContent = '✓ 已複製';
-            setTimeout(() => (copyBtn.textContent = '📋 複製地址'), 1500);
-          })
-          .catch(err => {
-            console.error('Failed to copy via Clipboard API: ', err);
-            fallbackCopy(textToCopy);
-          });
+      copyText(loc.addressZh || loc.name, copyBtn, '複製地址');
+    });
+  }
+
+  // 綁定分享連結：複製指向此地點的深連結（#loc=<id>），
+  // 供社工/老師/親友直接轉介特定機構
+  const shareBtn = document.getElementById('share-loc-btn');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', () => {
+      const shareUrl = `${window.location.origin}${window.location.pathname}#loc=${encodeURIComponent(loc.id)}`;
+      // 行動端優先使用系統分享面板
+      if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        navigator.share({ title: loc.name, url: shareUrl }).catch(() => {
+          copyText(shareUrl, shareBtn, '分享連結');
+        });
       } else {
-        fallbackCopy(textToCopy);
+        copyText(shareUrl, shareBtn, '分享連結');
       }
     });
+  }
+}
+
+/** 複製文字並在按鈕上顯示回饋 */
+function copyText(text, btn, restoreLabel) {
+  const onDone = () => {
+    if (btn) {
+      btn.textContent = '已複製';
+      setTimeout(() => (btn.textContent = restoreLabel), 1500);
+    }
+  };
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text)
+      .then(onDone)
+      .catch((err) => {
+        console.error('Failed to copy via Clipboard API: ', err);
+        fallbackCopy(text, btn, restoreLabel);
+      });
+  } else {
+    fallbackCopy(text, btn, restoreLabel);
   }
 }
 
@@ -238,6 +272,10 @@ function buildGoogleNavUrl(loc) {
 
 export function hideDetail() {
   drawer().hidden = true;
+  // 清除深連結 hash（若有），避免重新整理時又打開已關閉的詳情
+  if (window.location.hash.startsWith('#loc=')) {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
 }
 
 /** 綁定關閉按鈕 */
@@ -246,7 +284,7 @@ export function initDetail() {
   if (closeBtn) closeBtn.addEventListener('click', hideDetail);
 }
 
-function fallbackCopy(text) {
+function fallbackCopy(text, btn, restoreLabel) {
   try {
     const textArea = document.createElement('textarea');
     textArea.value = text;
@@ -256,11 +294,10 @@ function fallbackCopy(text) {
     textArea.select();
     const successful = document.execCommand('copy');
     document.body.removeChild(textArea);
-    
-    const copyBtn = document.getElementById('copy-addr-btn');
-    if (copyBtn && successful) {
-      copyBtn.textContent = '✓ 已複製';
-      setTimeout(() => (copyBtn.textContent = '📋 複製地址'), 1500);
+
+    if (btn && successful) {
+      btn.textContent = '已複製';
+      setTimeout(() => (btn.textContent = restoreLabel), 1500);
     }
   } catch (err) {
     console.error('Fallback copy failed: ', err);

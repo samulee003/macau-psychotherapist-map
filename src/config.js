@@ -33,13 +33,13 @@ export const MACAO_VIEW = {
  * label：篩選器顯示名稱；color：marker 與配色（與 styles.css --cat-* 對應）。
  */
 export const CATEGORIES = {
-  hospital: { label: '醫院', color: '#d64545', icon: '🏥' },
-  med_center: { label: '醫療中心', color: '#e8893a', icon: '⚕️' },
-  psych_center: { label: '心理治療中心', color: '#2c6e7f', icon: '🧠' },
-  social: { label: '社會服務機構', color: '#5b8c5a', icon: '🤝' },
-  university: { label: '大學', color: '#7a5ca0', icon: '🎓' },
-  gov: { label: '政府機構', color: '#6b7280', icon: '🏛️' },
-  other: { label: '其他', color: '#9ca3af', icon: '📍' },
+  hospital: { label: '醫院', color: '#d64545' },
+  med_center: { label: '醫療中心', color: '#e8893a' },
+  psych_center: { label: '心理治療中心', color: '#2c6e7f' },
+  social: { label: '社會服務機構', color: '#5b8c5a' },
+  university: { label: '大學', color: '#7a5ca0' },
+  gov: { label: '政府機構', color: '#6b7280' },
+  other: { label: '其他', color: '#9ca3af' },
 };
 
 /** 分類中文標籤快速查 */

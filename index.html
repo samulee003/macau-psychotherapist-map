@@ -24,6 +24,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./src/styles.css" />
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <meta name="theme-color" content="#2c6e7f" />
 </head>
 <body>
   <!-- App 內置瀏覽器提示橫幅（Threads / Instagram / 微信 / Facebook 等）-->
@@ -49,7 +54,9 @@
 
       <!-- 桌面版搜尋/AI 觸發按鈕 -->
       <div id="desktop-search-trigger" class="sidebar__search-trigger" role="button" tabindex="0" title="開啟搜尋與 AI 助理 (快捷鍵: ⌘K 或 Ctrl+K)">
-        <span class="search-trigger__icon">🔍</span>
+        <span class="search-trigger__icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </span>
         <span class="search-trigger__placeholder">搜尋機構、治療師或問問 AI...</span>
         <span class="search-trigger__shortcut">⌘K</span>
       </div>
@@ -66,6 +73,9 @@
           <a href="tel:28525222" class="btn btn--ghost btn--sm" title="撥打明愛 24 小時生命熱線: 2852 5222">
             明愛生命熱線
           </a>
+          <a href="tel:28261126" class="btn btn--ghost btn--sm" title="撥打社會工作局 24 小時心理諮詢熱線: 2826 1126">
+            社工局心理熱線
+          </a>
         </div>
       </section>
 
@@ -75,13 +85,21 @@
         <div id="filter-list" class="filters__list">
           <!-- 由 JS 渲染 -->
         </div>
+        <h2 class="filters__title filters__title--spaced">服務時段</h2>
+        <div id="time-filter-list" class="filters__list">
+          <!-- 由 JS 渲染 -->
+        </div>
       </section>
 
       <!-- 地點列表 -->
       <section class="list">
         <div class="list__header">
           <h2 class="list__title">執業地點 <span id="list-count" class="list__count"></span></h2>
-          <p class="list__sorting-disclaimer">（排序依採集順序，不具任何推薦或評分排名意義）</p>
+          <button id="nearby-btn" class="nearby-btn" title="以我的位置排序，就近優先顯示" aria-pressed="false">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+            <span>附近優先</span>
+          </button>
+          <p class="list__sorting-disclaimer">（排序依名稱筆劃或距離，不具任何推薦或評分排名意義）</p>
         </div>
         <ul id="location-list" class="list__items">
           <!-- 由 JS 渲染 -->
@@ -131,8 +149,14 @@
       <!-- 搜尋列 -->
       <div class="mobile-panel__search">
         <div class="search__wrapper">
-          <span class="search__icon">🔍</span>
+          <span class="search__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </span>
           <input id="mobile-search-input" class="search__input" type="text" placeholder="搜尋機構、地址或治療師…" autocomplete="off" aria-label="搜尋" />
+          <button id="mobile-nearby-btn" class="nearby-btn nearby-btn--mobile" title="以我的位置排序，就近優先顯示" aria-pressed="false">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+            <span>附近</span>
+          </button>
         </div>
       </div>
 
@@ -141,7 +165,14 @@
         <span class="mobile-mh-card__label">官方心理支援：</span>
         <a href="https://www.ssm.gov.mo/portal1/mentalhealth/kzJY9ECgaLx4vv83tK3eA?lang=ch" target="_blank" rel="noopener">自我快測</a>
         <span class="mobile-mh-card__divider">|</span>
-        <a href="tel:28525222">明愛生命熱線</a>
+        <a href="tel:28525222">明愛熱線</a>
+        <span class="mobile-mh-card__divider">|</span>
+        <a href="tel:28261126">社工局熱線</a>
+      </div>
+
+      <!-- 時段篩選（多選）橫向滑動 -->
+      <div id="mobile-time-filters" class="mobile-filters mobile-filters--time">
+        <!-- 由 JS 渲染 -->
       </div>
 
       <!-- 分類橫向滑動 -->
@@ -153,7 +184,7 @@
       <div class="mobile-panel__list-wrapper">
         <div class="mobile-panel__header">
           <h2 class="mobile-panel__title">執業地點 <span id="mobile-list-count"></span></h2>
-          <p class="mobile-panel__sorting-disclaimer">（排序依採集順序，不具推薦或評分排名意義）</p>
+          <p class="mobile-panel__sorting-disclaimer">（排序依名稱筆劃或距離，不具推薦或評分排名意義）</p>
         </div>
         <ul id="mobile-location-list" class="mobile-list"></ul>
       </div>
@@ -169,7 +200,7 @@
     <!-- 手機版 AI 全螢幕覆蓋層 -->
     <div id="ai-overlay" class="ai-overlay" hidden>
       <header class="ai-overlay__header">
-        <h2>💬 AI 智能助理</h2>
+        <h2>AI 智能助理</h2>
         <button id="ai-overlay-close" class="ai-overlay__close" aria-label="關閉">✕</button>
       </header>
       <!-- Copilot 容器（手機版動態掛載到此） -->

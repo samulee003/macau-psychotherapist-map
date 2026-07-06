@@ -3,11 +3,20 @@
    ============================================================ */
 
 import { CATEGORIES } from './config.js';
+import { getParsedHours, isOpenAt, opensOnWeekend, opensEvening } from './hours.js';
+
+/** 時段篩選定義（多選，AND 語意） */
+export const TIME_FILTERS = {
+  open_now: { label: '現在營業' },
+  weekend: { label: '週末開診' },
+  evening: { label: '夜間開診' },
+};
 
 /** 目前生效的篩選狀態 */
 const state = {
   query: '',
   activeCategories: new Set(), // 空集合 = 不篩選（全部）
+  activeTimeFilters: new Set(), // 空集合 = 不篩選時段
 };
 
 let onFilterChangeCb = null;
@@ -53,13 +62,56 @@ function toggleCategory(catKey) {
   }
 }
 
+/**
+ * 初始化時段篩選 chip（可同時渲染到桌面版與手機版容器）。
+ * 多選 toggle；各容器內的同名 chip 狀態互相同步。
+ * @param {Database} db
+ * @param {string[]} containerIds 容器元素 id 陣列
+ */
+export function initTimeFilters(db, containerIds) {
+  for (const containerId of containerIds) {
+    const container = document.getElementById(containerId);
+    if (!container) continue;
+    container.innerHTML = '';
+    for (const [key, def] of Object.entries(TIME_FILTERS)) {
+      const chip = document.createElement('button');
+      chip.className = 'filter-chip filter-chip--time';
+      chip.dataset.timeFilter = key;
+      chip.innerHTML = `<span>${def.label}</span>`;
+      chip.addEventListener('click', () => {
+        toggleTimeFilter(key, db);
+      });
+      container.appendChild(chip);
+    }
+  }
+}
+
+/** 切換時段篩選並同步所有 chip 的 active 狀態 */
+export function toggleTimeFilter(key, db) {
+  if (state.activeTimeFilters.has(key)) {
+    state.activeTimeFilters.delete(key);
+  } else {
+    state.activeTimeFilters.add(key);
+  }
+  syncTimeFilterChips();
+  emit(db);
+}
+
+function syncTimeFilterChips() {
+  document.querySelectorAll('[data-time-filter]').forEach((chip) => {
+    chip.classList.toggle('is-active', state.activeTimeFilters.has(chip.dataset.timeFilter));
+  });
+}
+
 let trackTimer = null;
 function trackSearch(q) {
   if (!q) return;
   clearTimeout(trackTimer);
   trackTimer = setTimeout(() => {
     if (window.va) {
-      window.va('event', { name: 'search_query', data: { query: q } });
+      // 隱私約定：只記錄「有搜尋行為」，不上報搜尋詞內容 —
+      // 心理健康網站的搜尋詞可能含姓名或敏感健康字眼
+      window.va('event', { name: 'search_used' });
     }
   }, 1000); // 停止打字 1 秒後才發送事件，避免記錄無效的碎片輸入
 }
@@ -79,10 +131,20 @@ export function setQuery(query, db) {
 export function applyFilters(db) {
   const q = state.query;
   const cats = state.activeCategories;
+  const timeFilters = state.activeTimeFilters;
+  const now = new Date();
 
   return db.locations.filter((loc) => {
     // 分類篩選
     if (cats.size > 0 && !cats.has(loc.category)) return false;
+
+    // 時段篩選（診時無法解析的地點視為不符合）
+    if (timeFilters.size > 0) {
+      const parsed = getParsedHours(loc);
+      if (timeFilters.has('open_now') && !isOpenAt(parsed, now)) return false;
+      if (timeFilters.has('weekend') && !opensOnWeekend(parsed)) return false;
+      if (timeFilters.has('evening') && !opensEvening(parsed)) return false;
+    }
 
     // 關鍵字篩選：比對機構名、地址、以及該地點的治療師姓名
     if (q) {
@@ -139,6 +201,7 @@ export function selectCategoryProgrammatic(catKey, db) {
 export function resetFiltersProgrammatic(db) {
   state.query = '';
   state.activeCategories.clear();
+  state.activeTimeFilters.clear();
   const chatInput = document.getElementById('chat-input');
   if (chatInput) chatInput.value = '';
   const chips = document.querySelectorAll('.filter-chip');

@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import { cpSync } from 'fs';
+import { sanitizeCopilotRequest } from './lib/copilot-proxy.js';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -20,6 +21,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       {
         name: 'copy-data',
+        apply: 'build', // 僅在 build 時執行（dev/test 不需要，也避免 vitest 誤觸發）
         closeBundle() {
           // 複製資料 JSON
           cpSync('data', 'dist/data', { recursive: true });
@@ -62,7 +64,26 @@ export default defineConfig(({ mode }) => {
             // 收集 request body
             const chunks = [];
             for await (const chunk of req) chunks.push(chunk);
-            const body = Buffer.concat(chunks).toString();
+            const rawBody = Buffer.concat(chunks).toString();
+
+            // 與正式環境（api/copilot.js）一致：驗證並淨化請求，
+            // model / max_tokens / temperature 由伺服器端強制指定
+            let parsed;
+            try {
+              parsed = JSON.parse(rawBody);
+            } catch {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: '請求內容不是有效的 JSON' }));
+              return;
+            }
+            const { error: validationError, payload } = sanitizeCopilotRequest(parsed);
+            if (validationError) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: `請求內容不符規範：${validationError}` }));
+              return;
+            }
 
             try {
               const upstream = await fetch('https://api.deepseek.com/v1/chat/completions', {
@@ -71,7 +92,7 @@ export default defineConfig(({ mode }) => {
                   'Content-Type': 'application/json',
                   Authorization: `Bearer ${apiKey}`,
                 },
-                body,
+                body: JSON.stringify(payload),
               });
               const data = await upstream.text();
               res.statusCode = upstream.status;

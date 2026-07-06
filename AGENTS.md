@@ -28,21 +28,31 @@
 
 ```
 ├── index.html              # 單頁應用入口
-├── vite.config.js          # Vite 設定（含 closeBundle hook 複製 data/ 到 dist/）
+├── vite.config.js          # Vite 設定（closeBundle 複製 data/；dev 代理與正式版共用淨化邏輯）
 ├── src/                    # 前端原始碼（ES Modules）
 │   ├── config.js           # 高德 key、機構分類定義（單一真相來源）
 │   ├── data-loader.js      # 載入 data.json + 建立雙向查詢索引
-│   ├── map.js              # 高德地圖渲染、marker、資訊窗
-│   ├── search.js           # 搜尋與分類篩選
-│   ├── detail.js           # 詳情抽屜面板
-│   ├── main.js             # 入口，串接所有模組 + 動態填充來源 meta
+│   ├── map.js              # 高德地圖渲染、marker、資訊窗、使用者定位點
+│   ├── search.js           # 搜尋、分類篩選、時段篩選（現在營業/週末/夜間）
+│   ├── hours.js            # 診症時間結構化解析（hours 文字 → 可計算時段）
+│   ├── geo.js              # 距離計算 + WGS-84→GCJ-02 座標轉換（附近優先用）
+│   ├── detail.js           # 詳情抽屜面板（含分享深連結、營業狀態）
+│   ├── copilot.js          # AI 智能助理（agent loop + 10 個工具）
+│   ├── main.js             # 入口，串接所有模組 + 深連結 + SW 註冊
 │   └── styles.css
+├── lib/copilot-proxy.js    # 代理共用邏輯：請求驗證/淨化（api/ 與 vite dev 共用）
+├── api/copilot.js          # Vercel serverless 薄代理（代管 DEEPSEEK_API_KEY）
+├── public/                 # 靜態資源（Vite 原樣複製到 dist/ 根目錄）
+│   ├── manifest.webmanifest # PWA manifest
+│   ├── sw.js               # Service Worker（stale-while-revalidate 離線快取）
+│   └── icon.svg            # 應用圖示
+├── tests/                  # Vitest 單元測試（hours/geo/data-loader/copilot-proxy）
 ├── data/data.json          # 治療師 + 地點 + 執業關聯（採集產出）
 ├── scripts/                # Python 採集腳本（不在前端運行）
 │   ├── scrape.py           # Playwright Stealth 模擬瀏覽器抓取衛生局官網 → raw.json
 │   ├── geocode.py          # 地址→座標（高德 Web 服務） → geocoded.json
 │   ├── build_data.py       # 去重/合併/分類 → data/data.json
-│   ├── validate.py         # 資料完整性校驗
+│   ├── validate.py         # 資料完整性校驗（支援 --baseline 漂移守衛）
 │   └── preview.html        # 座標人工校驗頁（獨立，不依賴 Vite）
 └── docs/data-sources.md    # 資料來源與採集流程說明
 ```
@@ -57,6 +67,7 @@ npm install
 npm run dev          # 本地 dev server (http://localhost:5173)
 npm run build        # 產出 dist/（含自動複製的 data/data.json）
 npm run preview      # 預覽 build 結果
+npm test             # Vitest 單元測試（hours/geo/data-loader/copilot-proxy）
 
 # 資料採集（用虛擬環境）
 python3 -m venv .venv && source .venv/bin/activate
@@ -116,6 +127,27 @@ open scripts/preview.html        # 人工校驗座標
 ### 🔒 個人隱私展示約定
 - **單一姓名展示**：在詳情抽屜的地點治療師列表中，**姓名僅展示中文姓名或英文姓名中的一個（優先中文名）**，避免中英文全名並列對照過度曝光。執業牌照號碼（License No.）照常展示以便官方核實。AI 助理回覆亦必須嚴格遵循此隱私規則。
 
+### 🔐 分析事件隱私約定
+- **不上報使用者輸入內容**：Vercel Analytics 事件只記錄「行為發生」（如 `search_used`），**絕不上報搜尋詞、AI 提問等使用者輸入的文字** — 心理健康網站的輸入內容可能含姓名或敏感健康字眼。
+
+### ⏰ 時段篩選與診時解析（hours.js）
+- `hours.js` 把 `hours` 自由文字（如「星期一至星期六 12:30-19:30」）解析為結構化時段，支援「現在營業 / 週末開診 / 夜間開診」篩選、列表「營業中」徽章、AI 的 `find_open_locations` 工具。
+- 解析結果記憶化掛在 location 物件的 `_hoursParsed`。無法解析（「暫未提供資料」等）回傳 null，時段篩選時視為不符合。
+- 「夜間」定義為 18:00 後仍開診。改動解析規則須同步 `tests/hours.test.js`。
+
+### 🔗 深連結（Deep Links）
+- 支援 `#loc=<地點id>`（開啟詳情並定位）、`#cat=<分類key>`、`#q=<關鍵字>`。詳情抽屜的「分享連結」按鈕產生 `#loc=` 連結，供轉介場景直接分享特定機構。
+- 開啟地點時用 `history.replaceState` 更新 hash（不進瀏覽歷史）；關閉抽屜時清除。
+
+### 📍 附近優先（geo.js）
+- 「附近優先」按鈕：Geolocation 取得 WGS-84 座標後**必須經 `wgs84ToGcj02` 轉換**再與資料座標（高德 GCJ-02）比較，否則距離有數十至數百米偏差。
+- 排序只在顯示層（`main.js` 的 `sortForDisplay`），不改動 data-loader 的名稱筆劃基準排序。
+
+### 🛡️ 薄代理安全鎖定（lib/copilot-proxy.js）
+- 代理**不信任前端傳入的模型參數**：`model`、`temperature`、`max_tokens`、`stream` 一律由 `lib/copilot-proxy.js` 強制指定；`tools` 僅允許白名單（`ALLOWED_TOOL_NAMES`，須與 `src/copilot.js` 的 TOOLS 同步）。
+- `api/copilot.js`（正式）與 `vite.config.js` dev middleware（本地）都必須經 `sanitizeCopilotRequest`，勿讓任一邊直通。
+- **金鑰紀律**：`AMAP_WEB_KEY`（採集）只能存在於 GitHub Secrets，workflow 檔內**嚴禁**硬編碼 fallback；前端 JS API key 與 Web 服務 key 必須是兩把獨立的 key。
+
 ### 🧭 手機端 App 喚醒與微信沙盒相容
 - **地圖 App 喚醒**：點擊「高德導航」或「Google 地圖」按鈕時，行動端優先調起原生 App（透過各自特定的 URL Schemes / `geo:` 協議）。若手機未安裝該 App，設置 1.5 秒延遲計時器優雅降級跳轉至地圖 Web 行動版。
 - **微信瀏覽器相容**：由於微信屏蔽 App 跳轉，檢測到微信內置瀏覽器時會自動觸發一個高質感的磨砂玻璃擬態彈窗，引導使用者「在瀏覽器中打開」以調起 App，或點擊按鈕直接在微信內瀏覽網頁版地圖。
@@ -151,6 +183,8 @@ open scripts/preview.html        # 人工校驗座標
 1. 改分類 → 同步 `src/config.js` 的 `CATEGORIES` + `styles.css` 的 `--cat-*` + `build_data.py` 的 `CATEGORY_RULES`
 2. 改資料 schema → 同步 `data-loader.js` 的索引邏輯 + `validate.py` 的校驗 + `build_data.py` 的產出 + `main.js` 的 meta 讀取
 3. 改 UI → 確認手機/桌面響應式（`@media (max-width: 768px)`）。手機版改動需同步 `#mobile-*` 元件與桌面版 `.sidebar` 內對應元件
-4. 跑 `npm run build` 確認無語法錯，且 `dist/data/data.json` 存在
-5. 跑 `python3 scripts/validate.py` 確認資料一致
-6. 改 Vite 設定 → 確認 `closeBundle` hook 仍複製 data/
+4. 改 AI 工具 → 同步 `src/copilot.js` 的 `TOOLS` + `lib/copilot-proxy.js` 的 `ALLOWED_TOOL_NAMES`
+5. 跑 `npm test` 確認單元測試通過（改 hours/geo/proxy 邏輯時務必補測試）
+6. 跑 `npm run build` 確認無語法錯，且 `dist/data/data.json` 存在
+7. 跑 `python3 scripts/validate.py` 確認資料一致
+8. 改 Vite 設定 → 確認 `closeBundle` hook 仍複製 data/，且 dev 代理仍經 `sanitizeCopilotRequest`

@@ -10,6 +10,7 @@ let AMap = null;
 let markerLayer = null;        // 目前顯示的 marker 集合
 let infoWindow = null;
 let onMarkerClickCb = null;    // 外部注入：marker 點擊回呼
+let userMarker = null;         // 「離我最近」的使用者定位點
 
 /**
  * 初始化高德地圖。
@@ -166,6 +167,40 @@ export function highlightMarker(locationId, db) {
 /** 關閉資訊窗 */
 export function closeInfoWindow() {
   if (infoWindow) infoWindow.close();
+}
+
+/**
+ * 顯示使用者目前位置（藍點）。座標須為 GCJ-02。
+ * @param {[number, number]} lngLat
+ */
+export function showUserLocation(lngLat) {
+  if (!map || !AMap) return;
+  hideUserLocation();
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22">
+      <circle cx="11" cy="11" r="10" fill="#2563eb" fill-opacity="0.2"/>
+      <circle cx="11" cy="11" r="5.5" fill="#2563eb" stroke="#fff" stroke-width="2"/>
+    </svg>`;
+  const uri = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+  userMarker = new AMap.Marker({
+    position: lngLat,
+    icon: new AMap.Icon({
+      image: uri,
+      size: new AMap.Size(22, 22),
+      imageSize: new AMap.Size(22, 22),
+    }),
+    offset: new AMap.Pixel(-11, -11),
+    zIndex: 200,
+    map,
+  });
+}
+
+/** 移除使用者定位點 */
+export function hideUserLocation() {
+  if (userMarker && map) {
+    map.remove(userMarker);
+    userMarker = null;
+  }
 }
 
 /**

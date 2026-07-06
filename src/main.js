@@ -7,16 +7,19 @@
    ============================================================ */
 
 import { loadData } from './data-loader.js';
-import { initMap, renderMarkers, onMarkerClick, highlightMarker, closeInfoWindow, fitToMarkers } from './map.js';
-import { initFilters, setQuery, selectCategoryProgrammatic, resetFiltersProgrammatic } from './search.js';
+import { initMap, renderMarkers, onMarkerClick, highlightMarker, closeInfoWindow, fitToMarkers, showUserLocation, hideUserLocation } from './map.js';
+import { initFilters, initTimeFilters, setQuery, selectCategoryProgrammatic, resetFiltersProgrammatic } from './search.js';
 import { initDetail, showLocationDetail } from './detail.js';
 import { CATEGORIES } from './config.js';
 import { initCopilot, updateModalUiState } from './copilot.js';
 import { initInAppBrowserBanner } from './inapp-browser.js';
+import { isLocationOpenNow } from './hours.js';
+import { wgs84ToGcj02, distanceMeters, formatDistance } from './geo.js';
 
 let db = null;
 let currentLocations = []; // 目前篩選後顯示的地點
 let activeModalResultIndex = -1; // Spotlight 搜尋結果鍵盤選取索引
+let userPosition = null; // 「附近優先」的使用者座標（GCJ-02，[lng, lat]），null = 未啟用
 
 async function main() {
   // 儘早偵測並提示 App 內置瀏覽器（不等待資料載入）
@@ -58,7 +61,9 @@ async function main() {
     await initMap(mapContainer);
   } catch (err) {
     console.error('地圖初始化失敗:', err);
-    showMapLoadError(mapContainer, err.message);
+    // AMap loader 失敗時 err 可能是 Event 而非 Error，需給出可讀訊息
+    const msg = (err && err.message) ? err.message : '無法連線至高德地圖服務';
+    showMapLoadError(mapContainer, msg);
   }
 
   hideLoader();
@@ -79,17 +84,18 @@ async function main() {
   // 初始化 UI 元件
   initDetail();
   initFilters(db, onFilterResult);
+  initTimeFilters(db, ['time-filter-list', 'mobile-time-filters']);
   renderMobileFilters(db);
   bindMobileSearch();
   bindSplitHandle();
   bindAiFab();
+  bindNearbyButtons();
 
   // marker 點擊 → 開啟詳情 + 標記列表 active
   // （手機版不再收合側欄，因為列表常駐下半屏；地圖上半屏仍可見）
   onMarkerClick((locationId) => {
     const loc = db.getLocationById(locationId);
-    if (loc) showLocationDetail(loc, db);
-    setActiveListItem(locationId);
+    if (loc) openLocation(loc, { focusMap: false });
   });
 
   // 桌面版側欄開合與大小調整
@@ -101,13 +107,17 @@ async function main() {
   currentLocations = db.getGeocodedLocations();
   renderAll(currentLocations);
 
+  // 深連結：支援 #loc=<id>（開啟特定地點）、#cat=<key>、#q=<關鍵字>
+  applyDeepLink();
+
+  // 註冊 Service Worker（離線快取；不支援或失敗時靜默略過）
+  registerServiceWorker();
+
   // 初始化 Copilot 智能助理 (Agentic Chatbot)
   initCopilot(db, {
     showLocationDetail: (loc) => {
-      showLocationDetail(loc, db);
-      highlightMarker(loc.id, db);
-      setActiveListItem(loc.id);
-      
+      openLocation(loc);
+
       // 點選地點後，自動關閉桌面版搜尋模態框
       const backdrop = document.getElementById('desktop-search-backdrop');
       if (backdrop) backdrop.hidden = true;
@@ -141,14 +151,91 @@ function onFilterResult(filteredLocations, database) {
 }
 
 function renderAll(locations) {
+  // 「附近優先」啟用時依距離排序（無座標的排最後）
+  const display = sortForDisplay(locations);
   // 只在地圖上放有座標的
-  const mappable = locations.filter((l) => l.lng != null && l.lat != null);
+  const mappable = display.filter((l) => l.lng != null && l.lat != null);
   renderMarkers(mappable, db);
-  renderLocationList(locations);
-  renderMobileLocationList(locations);
-  updateResultCount(locations);
+  renderLocationList(display);
+  renderMobileLocationList(display);
+  updateResultCount(display);
   fitToMarkers(mappable);
-  renderModalSearchResults(locations);
+  renderModalSearchResults(display);
+}
+
+/**
+ * 依目前排序模式回傳顯示用陣列。
+ * 預設維持 data-loader 的名稱筆劃排序；「附近優先」時依距離。
+ */
+function sortForDisplay(locations) {
+  if (!userPosition) return locations;
+  const [ulng, ulat] = userPosition;
+  return [...locations].sort((a, b) => locDistance(a, ulng, ulat) - locDistance(b, ulng, ulat));
+}
+
+function locDistance(loc, ulng, ulat) {
+  if (loc.lng == null || loc.lat == null) return Infinity;
+  return distanceMeters(ulng, ulat, loc.lng, loc.lat);
+}
+
+/**
+ * 統一的「開啟地點」入口：詳情抽屜 + 地圖聚焦 + 列表 active + 深連結 hash。
+ * marker 點擊時 focusMap 傳 false（地圖已在該處，避免多餘動畫）。
+ */
+function openLocation(loc, { focusMap = true, updateHash = true } = {}) {
+  showLocationDetail(loc, db);
+  if (focusMap) highlightMarker(loc.id, db);
+  setActiveListItem(loc.id);
+  if (updateHash) {
+    history.replaceState(null, '', `#loc=${encodeURIComponent(loc.id)}`);
+  }
+}
+
+/**
+ * 解析網址 hash 深連結並套用。
+ * 格式：#loc=<地點id> 或 #cat=<分類key> 或 #q=<關鍵字>（可用 & 組合 cat/q）。
+ */
+function applyDeepLink() {
+  const hash = window.location.hash.replace(/^#/, '');
+  if (!hash) return;
+  let params;
+  try {
+    params = new URLSearchParams(hash);
+  } catch {
+    return;
+  }
+
+  const locId = params.get('loc');
+  if (locId) {
+    const loc = db.getLocationById(locId);
+    if (loc) openLocation(loc, { updateHash: false });
+    return;
+  }
+
+  const cat = params.get('cat');
+  if (cat && CATEGORIES[cat]) {
+    selectCategoryProgrammatic(cat, db);
+  }
+  const q = params.get('q');
+  if (q) {
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput) chatInput.value = q;
+    const mobileSearch = document.getElementById('mobile-search-input');
+    if (mobileSearch) mobileSearch.value = q;
+    setQuery(q, db);
+  }
+}
+
+/** 註冊 PWA Service Worker（僅 https 或 localhost 生效） */
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    navigator.serviceWorker.register('./sw.js').catch((err) => {
+      console.warn('Service Worker 註冊失敗（不影響使用）:', err);
+    });
+  } catch (e) {
+    // 私隱模式等環境可能拋例外，靜默略過
+  }
 }
 
 /* ============================================================
@@ -180,18 +267,28 @@ function renderLocationList(locations) {
       <div class="list__item-name">
         <span class="list__item-dot" style="background:${cat.color}"></span>
         ${escapeHtml(loc.name)}
+        ${isLocationOpenNow(loc) ? '<span class="badge-open">營業中</span>' : ''}
       </div>
       <div class="list__item-address">${escapeHtml(loc.addressZh || '地址不詳')}</div>
-      ${therapistCount ? `<div class="list__item-count">${therapistCount} 位心理治療師</div>` : ''}
-      ${loc.lng == null ? '<div class="list__item-count" style="color:#9ca3af">⚠ 無法定位</div>' : ''}
+      ${therapistCount ? `<div class="list__item-count">${therapistCount} 位心理治療師${distanceLabel(loc)}</div>` : `<div class="list__item-count">${distanceLabel(loc, true)}</div>`}
+      ${loc.lng == null ? '<div class="list__item-count" style="color:#9ca3af">無法定位</div>' : ''}
     `;
     li.addEventListener('click', () => {
-      showLocationDetail(loc, db);
-      highlightMarker(loc.id, db);
-      setActiveListItem(loc.id);
+      openLocation(loc);
     });
     ul.appendChild(li);
   }
+}
+
+/**
+ * 「附近優先」啟用時的距離標籤（如「 · 850 公尺」）。
+ * @param {boolean} bare 為 true 時不帶前導分隔符
+ */
+function distanceLabel(loc, bare = false) {
+  if (!userPosition || loc.lng == null || loc.lat == null) return '';
+  const d = formatDistance(locDistance(loc, userPosition[0], userPosition[1]));
+  if (!d) return '';
+  return bare ? d : ` · ${d}`;
 }
 
 /**
@@ -219,14 +316,14 @@ function renderMobileLocationList(locations) {
       <div class="mobile-list__item-name">
         <span class="mobile-list__item-dot" style="background:${cat.color}"></span>
         ${escapeHtml(loc.name)}
+        ${isLocationOpenNow(loc) ? '<span class="badge-open">營業中</span>' : ''}
       </div>
       <div class="mobile-list__item-address">${escapeHtml(loc.addressZh || '地址不詳')}</div>
-      ${therapistCount ? `<div class="mobile-list__item-count">${therapistCount} 位心理治療師</div>` : ''}
-      ${loc.lng == null ? '<div class="mobile-list__item-count" style="color:#9ca3af">⚠ 無法定位</div>' : ''}
+      ${therapistCount ? `<div class="mobile-list__item-count">${therapistCount} 位心理治療師${distanceLabel(loc)}</div>` : `<div class="mobile-list__item-count">${distanceLabel(loc, true)}</div>`}
+      ${loc.lng == null ? '<div class="mobile-list__item-count" style="color:#9ca3af">無法定位</div>' : ''}
     `;
     li.addEventListener('click', () => {
-      showLocationDetail(loc, db);
-      highlightMarker(loc.id, db);
+      openLocation(loc);
       setActiveMobileListItem(loc.id);
     });
     ul.appendChild(li);
@@ -441,6 +538,67 @@ function bindSplitHandle() {
       setHeightFromY(lastClientY);
       e.stopPropagation();
     }
+  });
+}
+
+/* ============================================================
+   「附近優先」定位排序
+   ============================================================ */
+
+/**
+ * 綁定桌面版與手機版的「附近優先」按鈕。
+ * 開啟：取得定位（WGS-84 → GCJ-02）→ 距離排序 + 地圖藍點。
+ * 再次點擊：關閉，恢復名稱筆劃排序。
+ */
+function bindNearbyButtons() {
+  const buttons = [
+    document.getElementById('nearby-btn'),
+    document.getElementById('mobile-nearby-btn'),
+  ].filter(Boolean);
+  if (buttons.length === 0) return;
+
+  const setActive = (active) => {
+    buttons.forEach((b) => {
+      b.classList.toggle('is-active', active);
+      b.setAttribute('aria-pressed', String(active));
+    });
+  };
+
+  const disable = () => {
+    userPosition = null;
+    hideUserLocation();
+    setActive(false);
+    renderAll(currentLocations);
+  };
+
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (userPosition) {
+        disable();
+        return;
+      }
+      if (!navigator.geolocation) {
+        alert('您的瀏覽器不支援定位功能。');
+        return;
+      }
+      buttons.forEach((b) => b.classList.add('is-loading'));
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          buttons.forEach((b) => b.classList.remove('is-loading'));
+          // 高德底圖與資料座標為 GCJ-02，需轉換後才能比較
+          userPosition = wgs84ToGcj02(pos.coords.longitude, pos.coords.latitude);
+          showUserLocation(userPosition);
+          setActive(true);
+          renderAll(currentLocations);
+        },
+        (err) => {
+          buttons.forEach((b) => b.classList.remove('is-loading'));
+          console.warn('定位失敗:', err);
+          alert('無法取得您的位置。請確認已允許定位權限，或改用搜尋/篩選查找。');
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    });
   });
 }
 
@@ -675,7 +833,7 @@ function renderModalSearchResults(locations) {
   
   const title = document.createElement('div');
   title.className = 'modal-results__title';
-  title.textContent = `🎯 執業地點快速預覽 (${locations.length} 個結果)`;
+  title.textContent = `執業地點快速預覽 (${locations.length} 個結果)`;
   container.appendChild(title);
 
   const ul = document.createElement('ul');
@@ -694,15 +852,13 @@ function renderModalSearchResults(locations) {
       </div>
       <div class="modal-results__item-right">
         <span class="modal-results__badge">${therapists.length}位治療師</span>
-        <span class="modal-results__go">定位 ➔</span>
+        <span class="modal-results__go">定位</span>
       </div>
     `;
 
     li.addEventListener('click', () => {
-      showLocationDetail(loc, db);
-      highlightMarker(loc.id, db);
-      setActiveListItem(loc.id);
-      
+      openLocation(loc);
+
       // 點擊後關閉 Spotlight 模態框
       const backdrop = document.getElementById('desktop-search-backdrop');
       if (backdrop) backdrop.hidden = true;
@@ -747,7 +903,9 @@ function showMapLoadError(container, errorMsg) {
   container.classList.add('map-error-state');
   container.innerHTML = `
     <div class="map-error-card">
-      <div class="map-error-card__icon">⚠️</div>
+      <div class="map-error-card__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+      </div>
       <div class="map-error-card__title">地圖服務暫時無法載入</div>
       <div class="map-error-card__desc">
         可能是您的網絡連接受限（例如身處內地需使用 VPN 訪問高德地圖），或者高德 API 服務繁忙。您仍可透過左側欄列表或 AI 助理檢索資源。

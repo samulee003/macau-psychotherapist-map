@@ -9,10 +9,15 @@ validate.py — 校驗 data.json 的完整性與一致性。
     4. 重複的治療師 / 地點
     5. 座標是否落在澳門合理範圍
     6. 分類是否合法
+    7. （可選）與基準線比較的資料漂移守衛：
+       --baseline <舊 data.json 路徑>
+       若治療師或地點數量相較基準線驟減超過 30%，判定為採集異常
+       （如官網改版導致解析失敗），以錯誤退出，阻止自動更新覆蓋好資料。
 
 非零退出碼代表有錯誤；警告不影響退出碼。
 """
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -26,7 +31,46 @@ MACAO_BBOX = {
 VALID_CATEGORIES = {"hospital", "med_center", "psych_center", "social", "university", "gov", "other"}
 
 
+# 資料漂移守衛：數量相較基準線驟減超過此比例即判定採集異常
+DRIFT_MAX_DROP_RATIO = 0.30
+
+
+def check_drift(baseline_path, therapists, locations):
+    """與基準線比較數量，回傳錯誤訊息清單（正常時為空）。"""
+    errors = []
+    path = Path(baseline_path)
+    if not path.exists():
+        # 無基準線（如首次執行）不視為錯誤
+        print(f"[validate] 基準線不存在，略過漂移檢查: {path}")
+        return errors
+
+    try:
+        old = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"[validate] 基準線讀取失敗，略過漂移檢查: {e}")
+        return errors
+
+    for label, old_count, new_count in [
+        ("治療師", len(old.get("therapists", [])), len(therapists)),
+        ("地點", len(old.get("locations", [])), len(locations)),
+    ]:
+        if old_count == 0:
+            continue
+        if new_count == 0:
+            errors.append(f"資料漂移：{label} 數量歸零（基準線 {old_count}），採集很可能失敗")
+        elif (old_count - new_count) / old_count > DRIFT_MAX_DROP_RATIO:
+            errors.append(
+                f"資料漂移：{label} 數量由 {old_count} 驟減至 {new_count}"
+                f"（超過 {int(DRIFT_MAX_DROP_RATIO * 100)}% 上限），疑似官網改版導致解析異常"
+            )
+    return errors
+
+
 def main():
+    parser = argparse.ArgumentParser(description="校驗 data.json")
+    parser.add_argument("--baseline", help="舊版 data.json 路徑，啟用資料漂移守衛")
+    args = parser.parse_args()
+
     if not DATA.exists():
         print(f"[validate] ✗ 找不到 {DATA}")
         sys.exit(2)
@@ -98,6 +142,10 @@ def main():
     for t in therapists:
         if t["id"] not in therapists_in_practice:
             warnings.append(f"治療師無任何執業地點: {t.get('id')} — {t.get('nameZh')}")
+
+    # 5. 資料漂移守衛（僅在提供 --baseline 時執行）
+    if args.baseline:
+        errors.extend(check_drift(args.baseline, therapists, locations))
 
     # 報告
     print("=" * 56)

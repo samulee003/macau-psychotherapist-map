@@ -11,6 +11,7 @@
    ============================================================ */
 
 import { CATEGORIES } from './config.js';
+import { getParsedHours, isOpenAt, opensOnWeekend, opensEvening } from './hours.js';
 
 let database = null;
 let controls = {};
@@ -89,11 +90,11 @@ function setupDom() {
 
     <!-- 建議提問與熱門搜尋（初始顯示，桌面版專用） -->
     <div id="modal-suggested-tips" class="modal-tips">
-      <div class="modal-tips__title">💡 推薦詢問 AI 助理：</div>
+      <div class="modal-tips__title">推薦詢問 AI 助理：</div>
       <ul class="modal-tips__list">
-        <li class="modal-tips__item" data-query="我有焦慮情緒，官方有自我評估檢測或諮詢熱線嗎？">🔍 我有焦慮情緒，官方有自我評估檢測或諮詢熱線嗎？</li>
-        <li class="modal-tips__item" data-query="衛生局社區衛生中心提供免費心理諮詢嗎？">🔍 衛生局社區衛生中心提供免費心理諮詢嗎？</li>
-        <li class="modal-tips__item" data-query="幫我找星期六下午開診的心理中心">🔍 幫我找星期六下午開診的心理中心</li>
+        <li class="modal-tips__item" data-query="我有焦慮情緒，官方有自我評估檢測或諮詢熱線嗎？">我有焦慮情緒，官方有自我評估檢測或諮詢熱線嗎？</li>
+        <li class="modal-tips__item" data-query="衛生局社區衛生中心提供免費心理諮詢嗎？">衛生局社區衛生中心提供免費心理諮詢嗎？</li>
+        <li class="modal-tips__item" data-query="幫我找星期六下午開診的心理中心">幫我找星期六下午開診的心理中心</li>
       </ul>
     </div>
 
@@ -108,7 +109,7 @@ function setupDom() {
 
     <!-- AI 免責聲明 -->
     <div class="search-ai__disclaimer">
-      ⚠️ AI 助理回覆由人工智慧生成，僅供學習參考。最新與權威資訊請務必以衛生局官方登載為準。
+      AI 助理回覆由人工智慧生成，僅供學習參考。最新與權威資訊請務必以衛生局官方登載為準。
     </div>
   `;
 
@@ -159,7 +160,7 @@ function bindEvents() {
   // 清除對話歷史 (Memory)
   clearBtn?.addEventListener('click', () => {
     clearChatMemory();
-    addMessage('system', '🧹 已清除對話歷史，助理記憶已重置。');
+    addMessage('system', '已清除對話歷史，助理記憶已重置。');
   });
 
   // 發送訊息
@@ -266,7 +267,7 @@ async function handleUserMsg(text) {
       const localResult = parseLocalAgent(text);
       const formattedLocal = formatAssistantMessage(localResult.reply);
       result = {
-        reply: `${formattedLocal}<br><small style="color:#94a3b8;display:block;margin-top:4px">⚠️ 已切換至本地離線搜尋模式（AI 服務目前不可用）</small>`,
+        reply: `${formattedLocal}<br><small style="color:#94a3b8;display:block;margin-top:4px">已切換至本地離線搜尋模式（AI 服務目前不可用）</small>`,
         actions: localResult.actions
       };
     }
@@ -277,7 +278,7 @@ async function handleUserMsg(text) {
   } catch (err) {
     console.error('Agent 執行失敗:', err);
     loader.remove();
-    addMessage('assistant', `❌ 處理請求時發生錯誤：${escapeHtml(err.message)}<br><small style="color:#94a3b8;display:block;margin-top:4px">AI 服務暫時無法使用。您仍可使用地圖的搜尋與篩選功能查找資料。</small>`);
+    addMessage('assistant', `處理請求時發生錯誤：${escapeHtml(err.message)}<br><small style="color:#94a3b8;display:block;margin-top:4px">AI 服務暫時無法使用。您仍可使用地圖的搜尋與篩選功能查找資料。</small>`);
   }
 }
 
@@ -294,7 +295,7 @@ function parseLocalAgent(text) {
 
   if (t.includes('統計') || t.includes('人數') || t.includes('多少人') || t.includes('多少位') || t.includes('規模')) {
     const stats = database.meta?.stats || { therapists: database.therapists.length, locations: database.locations.length, practices: database.practices.length };
-    result.reply = `📊 目前地圖共收錄了 <strong>${stats.therapists}</strong> 位完全註冊的心理治療師（不計實習生），分佈在 <strong>${stats.locations}</strong> 個執業地點，共有 <strong>${stats.practices}</strong> 個執業關聯。`;
+    result.reply = `目前地圖共收錄了 <strong>${stats.therapists}</strong> 位完全註冊的心理治療師（不計實習生），分佈在 <strong>${stats.locations}</strong> 個執業地點，共有 <strong>${stats.practices}</strong> 個執業關聯。`;
     return result;
   }
 
@@ -410,6 +411,20 @@ const TOOLS = [
           therapist_id: { type: 'string', description: '治療師 id（如 T_be324e50）' }
         },
         required: ['therapist_id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'find_open_locations',
+      description: '依開診時段查詢執業地點：now=此刻營業中、weekend=週末（星期六/日）有開診、evening=夜間（18:00 後）有開診。回傳符合的地點清單（含 id、名稱、分類、完整診時文字），可再依 hours 文字進一步判斷具體時段。診時未公開或無法解析的地點不會出現在結果中。',
+      parameters: {
+        type: 'object',
+        properties: {
+          when: { type: 'string', enum: ['now', 'weekend', 'evening'], description: '時段條件' }
+        },
+        required: ['when']
       }
     }
   },
@@ -540,6 +555,21 @@ function dispatchTool(name, args, pendingActions) {
         licenseNo: t.licenseNo, status: t.status, locations: locs
       });
     }
+    case 'find_open_locations': {
+      const when = a.when;
+      const now = new Date();
+      const results = database.locations
+        .filter((l) => {
+          const parsed = getParsedHours(l);
+          if (!parsed) return false;
+          if (when === 'now') return isOpenAt(parsed, now);
+          if (when === 'weekend') return opensOnWeekend(parsed);
+          if (when === 'evening') return opensEvening(parsed);
+          return false;
+        })
+        .map((l) => ({ id: l.id, name: l.name, category: l.category, hours: l.hours || '' }));
+      return JSON.stringify({ when, count: results.length, results });
+    }
     case 'filter_category':
       pendingActions.push({ type: 'filter_category', value: a.category });
       return JSON.stringify({ confirmed: true, action: 'filter_category', category: a.category });
@@ -561,14 +591,11 @@ function dispatchTool(name, args, pendingActions) {
 }
 
 function getSystemInstruction() {
-  const locationsBrief = database.locations.map(l => ({
-    id: l.id,
-    name: l.name,
-    address: l.addressZh,
-    category: l.category,
-    phone: l.phone || '',
-    hours: l.hours || ''
-  }));
+  // 精簡地點索引：只給 id|名稱|分類，電話/診時/地址由查詢工具按需取得，
+  // 大幅降低每輪請求的 token 消耗
+  const locationsIndex = database.locations
+    .map(l => `${l.id}|${l.name}|${l.category}`)
+    .join('\n');
 
   // v2：統計數字動態讀取，避免資料更新後硬編碼過時
   const stats = database.meta?.stats || {
@@ -588,8 +615,8 @@ function getSystemInstruction() {
 - 地點數量：${stats.locations}處
 - 總執業關聯數：${stats.practices}個
 - 資料採集日期：${database.meta?.collectedAt || '未知'}
-- 地點列表（含電話與開診時間）：
-${JSON.stringify(locationsBrief)}
+- 地點索引（格式：id|名稱|分類）。電話、地址、診症時間請調用 get_location_detail 查詢，不要憑索引猜測：
+${locationsIndex}
 
 【操作地圖與 UI 的指南】
 當你需要進行以下操作時，請務必調用對應的工具：
@@ -597,6 +624,8 @@ ${JSON.stringify(locationsBrief)}
 2. 模糊搜尋地圖上的文字：調用 search_map
 3. 在地圖上選取特定地點、開啟詳情抽屜並定位：調用 select_location（需要提供地點 id）
 4. 重置篩選條件、還原全部打點：調用 reset_filters
+5. 查「現在營業 / 週末開診 / 夜間開診」的地點：調用 find_open_locations（結果含完整診時文字，可再細判具體時段）
+6. 查某地點的電話、地址、診時、治療師名單：調用 get_location_detail
 
 【回傳格式要求】
 請以友善、自然的繁體中文回覆使用者，**不要回傳 any JSON 格式的內容**。你的最終回覆會直接以 HTML/Markdown 形式在聊天視窗中展示給使用者看。
@@ -618,9 +647,9 @@ ${JSON.stringify(locationsBrief)}
    - **第一、二級 (社區支援/專項服務)**：由民間社團（如地圖上的「婦聯心理治療中心」）提供，此類機構已收錄於地圖中，你可以調用 \`select_location\` 為其定位。
    - **第四級 (專科醫療)**：仁伯爵綜合醫院（山頂醫院）精神科，提供專科治療。地圖中收錄了代表山頂醫院的「澳門公共醫療機構」（若憲馬路 339 號），你可以調用 \`select_location\` 為其定位。
 3. **週末/假日開診**：
-   - 仔細檢查地點列表中的 \`hours\` 欄位。找出含有「星期六」、「星期日」或「六」或「日」的機構（例如「婦聯心理治療中心」星期六有開診，「泰迪治療中心」星期六下午開診等）。向使用者列出這些機構，並主動調用 \`select_location\` 幫使用者定位其中一間。
+   - 調用 \`find_open_locations\`（when=weekend）取得週末有開診的機構，需要更細的時段（如「星期六下午」）時根據回傳的 hours 文字再判斷。向使用者列出這些機構，並主動調用 \`select_location\` 幫使用者定位其中一間。
 4. **夜間服務（晚上 18:00 後）**：
-   - 檢查 \`hours\` 中的開診時間。例如「婦聯心理治療中心」營業至 19:30、「泰迪治療中心」營業至 20:00 等。向使用者列出並推薦。
+   - 調用 \`find_open_locations\`（when=evening）取得夜間仍開診的機構，向使用者列出並說明各自的收診時間。
 5. **學生/青少年支援**：
    - 大專院校（category: university，如澳門大學等）設有學生專屬的心理輔導中心。社會服務機構（category: social，如「薈穗社」）也針對青少年藥物依賴或心理健康提供支援。
 
