@@ -4,6 +4,7 @@
 
 import { CATEGORIES } from './config.js';
 import { getParsedHours, isLocationOpenNow } from './hours.js';
+import { t } from './i18n.js';
 
 const drawer = () => document.getElementById('detail-drawer');
 const content = () => document.getElementById('detail-content');
@@ -24,33 +25,33 @@ export function showLocationDetail(loc, db) {
   const parsedHours = getParsedHours(loc);
   const openBadge = parsedHours
     ? (isLocationOpenNow(loc)
-        ? '<span class="detail__open-badge is-open">現在營業中</span>'
-        : '<span class="detail__open-badge">目前非開診時間</span>')
+        ? `<span class="detail__open-badge is-open">${t('detail_open_now')}</span>`
+        : `<span class="detail__open-badge">${t('detail_closed_now')}</span>`)
     : '';
 
   const html = `
     <span class="detail__category" style="background:${cat.color}22;color:${cat.color}">
-      ${cat.label}
+      ${t('cat_' + (CATEGORIES[loc.category] ? loc.category : 'other'))}
     </span>
     <h2 class="detail__name">${escapeHtml(loc.name)}</h2>
-    <div class="detail__address">${escapeHtml(loc.addressZh || '地址不詳')}</div>
+    <div class="detail__address">${escapeHtml(loc.addressZh || t('detail_addr_unknown'))}</div>
 
-    ${loc.phone ? row('電話', `<a href="tel:${escapeHtml(loc.phone.replace(/\s/g, ''))}" class="detail__tel-link">${escapeHtml(loc.phone)}</a>`) : ''}
-    ${loc.hours ? row('時間', `${escapeHtml(loc.hours)} ${openBadge}`) : ''}
+    ${loc.phone ? row(t('detail_phone'), `<a href="tel:${escapeHtml(loc.phone.replace(/\s/g, ''))}" class="detail__tel-link">${escapeHtml(loc.phone)}</a>`) : ''}
+    ${loc.hours ? row(t('detail_hours'), `${escapeHtml(loc.hours)} ${openBadge}`) : ''}
 
     <div class="detail__actions">
-      ${amapUrl ? `<button class="btn btn--primary" id="nav-amap-btn">高德導航</button>` : ''}
-      ${googleUrl ? `<button class="btn btn--ghost" id="nav-google-btn">Google 地圖</button>` : ''}
-      <button class="btn btn--ghost" id="copy-addr-btn">複製地址</button>
-      <button class="btn btn--ghost" id="share-loc-btn">分享連結</button>
+      ${amapUrl ? `<button class="btn btn--primary" id="nav-amap-btn">${t('detail_nav_amap')}</button>` : ''}
+      ${googleUrl ? `<button class="btn btn--ghost" id="nav-google-btn">${t('detail_nav_google')}</button>` : ''}
+      <button class="btn btn--ghost" id="copy-addr-btn">${t('detail_copy_addr')}</button>
+      <button class="btn btn--ghost" id="share-loc-btn">${t('detail_share')}</button>
     </div>
 
-    <h3 class="detail__section-title">此處執業的心理治療師（${therapists.length}）</h3>
+    <h3 class="detail__section-title">${t('detail_therapists_here', { n: therapists.length })}</h3>
     <div class="therapist-list">
       ${
         therapists.length
           ? therapists.map(renderTherapist).join('')
-          : '<p style="font-size:13px;color:#9ca3af;padding:8px 0">暫無關聯治療師資料</p>'
+          : `<p style="font-size:13px;color:#9ca3af;padding:8px 0">${t('detail_no_therapists')}</p>`
       }
     </div>`;
 
@@ -147,7 +148,7 @@ export function showLocationDetail(loc, db) {
   const copyBtn = document.getElementById('copy-addr-btn');
   if (copyBtn) {
     copyBtn.addEventListener('click', () => {
-      copyText(loc.addressZh || loc.name, copyBtn, '複製地址');
+      copyText(loc.addressZh || loc.name, copyBtn, t('detail_copy_addr'));
     });
   }
 
@@ -160,10 +161,10 @@ export function showLocationDetail(loc, db) {
       // 行動端優先使用系統分享面板
       if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
         navigator.share({ title: loc.name, url: shareUrl }).catch(() => {
-          copyText(shareUrl, shareBtn, '分享連結');
+          copyText(shareUrl, shareBtn, t('detail_share'));
         });
       } else {
-        copyText(shareUrl, shareBtn, '分享連結');
+        copyText(shareUrl, shareBtn, t('detail_share'));
       }
     });
   }
@@ -173,7 +174,7 @@ export function showLocationDetail(loc, db) {
 function copyText(text, btn, restoreLabel) {
   const onDone = () => {
     if (btn) {
-      btn.textContent = '已複製';
+      btn.textContent = t('detail_copied');
       setTimeout(() => (btn.textContent = restoreLabel), 1500);
     }
   };
@@ -189,14 +190,14 @@ function copyText(text, btn, restoreLabel) {
   }
 }
 
-function renderTherapist(t) {
+function renderTherapist(therapist) {
   // 優先使用中文名，無中文名則使用英文名，只保留其一以維護隱私；同時展示其執業牌照號碼
-  const name = t.nameZh || t.nameEn || '（未具名）';
+  const name = therapist.nameZh || therapist.nameEn || t('detail_unnamed');
   return `
     <div class="therapist-card">
       <div class="therapist-card__name">
         ${escapeHtml(name)}
-        ${t.licenseNo ? `<span class="therapist-card__license">${escapeHtml(t.licenseNo)}</span>` : ''}
+        ${therapist.licenseNo ? `<span class="therapist-card__license">${escapeHtml(therapist.licenseNo)}</span>` : ''}
       </div>
     </div>`;
 }
@@ -333,11 +334,11 @@ function showWeChatToast(webUrl) {
     
     overlay.innerHTML = `
       <div style="background: #ffffff; padding: 28px 24px; border-radius: 16px; max-width: 320px; width: 100%; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center;">
-        <h4 style="margin: 0 0 8px; color: #2c6e7f; font-size: 16px; font-weight: 700; letter-spacing: -0.025em;">跳轉提示</h4>
-        <p style="margin: 0 0 20px; color: #64748b; font-size: 13px; line-height: 1.5;">微信內置瀏覽器無法直接打開地圖 App，建議點擊右上角選擇<strong>「在瀏覽器中打開」</strong>以喚起 App。</p>
+        <h4 style="margin: 0 0 8px; color: #2c6e7f; font-size: 16px; font-weight: 700; letter-spacing: -0.025em;">${t('wechat_title')}</h4>
+        <p style="margin: 0 0 20px; color: #64748b; font-size: 13px; line-height: 1.5;">${t('wechat_desc')}</p>
         <div style="display: flex; flex-direction: column; gap: 8px;">
-          <button id="wechat-btn-web" style="background: #2c6e7f; color: #ffffff; border: none; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; width: 100%;">在微信內瀏覽網頁地圖</button>
-          <button id="wechat-btn-close" style="background: #f1f5f9; color: #64748b; border: none; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; width: 100%;">取消</button>
+          <button id="wechat-btn-web" style="background: #2c6e7f; color: #ffffff; border: none; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; width: 100%;">${t('wechat_open_web')}</button>
+          <button id="wechat-btn-close" style="background: #f1f5f9; color: #64748b; border: none; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; width: 100%;">${t('wechat_cancel')}</button>
         </div>
       </div>
     `;

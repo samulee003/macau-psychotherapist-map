@@ -12,12 +12,23 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { MACAO_VIEW, CATEGORIES } from './config.js';
 import { getWgsCoords } from './geo.js';
+import { t } from './i18n.js';
 
 let map = null;
-let markerLayer = null;        // 目前顯示的 Marker 集合
+let markerLayer = null;        // 目前顯示的 DOM Marker 集合
 let popup = null;              // 共用資訊窗
 let onMarkerClickCb = null;    // 外部注入：marker 點擊回呼
 let userMarker = null;         // 「離我最近」的使用者定位點
+
+// 聚合（cluster）狀態：41 個地點大半集中在澳門半島，低縮放時
+// pin 會疊成一團無法點選。用 MapLibre 的 GeoJSON cluster 引擎計算
+// 聚合，再以 DOM marker 呈現（單點 = SVG pin、聚合 = 數字圓點），
+// 避免 symbol 圖層對 glyphs 服務的依賴。
+const CLUSTER_SOURCE_ID = 'locations-cluster';
+let clusterSourceReady = false;
+let currentLocations = [];     // renderMarkers 傳入的地點（含座標）
+let currentDb = null;
+let locationById = new Map();
 
 // 底圖：CARTO Positron（基於 OSM 的淺色底圖，凸顯 marker；
 // 免 key，須保留 attribution）。CARTO 掛掉時瀏覽器只會缺磚，
@@ -77,11 +88,72 @@ export async function initMap(container) {
         resolve();
       }
     };
-    map.on('load', done);
+    // style.load 只等樣式 JSON（內嵌，必定快速），不等底圖磚 —
+    // 磚被牆/離線時聚合與 marker 仍要照常運作
+    if (map.isStyleLoaded()) {
+      setupClusterSource();
+      done();
+    } else {
+      map.on('style.load', () => {
+        setupClusterSource();
+        done();
+      });
+    }
     setTimeout(done, 8000);
   });
 
   return map;
+}
+
+/**
+ * 建立聚合資料來源（須在 style.load 後）。
+ * 若樣式始終未就緒（極端情境），維持無聚合的平鋪 marker。
+ */
+function setupClusterSource() {
+  if (!map || clusterSourceReady || map.getSource(CLUSTER_SOURCE_ID)) return;
+  map.addSource(CLUSTER_SOURCE_ID, {
+    type: 'geojson',
+    data: buildFeatureCollection(currentLocations),
+    cluster: true,
+    clusterRadius: 45,
+    clusterMaxZoom: 14, // z15 起完全散開；focusLocation 的 zoom=15 恰可見單點
+  });
+  // 隱形 layer：沒有 layer 引用的 source，MapLibre 不會載入其 tile，
+  // querySourceFeatures 會永遠回空陣列。半徑 0 的 circle layer 只為
+  // 觸發聚合計算，實際呈現全靠 DOM marker。
+  map.addLayer({
+    id: `${CLUSTER_SOURCE_ID}-ghost`,
+    type: 'circle',
+    source: CLUSTER_SOURCE_ID,
+    paint: { 'circle-radius': 0, 'circle-opacity': 0 },
+  });
+  clusterSourceReady = true;
+
+  // 視角變動或聚合計算完成時，同步 DOM marker
+  map.on('moveend', updateVisibleMarkers);
+  map.on('sourcedata', (e) => {
+    if (e.sourceId === CLUSTER_SOURCE_ID && map.isSourceLoaded(CLUSTER_SOURCE_ID)) {
+      updateVisibleMarkers();
+    }
+  });
+  updateVisibleMarkers();
+}
+
+function buildFeatureCollection(locations) {
+  return {
+    type: 'FeatureCollection',
+    features: (locations || [])
+      .map((loc) => {
+        const coords = getWgsCoords(loc);
+        if (!coords) return null;
+        return {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: coords },
+          properties: { id: loc.id, category: loc.category },
+        };
+      })
+      .filter(Boolean),
+  };
 }
 
 /**
@@ -101,33 +173,105 @@ function makeMarkerElement(category) {
 }
 
 /**
- * 渲染地點 marker。
+ * 渲染地點 marker（聚合感知）。
  * @param {Array} locations 要顯示的地點陣列
  * @param {Database} db 資料庫（用於資訊窗顯示治療師數）
  */
 export function renderMarkers(locations, db) {
+  currentLocations = locations || [];
+  currentDb = db;
+  locationById = new Map(currentLocations.map((l) => [l.id, l]));
   if (!map) return;
-  clearMarkers();
 
+  if (clusterSourceReady) {
+    map.getSource(CLUSTER_SOURCE_ID).setData(buildFeatureCollection(currentLocations));
+    updateVisibleMarkers();
+  } else {
+    renderFlatMarkers();
+  }
+}
+
+/** 無聚合 fallback：每個地點一個 pin（style 未載入時使用） */
+function renderFlatMarkers() {
+  clearMarkers();
   markerLayer = [];
-  for (const loc of locations) {
+  for (const loc of currentLocations) {
     const coords = getWgsCoords(loc);
     if (!coords) continue;
-
-    const el = makeMarkerElement(loc.category);
-    const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
-      .setLngLat(coords)
-      .addTo(map);
-
-    el.addEventListener('click', (e) => {
-      e.stopPropagation();
-      showInfoWindow(loc, db);
-      if (onMarkerClickCb) onMarkerClickCb(loc.id);
-    });
-
-    marker._locationId = loc.id;
-    markerLayer.push(marker);
+    markerLayer.push(addPinMarker(loc, coords));
   }
+}
+
+/**
+ * 依聚合引擎目前的計算結果同步 DOM marker：
+ * 聚合 → 數字圓點（點擊放大展開）；單點 → SVG pin。
+ */
+function updateVisibleMarkers() {
+  if (!map || !clusterSourceReady) return;
+
+  const features = map.querySourceFeatures(CLUSTER_SOURCE_ID);
+  clearMarkers();
+  markerLayer = [];
+
+  const seen = new Set();
+  for (const f of features) {
+    const props = f.properties;
+    if (props.cluster) {
+      if (seen.has(`c${props.cluster_id}`)) continue;
+      seen.add(`c${props.cluster_id}`);
+      markerLayer.push(addClusterMarker(f));
+    } else {
+      if (seen.has(props.id)) continue;
+      seen.add(props.id);
+      const loc = locationById.get(props.id);
+      if (loc) markerLayer.push(addPinMarker(loc, f.geometry.coordinates));
+    }
+  }
+}
+
+/** 單一地點的 SVG pin marker */
+function addPinMarker(loc, coords) {
+  const el = makeMarkerElement(loc.category);
+  const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+    .setLngLat(coords)
+    .addTo(map);
+
+  el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showInfoWindow(loc, currentDb);
+    if (onMarkerClickCb) onMarkerClickCb(loc.id);
+  });
+
+  marker._locationId = loc.id;
+  return marker;
+}
+
+/** 聚合圓點 marker：顯示數量，點擊放大到展開層級 */
+function addClusterMarker(feature) {
+  const count = feature.properties.point_count;
+  const clusterId = feature.properties.cluster_id;
+  const coords = feature.geometry.coordinates;
+
+  const el = document.createElement('div');
+  el.className = 'map-cluster';
+  if (count >= 10) el.classList.add('map-cluster--lg');
+  el.textContent = String(count);
+
+  const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+    .setLngLat(coords)
+    .addTo(map);
+
+  el.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    try {
+      const zoom = await map.getSource(CLUSTER_SOURCE_ID).getClusterExpansionZoom(clusterId);
+      map.flyTo({ center: coords, zoom: zoom + 0.3, duration: 500 });
+    } catch {
+      map.flyTo({ center: coords, zoom: map.getZoom() + 2, duration: 500 });
+    }
+  });
+
+  return marker;
 }
 
 /** 清除目前所有 marker */
@@ -141,9 +285,12 @@ export function clearMarkers() {
 
 /**
  * 顯示地點的資訊窗（彈窗）。點擊 marker 時觸發。
+ * 手機版不顯示 — 底部詳情抽屜會同步開啟，popup 只會與抽屜
+ * 資訊重複並遮擋上半屏地圖。
  */
 function showInfoWindow(loc, db) {
   if (!map || !popup) return;
+  if (window.matchMedia('(max-width: 768px)').matches) return;
   const coords = getWgsCoords(loc);
   if (!coords) return;
 
@@ -152,7 +299,7 @@ function showInfoWindow(loc, db) {
     <div class="iw">
       <div class="iw__title">${escapeHtml(loc.name)}</div>
       <div class="iw__address">${escapeHtml(loc.addressZh || '')}</div>
-      <div class="iw__count">${therapists.length} 位註冊心理治療師</div>
+      <div class="iw__count">${t('iw_count', { n: therapists.length })}</div>
     </div>`;
 
   popup.setLngLat(coords).setHTML(content).addTo(map);

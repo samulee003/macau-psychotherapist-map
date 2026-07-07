@@ -11,23 +11,29 @@
   <meta property="og:url" content="https://macau-psychotherapist-map.vercel.app/" />
   <meta property="og:title" content="澳門註冊心理治療師執業地點地圖" />
   <meta property="og:description" content="在地圖上查找澳門註冊心理治療師的執業地點分布。提供分類檢索與 AI 智能助理對話。" />
-  <meta property="og:image" content="https://macau-psychotherapist-map.vercel.app/og-image.png" />
+  <meta property="og:image" content="https://macau-psychotherapist-map.vercel.app/og-image.jpg" />
 
   <!-- Twitter / X -->
   <meta property="twitter:card" content="summary_large_image" />
   <meta property="twitter:url" content="https://macau-psychotherapist-map.vercel.app/" />
   <meta property="twitter:title" content="澳門註冊心理治療師執業地點地圖" />
   <meta property="twitter:description" content="在地圖上查找澳門註冊心理治療師的執業地點分布。提供分類檢索與 AI 智能助理對話。" />
-  <meta property="twitter:image" content="https://macau-psychotherapist-map.vercel.app/og-image.png" />
+  <meta property="twitter:image" content="https://macau-psychotherapist-map.vercel.app/og-image.jpg" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- 字型非同步載入：media=print 先不套用、onload 後切換。
+       避免 Google Fonts 網路慢/被牆時阻塞首屏與 script 執行
+       （CSS 字型堆疊已含 PingFang / 微軟正黑 fallback） -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" /></noscript>
   <link rel="stylesheet" href="./src/styles.css" />
 
   <!-- PWA -->
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <!-- iOS「加入主畫面」不支援 SVG manifest icon，需獨立 PNG -->
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
   <meta name="theme-color" content="#2c6e7f" />
 </head>
 <body>
@@ -44,7 +50,14 @@
     <!-- 側邊控制面板（桌面版側欄 / 手機版隱藏） -->
     <aside id="sidebar" class="sidebar">
       <header class="sidebar__header">
-        <h1 class="sidebar__title">澳門註冊心理治療師<br>執業地點地圖</h1>
+        <div class="sidebar__header-main">
+          <h1 class="sidebar__title" data-i18n-html="app_title_html">澳門註冊心理治療師<br>執業地點地圖</h1>
+          <div class="lang-switch" role="group" aria-label="Language / 語言">
+            <button type="button" data-lang="zh" class="lang-switch__btn is-active">中</button>
+            <button type="button" data-lang="pt" class="lang-switch__btn">PT</button>
+            <button type="button" data-lang="en" class="lang-switch__btn">EN</button>
+          </div>
+        </div>
         <button id="sidebar-toggle" class="sidebar__toggle" aria-label="收合側欄" title="收合側欄">
           <span class="icon icon--collapse">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
@@ -57,23 +70,23 @@
         <span class="search-trigger__icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         </span>
-        <span class="search-trigger__placeholder">搜尋機構、治療師或問問 AI...</span>
+        <span class="search-trigger__placeholder" data-i18n="search_trigger_placeholder">搜尋機構、治療師或問問 AI...</span>
         <span class="search-trigger__shortcut">⌘K</span>
       </div>
 
       <!-- 心理健康與求助資源卡片 -->
       <section class="mental-health-card">
         <div class="mh-card__header">
-          <h3 class="mh-card__title">官方心理健康服務</h3>
+          <h3 class="mh-card__title" data-i18n="mh_title">官方心理健康服務</h3>
         </div>
         <div class="mh-card__actions">
-          <a href="https://www.ssm.gov.mo/portal1/mentalhealth/kzJY9ECgaLx4vv83tK3eA?lang=ch" target="_blank" rel="noopener" class="btn btn--primary btn--sm" title="前往澳門衛生局自我心理狀態快測">
+          <a href="https://www.ssm.gov.mo/portal1/mentalhealth/kzJY9ECgaLx4vv83tK3eA?lang=ch" target="_blank" rel="noopener" class="btn btn--primary btn--sm" title="前往澳門衛生局自我心理狀態快測" data-i18n="mh_selftest">
             自我狀態快測
           </a>
-          <a href="tel:28525222" class="btn btn--ghost btn--sm" title="撥打明愛 24 小時生命熱線: 2852 5222">
+          <a href="tel:28525222" class="btn btn--ghost btn--sm" title="撥打明愛 24 小時生命熱線: 2852 5222" data-i18n="mh_caritas">
             明愛生命熱線
           </a>
-          <a href="tel:28261126" class="btn btn--ghost btn--sm" title="撥打社會工作局 24 小時心理諮詢熱線: 2826 1126">
+          <a href="tel:28261126" class="btn btn--ghost btn--sm" title="撥打社會工作局 24 小時心理諮詢熱線: 2826 1126" data-i18n="mh_ias">
             社工局心理熱線
           </a>
         </div>
@@ -81,11 +94,11 @@
 
       <!-- 分類篩選 -->
       <section id="filters" class="filters">
-        <h2 class="filters__title">機構類型</h2>
+        <h2 class="filters__title" data-i18n="filters_type">機構類型</h2>
         <div id="filter-list" class="filters__list">
           <!-- 由 JS 渲染 -->
         </div>
-        <h2 class="filters__title filters__title--spaced">服務時段</h2>
+        <h2 class="filters__title filters__title--spaced" data-i18n="filters_time">服務時段</h2>
         <div id="time-filter-list" class="filters__list">
           <!-- 由 JS 渲染 -->
         </div>
@@ -94,12 +107,12 @@
       <!-- 地點列表 -->
       <section class="list">
         <div class="list__header">
-          <h2 class="list__title">執業地點 <span id="list-count" class="list__count"></span></h2>
+          <h2 class="list__title"><span data-i18n="list_title">執業地點</span> <span id="list-count" class="list__count"></span></h2>
           <button id="nearby-btn" class="nearby-btn" title="以我的位置排序，就近優先顯示" aria-pressed="false">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
-            <span>附近優先</span>
+            <span data-i18n="nearby">附近優先</span>
           </button>
-          <p class="list__sorting-disclaimer">（排序依名稱筆劃或距離，不具任何推薦或評分排名意義）</p>
+          <p class="list__sorting-disclaimer" data-i18n="sorting_note">（排序依名稱筆劃或距離，不具任何推薦或評分排名意義）</p>
         </div>
         <ul id="location-list" class="list__items">
           <!-- 由 JS 渲染 -->
@@ -109,15 +122,15 @@
       <!-- 資訊頁尾（來源由 JS 動態填入，見 main.js） -->
       <footer class="sidebar__footer">
         <div class="sidebar__footer-meta">
-          <span>來源：<a id="meta-source-link" href="#" target="_blank" rel="noopener">—</a></span>
+          <span><span data-i18n="footer_source">來源：</span><a id="meta-source-link" href="#" target="_blank" rel="noopener">—</a></span>
           <span class="footer-divider">|</span>
-          <span>採集：<span id="collected-at">—</span></span>
+          <span><span data-i18n="footer_collected">採集：</span><span id="collected-at">—</span></span>
         </div>
         <p class="sidebar__disclaimer" id="meta-disclaimer">
           本網站非官方機構，資料僅供參考，可能延遲或不完整，不構成醫療建議或轉介。
         </p>
         <p class="sidebar__contact">
-          聯絡與修正：<a href="mailto:frontallobe.trainer@gmail.com" class="sidebar__contact-link">frontallobe.trainer@gmail.com</a>
+          <span data-i18n="footer_contact">聯絡與修正：</span><a href="mailto:frontallobe.trainer@gmail.com" class="sidebar__contact-link">frontallobe.trainer@gmail.com</a>
         </p>
         <div id="sidebar-resizer" class="sidebar__resizer"></div>
       </footer>
@@ -152,22 +165,28 @@
           <span class="search__icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           </span>
-          <input id="mobile-search-input" class="search__input" type="text" placeholder="搜尋機構、地址或治療師…" autocomplete="off" aria-label="搜尋" />
+          <input id="mobile-search-input" class="search__input" type="text" placeholder="搜尋機構、地址或治療師…" data-i18n-placeholder="mobile_search_placeholder" autocomplete="off" aria-label="搜尋" />
           <button id="mobile-nearby-btn" class="nearby-btn nearby-btn--mobile" title="以我的位置排序，就近優先顯示" aria-pressed="false">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
-            <span>附近</span>
+            <span data-i18n="nearby_short">附近</span>
           </button>
         </div>
       </div>
 
       <!-- 手機版心理健康快捷條 -->
       <div class="mobile-mh-card">
-        <span class="mobile-mh-card__label">官方心理支援：</span>
-        <a href="https://www.ssm.gov.mo/portal1/mentalhealth/kzJY9ECgaLx4vv83tK3eA?lang=ch" target="_blank" rel="noopener">自我快測</a>
+        <span class="mobile-mh-card__label" data-i18n="mh_mobile_label">官方心理支援：</span>
+        <a href="https://www.ssm.gov.mo/portal1/mentalhealth/kzJY9ECgaLx4vv83tK3eA?lang=ch" target="_blank" rel="noopener" data-i18n="mh_selftest_short">自我快測</a>
         <span class="mobile-mh-card__divider">|</span>
-        <a href="tel:28525222">明愛熱線</a>
+        <a href="tel:28525222" data-i18n="mh_caritas_short">明愛熱線</a>
         <span class="mobile-mh-card__divider">|</span>
-        <a href="tel:28261126">社工局熱線</a>
+        <a href="tel:28261126" data-i18n="mh_ias_short">社工局熱線</a>
+        <span class="mobile-mh-card__divider">|</span>
+        <span class="lang-switch lang-switch--mobile" role="group" aria-label="Language / 語言">
+          <button type="button" data-lang="zh" class="lang-switch__btn is-active">中</button>
+          <button type="button" data-lang="pt" class="lang-switch__btn">PT</button>
+          <button type="button" data-lang="en" class="lang-switch__btn">EN</button>
+        </span>
       </div>
 
       <!-- 時段篩選（多選）橫向滑動 -->
@@ -183,8 +202,8 @@
       <!-- 地點列表 -->
       <div class="mobile-panel__list-wrapper">
         <div class="mobile-panel__header">
-          <h2 class="mobile-panel__title">執業地點 <span id="mobile-list-count"></span></h2>
-          <p class="mobile-panel__sorting-disclaimer">（排序依名稱筆劃或距離，不具推薦或評分排名意義）</p>
+          <h2 class="mobile-panel__title"><span data-i18n="list_title">執業地點</span> <span id="mobile-list-count"></span></h2>
+          <p class="mobile-panel__sorting-disclaimer" data-i18n="sorting_note">（排序依名稱筆劃或距離，不具推薦或評分排名意義）</p>
         </div>
         <ul id="mobile-location-list" class="mobile-list"></ul>
       </div>
@@ -200,7 +219,7 @@
     <!-- 手機版 AI 全螢幕覆蓋層 -->
     <div id="ai-overlay" class="ai-overlay" hidden>
       <header class="ai-overlay__header">
-        <h2>AI 智能助理</h2>
+        <h2 data-i18n="ai_overlay_title">AI 智能助理</h2>
         <button id="ai-overlay-close" class="ai-overlay__close" aria-label="關閉">✕</button>
       </header>
       <!-- Copilot 容器（手機版動態掛載到此） -->
@@ -222,6 +241,7 @@
   <script>
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
   </script>
-  <script defer src="https://va.vercel-scripts.com/v1/script.js"></script>
+  <!-- async：analytics 網路慢/被牆時不得阻塞 DOMContentLoaded -->
+  <script async src="https://va.vercel-scripts.com/v1/script.js"></script>
 </body>
 </html>

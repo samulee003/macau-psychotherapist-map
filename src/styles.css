@@ -1198,7 +1198,8 @@ html, body {
     align-items: center;
     justify-content: center;
     position: absolute;
-    bottom: 16px;
+    /* iPhone 底部橫條安全區 */
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     right: 14px;
     width: 48px;
     height: 48px;
@@ -1300,6 +1301,8 @@ html, body {
     border-top: 1px solid var(--color-border);
     box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.15);
     z-index: 1100;
+    /* iPhone 底部橫條安全區 */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .drawer[hidden] {
@@ -1842,7 +1845,8 @@ html, body {
 }
 
 @media (max-width: 768px) {
-  .modal-tips,
+  /* 搜尋結果快速預覽為桌面 Spotlight 專用（手機下半屏列表已即時反映）；
+     推薦提問（.modal-tips）手機也要顯示，否則 AI 覆蓋層初始一片空白 */
   .modal-results {
     display: none !important;
   }
@@ -2184,4 +2188,125 @@ html, body {
 /* 手機版時段篩選列：與分類列同樣式，但貼近上方快捷條 */
 .mobile-filters--time {
   padding-bottom: 0;
+}
+
+/* 聚合圓點（低縮放時多個地點合併為一顆，點擊展開） */
+.map-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.map-cluster:hover {
+  transform: scale(1.1);
+}
+
+.map-cluster--lg {
+  width: 42px;
+  height: 42px;
+  font-size: 15px;
+}
+
+/* 手機列表的治療師數/距離標籤（先前未定義而繼承 16px 預設，
+   比機構名稱還大，視覺主次顛倒） */
+.mobile-list__item-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-top: 3px;
+}
+
+/* ============================================================
+   v2.2：語言切換器、鍵盤可及性、側欄密度（第二批優化）
+   ============================================================ */
+
+/* 語言切換器（桌面側欄標題旁 / 手機快捷條） */
+.sidebar__header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.lang-switch {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.lang-switch__btn {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lang-switch__btn:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.lang-switch__btn.is-active {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: transparent;
+  color: var(--color-primary-dark);
+}
+
+/* 手機快捷條內的切換器：底色淺，改用主色系 */
+.lang-switch--mobile .lang-switch__btn {
+  border-color: rgba(44, 110, 127, 0.25);
+  color: var(--color-text-muted);
+  padding: 1px 6px;
+}
+
+.lang-switch--mobile .lang-switch__btn.is-active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* 鍵盤可及性：列表項可 Tab 聚焦，focus-visible 有明確外框 */
+.list__item:focus-visible,
+.mobile-list__item:focus-visible,
+.modal-results__item:focus-visible,
+.filter-chip:focus-visible,
+.nearby-btn:focus-visible,
+.lang-switch__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* 側欄密度：收緊列表與熱線卡間距，同屏多顯示約 1/3 內容 */
+.list__item {
+  padding: 9px 12px;
+  margin-bottom: 5px;
+}
+
+.mental-health-card {
+  padding: 8px 10px;
+}
+
+.mh-card__actions {
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 5px;
+}
+
+.mh-card__actions .btn--sm {
+  white-space: nowrap;
+  padding-left: 4px;
+  padding-right: 4px;
 }

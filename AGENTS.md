@@ -31,6 +31,7 @@
 ├── vite.config.js          # Vite 設定（closeBundle 複製 data/；dev 代理與正式版共用淨化邏輯）
 ├── src/                    # 前端原始碼（ES Modules）
 │   ├── config.js           # 機構分類定義、地圖初始視角（單一真相來源）
+│   ├── i18n.js             # 三語字典（繁中/葡/英）+ t()/setLang/applyI18nDom
 │   ├── data-loader.js      # 載入 data.json + 建立雙向查詢索引
 │   ├── map.js              # MapLibre 地圖渲染、marker、資訊窗、使用者定位點
 │   ├── search.js           # 搜尋、分類篩選、時段篩選（現在營業/週末/夜間）
@@ -135,9 +136,19 @@ open scripts/preview.html        # 人工校驗座標
 - 解析結果記憶化掛在 location 物件的 `_hoursParsed`。無法解析（「暫未提供資料」等）回傳 null，時段篩選時視為不符合。
 - 「夜間」定義為 18:00 後仍開診。改動解析規則須同步 `tests/hours.test.js`。
 
-### 🔗 深連結（Deep Links）
-- 支援 `#loc=<地點id>`（開啟詳情並定位）、`#cat=<分類key>`、`#q=<關鍵字>`。詳情抽屜的「分享連結」按鈕產生 `#loc=` 連結，供轉介場景直接分享特定機構。
-- 開啟地點時用 `history.replaceState` 更新 hash（不進瀏覽歷史）；關閉抽屜時清除。
+### 🔗 深連結與 URL 狀態（Deep Links）
+- 支援 `#loc=<地點id>`（開啟詳情並定位）、`#cat=<分類,逗號分隔>`、`#q=<關鍵字>`、`#tf=<時段,逗號分隔>`。詳情抽屜的「分享連結」按鈕產生 `#loc=` 連結，供轉介場景直接分享特定機構。
+- **開啟地點用 `pushState`**（進瀏覽歷史 → 返回鍵可關閉抽屜）；**篩選變動用 `replaceState`**（不灌爆歷史）。`hashchange` 監聽負責返回鍵/手動改網址時還原狀態。
+- 篩選 → hash 同步經 `syncFilterHash()`；深連結還原期間以 `suppressHashSync` 防止反向覆寫。
+
+### 🌐 三語 i18n（繁中/葡文/英文）
+- 所有**使用者可見的 UI 字串**必須走 `src/i18n.js` 的 `t(key)`：靜態 HTML 用 `data-i18n` / `data-i18n-html` / `data-i18n-placeholder` / `data-i18n-aria` 屬性；JS 產生的字串直接呼叫 `t()`。新增字串必須同時補齊三語（`tests/i18n.test.js` 會擋缺譯）。
+- **資料不翻譯**：機構名、地址、診時維持中文原文；分類標籤用 `t('cat_<key>')`。
+- AI 回覆語言跟隨 UI 語言（`getSystemInstruction` 依 `getLang()` 切換語言規則）。
+- 語言持久化於 localStorage；切換時 `onLangChange` 回呼觸發 main.js 重繪列表/chips。i18n 模組必須保持 Node 安全（單元測試會 import）。
+
+### ♿ 鍵盤可及性
+- 列表項（桌面/手機/Spotlight 結果）一律 `role="button"` + `tabindex="0"` + Enter/Space 觸發（`makeListItemInteractive`）；互動元件需有 `:focus-visible` 外框。新增可點擊元件時遵循同一約定。
 
 ### 📍 附近優先（geo.js）
 - 「附近優先」按鈕：Geolocation 原生 WGS-84 座標直接使用；與資料座標（GCJ-02）比較時由 `locDistance` 經 `getWgsCoords` 統一轉換，否則距離有數十至數百米偏差。
@@ -155,7 +166,10 @@ open scripts/preview.html        # 人工校驗座標
 ### 地圖與座標系（關鍵約定）
 - 底圖為 **MapLibre GL + CARTO light（基於 OSM）**，免 API key；attribution 必須保留（OSM/CARTO 授權要求）。
 - **座標系鐵律**：`data.json` 的 `lng`/`lat` 是 **GCJ-02**（高德 geocoding 產出），底圖與 Geolocation 是 **WGS-84**。任何「顯示於地圖」或「與定位比較」都必須經 `geo.js` 的 `getWgsCoords(loc)`（記憶化）轉換；**勿就地覆寫 data.json 座標** — `detail.js` 的高德導航 URL 仍需原始 GCJ-02 值（`coordinate=gcj02`）。
-- `initMap()` 等待 style `load` 事件，但設 8 秒逾時放行 — 底圖磚載入失敗不阻擋 marker 與其他功能。
+- `initMap()` 等待 `style.load`（只等內嵌樣式 JSON，不等底圖磚），另設 8 秒逾時放行 — 底圖磚載入失敗不阻擋 marker 與其他功能。
+- **map.js 必須動態載入**：`main.js` 以 `import('./map.js')` 延後載入（maplibre-gl 285KB gzip），列表/篩選/AI 不等地圖庫；載入前的地圖呼叫經 `mapApi` 包裝為 no-op。勿改回靜態 import。
+- **marker 聚合**：GeoJSON source（`cluster: true`）+ 一層半徑 0 的隱形 circle layer（**必要** — 無 layer 引用的 source 不會載入 tile，`querySourceFeatures` 永遠回空）+ DOM marker 呈現（聚合 = `.map-cluster` 數字圓點、單點 = SVG pin）。
+- **第三方資源不得阻塞首屏**：Google Fonts 以 `media="print"` + onload 非同步載入、Vercel Analytics 用 `async` — 兩者被牆或逾時（內地訪客常態）時列表仍須在數百毫秒內渲染。
 
 ### 採集腳本
 - **Python 3**，獨立於前端，產出 JSON 後即完成任務。

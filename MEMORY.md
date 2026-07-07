@@ -84,6 +84,12 @@
 - **AI prompt 瘦身**：system prompt 的地點清單從全欄位 JSON 縮為 `id|名稱|分類` 索引，電話/診時/地址改由工具按需查詢，大幅降低每輪 token 消耗。
 - **PWA**：manifest + Service Worker（stale-while-revalidate），資料僅數百 KB，離線可用成本極低。
 
+### 13. v2.2 三語 i18n 與第二批體驗優化（2026-07-06）
+- **三語（繁中/葡/英）**：葡文為澳門官方語言。`src/i18n.js` 集中字典，UI 字串全走 `t()`／`data-i18n`；資料（機構名/地址/診時）不翻譯；AI 回覆語言跟隨 UI。缺譯由 `tests/i18n.test.js` 把關。
+- **URL 即狀態**：篩選（cat/q/tf）以 replaceState 寫回 hash 供分享；開地點用 pushState，返回鍵即關抽屜（hashchange 還原）。
+- **鍵盤可及性**：列表項 role=button + tabindex + Enter/Space；:focus-visible 外框。
+- **首屏三阻塞源教訓**（v2.1.1）：maplibre 靜態 import、Google Fonts 阻塞 CSS、Analytics defer script——三者在被牆環境各拖數秒至十數秒。鐵律：大依賴動態載入、第三方資源一律非阻塞。
+
 ---
 
 ## 實測中發現並修復的關鍵 bug

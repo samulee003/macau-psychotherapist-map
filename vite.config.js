@@ -36,10 +36,10 @@ export default defineConfig(({ mode }) => {
           
           // 複製社交分享預覽縮圖
           try {
-            cpSync('og-image.png', 'dist/og-image.png');
-            console.log('[og-image] 已複製 og-image.png → dist/og-image.png');
+            cpSync('og-image.jpg', 'dist/og-image.jpg');
+            console.log('[og-image] 已複製 og-image.jpg → dist/og-image.jpg');
           } catch (e) {
-            console.warn('[og-image] 複製 og-image.png 失敗:', e.message);
+            console.warn('[og-image] 複製 og-image.jpg 失敗:', e.message);
           }
         },
       },
