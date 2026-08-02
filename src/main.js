@@ -33,6 +33,56 @@ function fitToMarkers(...args) { mapApi?.fitToMarkers(...args); }
 function showUserLocation(...args) { mapApi?.showUserLocation(...args); }
 function hideUserLocation() { mapApi?.hideUserLocation(); }
 
+const MOBILE_BREAKPOINT = 768;
+let copilotIsMobile = null;
+
+function isMobileLayout() {
+  const media = window.matchMedia?.(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+  return media ? media.matches : window.innerWidth <= MOBILE_BREAKPOINT;
+}
+
+/**
+ * 讓 Copilot 的實際掛載容器跟隨響應式版面切換。
+ * 內容會一併搬移，避免旋轉螢幕或跨過 768px 後聊天紀錄消失。
+ */
+function syncCopilotContainer() {
+  const sidebarContainer = document.getElementById('copilot-sidebar-container');
+  const mobileContainer = document.getElementById('copilot-mobile-container');
+  if (!sidebarContainer || !mobileContainer) return;
+
+  const isMobile = isMobileLayout();
+  const target = isMobile ? mobileContainer : sidebarContainer;
+  const source = isMobile ? sidebarContainer : mobileContainer;
+  const activeContainer = document.querySelector('[data-copilot-active]');
+
+  if (copilotIsMobile === isMobile && activeContainer === target) return;
+
+  if (source !== target) {
+    while (source.firstChild) {
+      target.appendChild(source.firstChild);
+    }
+  }
+  source.removeAttribute('data-copilot-active');
+  target.setAttribute('data-copilot-active', '');
+
+  if (isMobile) {
+    target.classList.add('search-ai');
+    target.classList.remove('search-modal');
+    sidebarContainer.classList.remove('search-ai');
+  } else {
+    target.classList.add('search-modal', 'search-ai');
+    mobileContainer.classList.remove('search-ai');
+  }
+
+  copilotIsMobile = isMobile;
+}
+
+function bindCopilotResponsive() {
+  syncCopilotContainer();
+  window.addEventListener('resize', syncCopilotContainer);
+  window.addEventListener('orientationchange', syncCopilotContainer);
+}
+
 async function main() {
   // 儘早偵測並提示 App 內置瀏覽器（不等待資料載入）
   initInAppBrowserBanner();
@@ -85,18 +135,8 @@ async function main() {
       showMapLoadError(mapContainer, msg);
     });
 
-  // ---- 手機版 Copilot 容器 id 切換 ----
-  // copilot.js 的 setupDom() 寫死尋找 #copilot-sidebar-container。
-  // 手機版時將該 id 從隱藏的 sidebar 容器轉移到 overlay 內的容器，
-  // 讓 copilot 不需改動即可掛載到手機版覆蓋層。
-  if (window.innerWidth <= 768) {
-    const sidebarContainer = document.getElementById('copilot-sidebar-container');
-    const mobileContainer = document.getElementById('copilot-mobile-container');
-    if (sidebarContainer && mobileContainer) {
-      sidebarContainer.removeAttribute('id');
-      mobileContainer.id = 'copilot-sidebar-container';
-    }
-  }
+  // Copilot 會掛載到目前版面可見的容器，並在旋轉或跨越斷點時搬移內容。
+  bindCopilotResponsive();
 
   // 初始化 UI 元件
   initDetail();
@@ -111,17 +151,10 @@ async function main() {
   // 桌面版側欄開合與大小調整
   bindSidebarToggle();
   bindSidebarResizer();
-  bindDesktopSpotlight();
 
   // 首次渲染：顯示全部
   currentLocations = db.getGeocodedLocations();
   renderAll(currentLocations);
-
-  // 深連結：支援 #loc=<id>（開啟特定地點）、#cat=<key>、#q=<關鍵字>、#tf=<時段>
-  applyDeepLink();
-
-  // 返回鍵 / 手動改 hash：重新套用深連結狀態（可用返回鍵關閉詳情抽屜）
-  window.addEventListener('hashchange', onHashChange);
 
   // 語言切換後重繪所有由 JS 產生的文案
   onLangChange(() => {
@@ -163,6 +196,15 @@ async function main() {
       resetFiltersProgrammatic(db);
     },
   });
+
+  // Copilot 建立 chat-input 後才綁定 Spotlight 鍵盤導航。
+  bindDesktopSpotlight();
+
+  // 深連結需要先有 chat-input，才能同步桌面與手機搜尋欄。
+  applyDeepLink();
+
+  // 返回鍵 / 手動改 hash：重新套用深連結狀態（可用返回鍵關閉詳情抽屜）
+  window.addEventListener('hashchange', onHashChange);
 }
 
 /**
@@ -224,44 +266,41 @@ function openLocation(loc, { focusMap = true, updateHash = true } = {}) {
  */
 function applyDeepLink() {
   const hash = window.location.hash.replace(/^#/, '');
-  if (!hash) return;
-  let params;
+  let params = new URLSearchParams();
   try {
-    params = new URLSearchParams(hash);
+    if (hash) params = new URLSearchParams(hash);
   } catch {
-    return;
+    // 無法解析的 hash 視為沒有篩選條件，並清除舊狀態。
   }
 
   const locId = params.get('loc');
   if (locId) {
     const loc = db.getLocationById(locId);
     if (loc) openLocation(loc, { updateHash: false });
+    else {
+      hideDetail();
+      closeInfoWindow();
+    }
     return;
   }
 
+  hideDetail();
+  closeInfoWindow();
   suppressHashSync = true;
   try {
     const cat = params.get('cat');
-    if (cat) {
-      const cats = cat.split(',').filter((c) => CATEGORIES[c]);
-      if (cats.length === 1) {
-        selectCategoryProgrammatic(cats[0], db);
-      } else if (cats.length > 1) {
-        applyCategoriesProgrammatic(cats, db);
-      }
-    }
+    const cats = cat ? cat.split(',').filter((c) => CATEGORIES[c]) : [];
+    applyCategoriesProgrammatic(cats, db);
+
     const tf = params.get('tf');
-    if (tf) {
-      applyTimeFiltersProgrammatic(tf.split(','), db);
-    }
-    const q = params.get('q');
-    if (q) {
-      const chatInput = document.getElementById('chat-input');
-      if (chatInput) chatInput.value = q;
-      const mobileSearch = document.getElementById('mobile-search-input');
-      if (mobileSearch) mobileSearch.value = q;
-      setQuery(q, db);
-    }
+    applyTimeFiltersProgrammatic(tf ? tf.split(',') : [], db);
+
+    const q = params.get('q') || '';
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput) chatInput.value = q;
+    const mobileSearch = document.getElementById('mobile-search-input');
+    if (mobileSearch) mobileSearch.value = q;
+    setQuery(q, db);
   } finally {
     suppressHashSync = false;
   }
@@ -295,13 +334,7 @@ function syncFilterHash() {
  * 沒有 #loc 時關閉詳情抽屜 — 這讓返回鍵成為「關閉抽屜」。
  */
 function onHashChange() {
-  const hash = window.location.hash.replace(/^#/, '');
-  if (hash.startsWith('loc=')) {
-    applyDeepLink();
-    return;
-  }
-  hideDetail();
-  if (hash) applyDeepLink();
+  applyDeepLink();
 }
 
 /** 註冊 PWA Service Worker（僅 https 或 localhost 生效） */

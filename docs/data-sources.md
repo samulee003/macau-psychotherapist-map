@@ -18,7 +18,7 @@
 2. 忽略 `--enable-automation` 參數。
 3. 採用 headed (有界面) 模式並輔以 45 秒超時等待。Cloudflare Turnstile 在檢測到無自動化標誌且為真實 Chrome 架構時，會自動靜默放行，無需任何人工點擊驗證。
 
-這使得全自動腳本能夠可靠、穩定地進入系統並自動進行分頁抓取（共 6 頁，116 筆記錄）。
+這使得全自動腳本能夠可靠、穩定地進入系統並依頁碼按鈕自動抓取全部分頁。
 
 ## 交叉參考來源
 
@@ -28,16 +28,16 @@
 ## 採集流程（全自動 + 人工校驗座標）
 
 ```
-APM 名冊頁（apm.org.mo，無反爬蟲）
+衛生局官方名冊頁（ssm.gov.mo）
    │
-   ▼  scrape.py（requests + BeautifulSoup 解析靜態表格）
-raw.json （83 筆原始記錄，含中葡雙語切分）
+   ▼  scrape.py（Playwright 讀取官方 ASP.NET 表格）
+raw.json （原始記錄，含中葡雙語切分）
    │
    ▼  geocode.py（高德 Web 服務 API，48 個不重複地址）
 geocoded.json （地址→座標）
    │
    ▼  build_data.py（去重地址、合併、分類、建立多對多關聯）
-data.json （67 治療師 / 47 地點 / 78 關聯）
+data.json （數量由 meta.stats 動態記錄）
    │
    ▼  validate.py + preview.html（人工校驗座標）
 data.json （修正後最終版）
@@ -48,12 +48,13 @@ data.json （修正後最終版）
 ```bash
 # 1. 建立虛擬環境並安裝採集依賴
 python3 -m venv .venv && source .venv/bin/activate
-pip install requests beautifulsoup4 lxml
+pip install playwright requests beautifulsoup4 lxml
+python -m playwright install chromium
 
 # 2. 設定高德 Web 服務 key（用於 geocoding）
 export AMAP_WEB_KEY=你的高德Web服務key
 
-# 3. 抓取 APM 名冊
+# 3. 抓取衛生局官方名冊
 python3 scripts/scrape.py
 
 # 4. 地址轉座標
@@ -73,9 +74,9 @@ open scripts/preview.html
 
 ### 中葡雙語切分
 
-APM 表格的地址欄為「機構名 - 地址」中葡文相連（如「培甯心理治療中心 - 澳門...1GCENTRO DE PSICOTERAPIA...」）。
+官方表格的姓名與地址欄以換行分隔中文及葡文內容；`scrape.py` 會保留兩種語言的原始欄位，並從「機構名 - 地址」格式拆出機構名稱與中文地址。
 
-`scrape.py` 的 `split_bilingual()` 用**葡文關鍵字錨點**（CENTRO、HOSPITAL、RUA、AVENIDA 等）定位邊界，已驗證中文地址不殘留葡文。原始資料偶有中葡文黏合瑕疵（如 `1GCENTRO`），切分後中文段保留 `1G`、葡文段從 `CENTRO` 起始。
+`scrape.py` 以 Playwright 讀取官方 ASP.NET 表格，並用表格欄位與換行切分中葡文姓名及地址；原始資料偶有中葡文黏合瑕疵，切分後中文段與葡文段會分別保留。
 
 ### 更新節奏
 
@@ -92,8 +93,8 @@ APM 表格的地址欄為「機構名 - 地址」中葡文相連（如「培甯�
 
 ## 免責聲明
 
-- 本網站**非官方機構**，與澳門衛生局、APM 無關
-- 資料採集自 APM 整理的公開名冊，經整理與人工校驗，但**可能延遲或不完整**
+- 本網站**非官方機構**，與澳門衛生局無關
+- 資料採集自衛生局公開註冊名冊，經整理與人工校驗，但**可能延遲或不完整**
 - 資料**僅供參考**，不構成任何醫療建議、診斷或轉介
 - 最新、最準確的資訊請以[官方查詢系統](https://www.ssm.gov.mo/pubssmweb/register/frmShowRegister.aspx)為準
 - 本網站不提供評分或評論功能（醫療專業倫理考量）

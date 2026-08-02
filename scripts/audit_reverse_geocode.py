@@ -14,7 +14,7 @@ from pathlib import Path
 import requests
 
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "data.json"
-AMAP_WEB_KEY = os.environ.get("AMAP_WEB_KEY", "2d18f3c179911110648c3c63229da1a6")
+AMAP_WEB_KEY = os.environ.get("AMAP_WEB_KEY")
 REGEO_URL = "https://restapi.amap.com/v3/geocode/regeo"
 
 def reverse_geocode(lng, lat):
@@ -42,8 +42,8 @@ def reverse_geocode(lng, lat):
     return None
 
 def main():
-    if AMAP_WEB_KEY == "YOUR_AMAP_WEB_SERVICE_KEY":
-        print("❌ Error: 請在環境變數設定 AMAP_WEB_KEY，或確保預設 Key 可用")
+    if not AMAP_WEB_KEY:
+        print("❌ Error: 請在環境變數設定 AMAP_WEB_KEY")
         sys.exit(1)
         
     if not DATA_PATH.exists():

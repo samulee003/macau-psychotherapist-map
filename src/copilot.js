@@ -11,7 +11,7 @@
    ============================================================ */
 
 import { CATEGORIES } from './config.js';
-import { getParsedHours, isOpenAt, opensOnWeekend, opensEvening } from './hours.js';
+import { getParsedHours, getMacauNow, isOpenAt, opensOnWeekend, opensEvening } from './hours.js';
 import { t, getLang, applyI18nDom } from './i18n.js';
 
 let database = null;
@@ -41,7 +41,7 @@ export function initCopilot(db, ctrlControl) {
 }
 
 function setupDom() {
-  const container = document.getElementById('copilot-sidebar-container');
+  const container = document.querySelector('[data-copilot-active]');
   if (!container) return;
 
   container.innerHTML = `
@@ -559,7 +559,7 @@ function dispatchTool(name, args, pendingActions) {
     }
     case 'find_open_locations': {
       const when = a.when;
-      const now = new Date();
+      const now = getMacauNow();
       const results = database.locations
         .filter((l) => {
           const parsed = getParsedHours(l);
@@ -607,11 +607,12 @@ function getSystemInstruction() {
   };
 
   // 回覆語言跟隨 UI 語言（介面三語：繁中/葡文/英文）
-  const langRule = {
-    zh: '你必須只使用繁體中文(zh-Hant)回答。',
-    pt: '你必須只使用葡萄牙語（português）回答使用者。工具參數與資料庫查詢仍使用原始中文名稱。',
-    en: '你必須只使用英文（English）回答使用者。工具參數與資料庫查詢仍使用原始中文名稱。',
-  }[getLang()] || '你必須只使用繁體中文(zh-Hant)回答。';
+  const responseLanguage = {
+    zh: '繁體中文（zh-Hant）',
+    pt: '葡萄牙語（português）',
+    en: '英文（English）',
+  }[getLang()] || '繁體中文（zh-Hant）';
+  const langRule = `你必須只使用${responseLanguage}回答使用者。工具參數與資料庫查詢仍使用原始中文名稱。`;
 
   return `
 你現在是澳門心理治療師地圖 (Macau Psychotherapist Map) 的 AI 智能助理。
@@ -637,7 +638,7 @@ ${locationsIndex}
 6. 查某地點的電話、地址、診時、治療師名單：調用 get_location_detail
 
 【回傳格式要求】
-請以友善、自然的繁體中文回覆使用者，**不要回傳 any JSON 格式的內容**。你的最終回覆會直接以 HTML/Markdown 形式在聊天視窗中展示給使用者看。
+請以友善、自然的${responseLanguage}回覆使用者，**不要回傳 any JSON 格式的內容**。你的最終回覆會直接以 HTML/Markdown 形式在聊天視窗中展示給使用者看。
 當你調用了 UI 行動工具（例如 select_location）後，請在最終回覆中親切地告訴使用者你已經在畫面上為他們選取或篩選了該地點。
 
 【行為規範】

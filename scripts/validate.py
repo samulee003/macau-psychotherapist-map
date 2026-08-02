@@ -116,12 +116,18 @@ def main():
         if not has_coord:
             warnings.append(f"地點缺座標（無法在地圖顯示）: {l['id']} — {l.get('name')}")
         else:
-            lng, lat = l["lng"], l["lat"]
-            if not (MACAO_BBOX["lng_min"] <= lng <= MACAO_BBOX["lng_max"]
-                    and MACAO_BBOX["lat_min"] <= lat <= MACAO_BBOX["lat_max"]):
-                warnings.append(
-                    f"地點座標超出澳門範圍（可能不準）: {l['id']} — ({lng},{lat})"
+            try:
+                lng, lat = float(l["lng"]), float(l["lat"])
+            except (TypeError, ValueError):
+                errors.append(
+                    f"地點座標格式不合法: {l['id']} — ({l.get('lng')},{l.get('lat')})"
                 )
+            else:
+                if not (MACAO_BBOX["lng_min"] <= lng <= MACAO_BBOX["lng_max"]
+                        and MACAO_BBOX["lat_min"] <= lat <= MACAO_BBOX["lat_max"]):
+                    errors.append(
+                        f"地點座標超出澳門範圍: {l['id']} — ({lng},{lat})"
+                    )
 
         if l.get("category") not in VALID_CATEGORIES:
             errors.append(f"地點分類不合法: {l['id']} category={l.get('category')}")

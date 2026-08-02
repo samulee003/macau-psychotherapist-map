@@ -22,6 +22,22 @@ function detectInAppBrowser(userAgent) {
   return UA_PATTERNS.find((p) => p.test.test(userAgent)) || null;
 }
 
+function getDismissed() {
+  try {
+    return window.sessionStorage?.getItem(DISMISS_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function rememberDismissed() {
+  try {
+    window.sessionStorage?.setItem(DISMISS_KEY, '1');
+  } catch {
+    // 私隱模式或受限 WebView 可能完全禁止 sessionStorage，不影響主程式。
+  }
+}
+
 /**
  * 初始化 App 內置瀏覽器提示橫幅。
  * 在偵測到 Threads / Instagram / 微信 / Facebook / LINE 等內置瀏覽器時，
@@ -31,7 +47,7 @@ export function initInAppBrowserBanner() {
   const banner = document.getElementById('inapp-browser-banner');
   if (!banner) return;
 
-  if (sessionStorage.getItem(DISMISS_KEY) === '1') return;
+  if (getDismissed()) return;
 
   const matched = detectInAppBrowser(navigator.userAgent);
   if (!matched) return;
@@ -47,7 +63,7 @@ export function initInAppBrowserBanner() {
   if (closeBtn) {
     closeBtn.addEventListener('click', () => {
       banner.hidden = true;
-      sessionStorage.setItem(DISMISS_KEY, '1');
+      rememberDismissed();
     });
   }
 

@@ -78,15 +78,17 @@ async def scrape_data():
 
         # 開始分頁爬取
         records = []
-        
-        # 我們將循環爬取所有 6 頁
-        for current_page in range(1, 7):
+        current_page = 1
+        seen_page_signatures = set()
+
+        while True:
             print(f"[scrape] 正在抓取第 {current_page} 頁的資料...")
             await page.wait_for_selector("#MainGrid tr", timeout=10000)
             
             rows = await page.query_selector_all("#MainGrid tr")
             # 扣除表頭列
             print(f"[scrape] 本頁包含 {len(rows) - 1} 筆記錄")
+            page_licenses = []
             
             for row in rows[1:]:
                 cells = await row.query_selector_all("td")
@@ -104,6 +106,7 @@ async def scrape_data():
                 
                 # 1. 牌照號與分類
                 lic_no = normalize_license(lic_no)
+                page_licenses.append(lic_no)
                 lic_type = lic_type.split("\n")[0].strip()
                 category = category_raw.split("\n")[0].strip()
                 
@@ -151,15 +154,24 @@ async def scrape_data():
                     "phone": phone,
                     "hours": hours,
                 })
-            
-            # 若不是最後一頁，點擊下一頁按鈕
-            if current_page < 6:
-                next_page = current_page + 1
-                next_btn_id = f"#rptPager_lnkPage_{next_page}"
-                print(f"[scrape] 點擊前往第 {next_page} 頁 ({next_btn_id})...")
-                await page.click(next_btn_id)
-                # 等待 PostBack 加載完成 (等待 3 秒讓表格更新)
-                await page.wait_for_timeout(3000)
+
+            page_signature = tuple(page_licenses)
+            if page_signature in seen_page_signatures:
+                raise RuntimeError(f"分頁內容未更新（第 {current_page} 頁），停止以避免重複資料")
+            seen_page_signatures.add(page_signature)
+
+            # 依頁碼按鈕是否存在動態判斷是否還有下一頁，不假設固定頁數。
+            next_page = current_page + 1
+            next_btn_id = f"#rptPager_lnkPage_{next_page}"
+            next_btn = page.locator(next_btn_id)
+            if await next_btn.count() == 0 or not await next_btn.first.is_visible():
+                break
+
+            print(f"[scrape] 點擊前往第 {next_page} 頁 ({next_btn_id})...")
+            await next_btn.first.click()
+            # 等待 PostBack 加載完成 (等待 3 秒讓表格更新)
+            await page.wait_for_timeout(3000)
+            current_page = next_page
                 
         print(f"[scrape] 抓取完成！共取得 {len(records)} 筆記錄")
         await browser.close()

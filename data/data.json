@@ -11,8 +11,8 @@
     "disclaimer": "本網站非官方機構，資料可能有延遲或不完整，不構成任何醫療建議或轉介。",
     "stats": {
       "therapists": 90,
-      "locations": 41,
-      "practices": 108
+      "locations": 40,
+      "practices": 107
     }
   },
   "therapists": [
@@ -810,21 +810,11 @@
     },
     {
       "id": "loc_12bc587f",
-      "name": "聖瑪嘉烈中心",
+      "name": "聖瑪嘉烈中心 / 聖類斯公撒格之家",
       "addressZh": "澳門氹仔卓家村天津街",
       "category": "social",
-      "phone": "28835957,28835935",
-      "hours": "星期三至星期四 09:00-13:00",
-      "lng": 113.5594,
-      "lat": 22.1585
-    },
-    {
-      "id": "loc_a4c883e6",
-      "name": "聖類斯公撒格之家",
-      "addressZh": "澳門氹仔卓家村天津街",
-      "category": "social",
-      "phone": "+853 2883 0503",
-      "hours": "星期四 14:00-18:00",
+      "phone": "28835957,28835935, +853 2883 0503",
+      "hours": "星期三至星期四 09:00-13:00 / 星期四 14:00-18:00",
       "lng": 113.5594,
       "lat": 22.1585
     },
@@ -1235,10 +1225,6 @@
     {
       "therapistId": "T_1e01cffd",
       "locationId": "loc_12bc587f"
-    },
-    {
-      "therapistId": "T_1e01cffd",
-      "locationId": "loc_a4c883e6"
     },
     {
       "therapistId": "T_1e01cffd",

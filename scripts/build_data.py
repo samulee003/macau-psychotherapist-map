@@ -4,7 +4,7 @@ build_data.py — 將 raw.json + geocoded.json 合併為前端使用的 data.jso
 
 處理：
     1. 治療師去重（同牌照號合併）
-    2. 地址去重 → Location（同地址合併為一個地點）
+    2. 地址去重 → Location（同地址合併為一個地點；無地址時才使用機構名）
     3. 建立 Practice 關聯（therapist ↔ location）
     4. 依機構名關鍵字自動分類 category
     5. 產出 ../data/data.json
@@ -80,6 +80,17 @@ def normalize_addr(addr: str) -> str:
     return re.sub(r"\s+", "", addr.strip())
 
 
+def merge_text(existing: str, incoming: str, separator: str) -> str:
+    """合併同一地址的文字欄位，保留不同機構提供的資訊且避免重複。"""
+    values = []
+    for value in (existing or "", incoming or ""):
+        for item in value.split(separator):
+            item = item.strip()
+            if item and item not in values:
+                values.append(item)
+    return separator.join(values)
+
+
 # ----------------------------------------------------------------
 # 主流程
 # ----------------------------------------------------------------
@@ -104,7 +115,7 @@ def main():
 
     therapists = {}     # id -> therapist dict
     locations = {}      # id -> location dict
-    place_to_locid = {} # normalized place name -> location id
+    location_key_to_locid = {} # normalized address (or address-less place name) -> location id
     practices = []
 
     for rec in records:
@@ -140,7 +151,7 @@ def main():
             if not t["nameEn"] and name_en:
                 t["nameEn"] = name_en
 
-        # 地點：以機構名稱去重為優先，無機構名稱才以地址去重
+        # 地點：以正規化地址去重；只有沒有地址時才退回機構名稱。
         place_name = (rec.get("placeName") or "").strip()
         addr_raw = (rec.get("addressZh") or "").strip()
         
@@ -151,20 +162,25 @@ def main():
         if not place_name and not addr_raw:
             continue  # 無地點資訊，無法建立 location
 
-        # 唯一去重 Key：優先使用機構名稱，若無則使用地址
-        loc_key = place_name or addr_raw
-        loc_key_norm = re.sub(r"\s+", "", loc_key)
+        addr_norm = normalize_addr(addr_raw)
+        loc_key_norm = addr_norm or re.sub(r"\s+", "", place_name)
+        if not loc_key_norm:
+            continue
 
-        if loc_key_norm in place_to_locid:
-            loc_id = place_to_locid[loc_key_norm]
-            # 補足先前已建立地點但缺失的電話與時間
+        if loc_key_norm in location_key_to_locid:
+            loc_id = location_key_to_locid[loc_key_norm]
             existing_loc = locations[loc_id]
-            if not existing_loc.get("phone") and rec.get("phone"):
-                existing_loc["phone"] = rec["phone"]
-            if not existing_loc.get("hours") and rec.get("hours"):
-                existing_loc["hours"] = rec["hours"]
+            existing_loc["name"] = merge_text(existing_loc.get("name"), place_name, " / ")
+            existing_loc["phone"] = merge_text(existing_loc.get("phone"), rec.get("phone"), ", ")
+            existing_loc["hours"] = merge_text(existing_loc.get("hours"), rec.get("hours"), " / ")
+            if existing_loc.get("category") == "other":
+                existing_loc["category"] = classify(existing_loc["name"] + " " + addr_raw)
         else:
-            loc_id = make_id("loc", loc_key_norm)
+            # 優先沿用舊有「機構名 hash」的 id；同名不同地址時改用地址 hash，
+            # 避免地址去重修正造成不必要的既有深連結失效。
+            loc_id = make_id("loc", place_name or addr_raw)
+            if loc_id in locations:
+                loc_id = make_id("loc", loc_key_norm)
             loc = {
                 "id": loc_id,
                 "name": place_name or "（未知名稱）",
@@ -174,7 +190,6 @@ def main():
                 "hours": rec.get("hours", ""),
             }
             # 從 geocoding 結果查找坐標（使用此記錄的地址）
-            addr_norm = normalize_addr(addr_raw)
             coord = addr_to_coord.get(addr_norm)
             
             # 針對特定的高德 geocoding 偏差或大廈坐標進行手動精準修正
@@ -197,7 +212,7 @@ def main():
                 loc["lng"] = coord["lng"]
                 loc["lat"] = coord["lat"]
             locations[loc_id] = loc
-            place_to_locid[loc_key_norm] = loc_id
+            location_key_to_locid[loc_key_norm] = loc_id
 
         # 建立關聯（去重）
         practice_key = (t_id, loc_id)

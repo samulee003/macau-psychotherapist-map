@@ -14,6 +14,35 @@
 const DAY_MAP = { 日: 0, 天: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6 };
 
 const EVENING_START_MIN = 18 * 60; // 「夜間開診」定義：18:00 後仍在開診
+const MACAU_TIME_ZONE = 'Asia/Macau';
+const MACAU_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: MACAU_TIME_ZONE,
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: 'numeric',
+  hourCycle: 'h23',
+});
+
+/**
+ * 將一個時間點轉成澳門的日曆與時鐘欄位。
+ * 回傳的物件只實作 isOpenAt 所需的 Date getter，避免以訪客時區建立 Date。
+ */
+export function getMacauNow(now = new Date()) {
+  const parts = Object.fromEntries(
+    MACAU_FORMATTER.formatToParts(now)
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, Number(part.value)])
+  );
+  const day = new Date(Date.UTC(parts.year, parts.month - 1, parts.day)).getUTCDay();
+
+  return {
+    getDay: () => day,
+    getHours: () => parts.hour % 24,
+    getMinutes: () => parts.minute,
+  };
+}
 
 /** 展開「星期A至星期B」為日序陣列（支援跨週日，如一至日） */
 function expandDays(from, to) {
@@ -61,7 +90,7 @@ export function parseHours(text) {
 /**
  * 某時間點是否在開診時段內。
  * @param {Array|null} groups parseHours 的結果
- * @param {Date} date
+ * @param {Date|Object} date
  */
 export function isOpenAt(groups, date) {
   if (!groups) return false;
@@ -96,6 +125,6 @@ export function getParsedHours(loc) {
 }
 
 /** 地點現在是否營業中（無法解析時回傳 false） */
-export function isLocationOpenNow(loc, now = new Date()) {
-  return isOpenAt(getParsedHours(loc), now);
+export function isLocationOpenNow(loc, now) {
+  return isOpenAt(getParsedHours(loc), now === undefined ? getMacauNow() : now);
 }

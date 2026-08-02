@@ -10,7 +10,7 @@
 - **資料來源**：澳門特別行政區政府衛生局 — 從事私人醫務活動專業人員名冊（`https://www.ssm.gov.mo/pubssmweb/Utlap/frmUtlapLic.aspx?licode=11&t=`）
 - **官方首頁**：澳門衛生局官網首頁（`https://www.ssm.gov.mo/`）
 - **資料性質**：官方公開註冊資訊（非個人隱私），全自動採集 + 人工校驗座標
-- **規模**：90 位治療師、41 個執業地點、108 個執業關聯（多對多關係）
+- **規模**：90 位治療師、40 個執業地點、107 個執業關聯（多對多關係）
 - **透明度**：UI 頁尾標註來源連結「澳門衛生局」（指向首頁）及採集日期，無任何項目官方背書歧義。
 
 ## 技術棧
@@ -72,9 +72,10 @@ npm test             # Vitest 單元測試（hours/geo/data-loader/copilot-proxy
 
 # 資料採集（用虛擬環境）
 python3 -m venv .venv && source .venv/bin/activate
-pip install requests beautifulsoup4 lxml
+pip install playwright requests beautifulsoup4 lxml
+python -m playwright install chromium
 export AMAP_WEB_KEY=你的高德Web服務key      # geocoding 用
-python3 scripts/scrape.py        # 從 APM 名冊抓取 → raw.json
+python3 scripts/scrape.py        # 從衛生局官方名冊抓取 → raw.json
 python3 scripts/geocode.py       # 地址→座標 → geocoded.json
 python3 scripts/build_data.py    # 去重/合併/分類 → data/data.json
 python3 scripts/validate.py      # 資料校驗
@@ -107,7 +108,7 @@ open scripts/preview.html        # 人工校驗座標
 | gov | 政府機構 | `#6b7280` |
 | other | 其他 | `#9ca3af` |
 
-採集時自動分類的規則在 `scripts/build_data.py` 的 `CATEGORY_RULES`（依機構名關鍵字，順序重要）。目前「其他」歸零，47 個地點全數精準歸類。
+採集時自動分類的規則在 `scripts/build_data.py` 的 `CATEGORY_RULES`（依機構名關鍵字，順序重要）。目前「其他」歸零，40 個地點全數精準歸類。
 
 ## 開發約定
 
@@ -190,7 +191,7 @@ open scripts/preview.html        # 人工校驗座標
 ## 不做（YAGNI）
 
 - **v2（現況）已實作 AI Agent 功能**：`src/copilot.js` + `api/copilot.js`（Vercel 薄代理代管 `DEEPSEEK_API_KEY`）+ `vercel.json`，讓使用者免 Key 即可使用 Deepseek Agent（9 個工具）。詳見 `docs/roadmap-v2.md`。
-- 後端伺服器／資料庫（~90 位治療師、41 地點，靜態 JSON 足夠）。v2 僅放寬至「無狀態 serverless 薄代理」，仍不做資料庫，`data.json` 仍在前端載入。
+- 後端伺服器／資料庫（~90 位治療師、40 地點，靜態 JSON 足夠）。v2 僅放寬至「無狀態 serverless 薄代理」，仍不做資料庫，`data.json` 仍在前端載入。
 - 評分/評論、使用者帳號、離線/推播
 - 「以治療師為 pin」的地圖視角切換
 
