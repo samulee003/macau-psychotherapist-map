@@ -17,7 +17,9 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           // maplibre-gl 體積大且極少變動，拆成獨立 chunk 利於長期快取
-          manualChunks: { maplibre: ['maplibre-gl'] },
+          manualChunks(id) {
+            if (id.includes('maplibre-gl')) return 'maplibre';
+          },
         },
       },
     },
