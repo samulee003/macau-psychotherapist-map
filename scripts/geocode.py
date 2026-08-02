@@ -6,7 +6,7 @@ geocode.py — 將地址轉為經緯度座標（高德 Web 服務 geocoding API�
 輸出：scripts/geocoded.json（每筆地址附上 lng/lat）
 
 ⚠️ 本腳本使用高德「Web 服務」API key（與前端 JS API key 不同）。
-   請在環境變數 AMAP_WEB_KEY 設定，或修改下方 DEFAULT_KEY。
+   請只在環境變數 AMAP_WEB_KEY 設定，勿把 key 寫入程式碼。
    此 key 僅在本地採集流程使用，不會進入前端。
 
    取得方式：https://lbs.amap.com/dev/
@@ -133,7 +133,8 @@ def _do_geocode_request(addr: str) -> dict:
         return {}
 
     if not in_macao(lng, lat):
-        print(f"  [geocode] ⚠ 座標超出澳門範圍，可能不準: {addr!r} -> ({lng},{lat})")
+        print(f"  [geocode] ✗ 座標超出澳門範圍，已拒絕: {addr!r} -> ({lng},{lat})")
+        return {}
 
     return {
         "lng": round(lng, 6),
