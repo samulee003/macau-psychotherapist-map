@@ -2,7 +2,7 @@
 
 一個純靜態網頁應用，在地圖上展示澳門註冊心理治療師的執業地點分布，幫助市民查找心理治療資源。
 
-資料來源為**澳門心理專業人員協會（APM）整理名冊**（源自衛生局註冊資料），全自動採集 + 人工校驗座標。
+資料來源為**澳門特別行政區政府衛生局 — 從事私人醫務活動專業人員名冊**，全自動採集 + 人工校驗座標。
 
 ## ✨ 功能
 
@@ -25,6 +25,7 @@
 ### 前置需求
 
 - Node.js 18+
+- Python 3.10+（僅資料採集需要）
 - （僅資料採集需要）一個 [高德開放平台](https://lbs.amap.com/dev/) 帳號的 Web 服務 key，前端地圖本身**不需要任何 API key**
 
 ### 安裝與本地運行
@@ -55,11 +56,12 @@ npm test   # 單元測試（診時解析、座標轉換、資料索引、代理�
 ```bash
 # 採集依賴（建議用虛擬環境）
 python3 -m venv .venv && source .venv/bin/activate
-pip install requests beautifulsoup4 lxml
+pip install playwright requests beautifulsoup4 lxml
+python -m playwright install chromium
 export AMAP_WEB_KEY=你的key   # 高德 Web 服務 key，用於 geocoding
 
 # 一鍵採集流程
-python3 scripts/scrape.py        # 從 APM 名冊抓取 → raw.json
+python3 scripts/scrape.py        # 從衛生局官方名冊抓取 → raw.json
 python3 scripts/geocode.py       # 地址→座標 → geocoded.json
 python3 scripts/build_data.py    # 去重/合併 → data/data.json
 python3 scripts/validate.py      # 資料校驗
@@ -74,7 +76,7 @@ open scripts/preview.html        # 人工校驗座標
 | 地圖 | MapLibre GL JS + OSM/CARTO 底圖（免 key、WGS-84） |
 | 樣式 | 手寫 CSS（響應式） |
 | 資料 | 靜態 JSON |
-| 採集 | Python + requests + BeautifulSoup |
+| 採集 | Python + Playwright + requests |
 | 部署 | 純靜態（GitHub Pages / Vercel） |
 
 ## 📁 專案結構
@@ -90,7 +92,7 @@ open scripts/preview.html        # 人工校驗座標
 │   └── styles.css
 ├── data/data.json          # 治療師+地點資料
 ├── scripts/                # 採集腳本
-│   ├── scrape.py           # 抓取 APM 名冊 → raw.json
+│   ├── scrape.py           # 抓取衛生局官方名冊 → raw.json
 │   ├── geocode.py          # 地址→座標
 │   ├── build_data.py       # 產出 data.json
 │   ├── validate.py         # 資料校驗
@@ -126,4 +128,4 @@ npm run build
 
 ## ⚖️ 免責聲明
 
-本網站**非官方機構**，與澳門衛生局或 APM 無關。資料採集自 APM 整理的公開名冊（源自衛生局註冊資料），**僅供參考**，可能延遲或不完整，不構成醫療建議或轉介。最新資訊請以[衛生局官方查詢系統](https://www.ssm.gov.mo/pubssmweb/register/frmShowRegister.aspx)為準。
+本網站**非官方機構**，與澳門衛生局無關。資料採集自衛生局公開註冊名冊，經整理與人工校驗，**僅供參考**，可能延遲或不完整，不構成醫療建議或轉介。最新資訊請以[衛生局官方查詢系統](https://www.ssm.gov.mo/pubssmweb/register/frmShowRegister.aspx)為準。

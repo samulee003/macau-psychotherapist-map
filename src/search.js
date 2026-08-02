@@ -3,7 +3,7 @@
    ============================================================ */
 
 import { CATEGORIES } from './config.js';
-import { getParsedHours, isOpenAt, opensOnWeekend, opensEvening } from './hours.js';
+import { getMacauNow, getParsedHours, isOpenAt, opensOnWeekend, opensEvening } from './hours.js';
 import { t } from './i18n.js';
 
 /** 時段篩選定義（多選，AND 語意）；顯示標籤走 i18n（tf_<key>） */
@@ -135,7 +135,7 @@ export function applyFilters(db) {
   const q = state.query;
   const cats = state.activeCategories;
   const timeFilters = state.activeTimeFilters;
-  const now = new Date();
+  const now = getMacauNow();
 
   return db.locations.filter((loc) => {
     // 分類篩選

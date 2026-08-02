@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseHours, isOpenAt, opensOnWeekend, opensEvening } from '../src/hours.js';
+import { parseHours, getMacauNow, isOpenAt, opensOnWeekend, opensEvening } from '../src/hours.js';
 
 // 建立指定星期與時刻的 Date（2026-07-05 是星期日）
 function at(day, hh, mm) {
@@ -49,6 +49,14 @@ describe('isOpenAt', () => {
   it('營業時段內為 true', () => {
     expect(isOpenAt(g, at(1, 10, 0))).toBe(true); // 星期一 10:00
     expect(isOpenAt(g, at(5, 18, 59))).toBe(true); // 星期五 18:59
+  });
+
+  describe('getMacauNow', () => {
+    it('uses Macau time when the instant crosses a local date boundary', () => {
+      const groups = parseHours('星期一 00:00-01:00');
+      const sundayAfternoonUtc = new Date('2026-07-05T16:30:00.000Z');
+      expect(isOpenAt(groups, getMacauNow(sundayAfternoonUtc))).toBe(true);
+    });
   });
 
   it('午休與收診後為 false', () => {

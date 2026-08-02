@@ -72,9 +72,10 @@ npm test             # Vitest 單元測試（hours/geo/data-loader/copilot-proxy
 
 # 資料採集（用虛擬環境）
 python3 -m venv .venv && source .venv/bin/activate
-pip install requests beautifulsoup4 lxml
+pip install playwright requests beautifulsoup4 lxml
+python -m playwright install chromium
 export AMAP_WEB_KEY=你的高德Web服務key      # geocoding 用
-python3 scripts/scrape.py        # 從 APM 名冊抓取 → raw.json
+python3 scripts/scrape.py        # 從衛生局官方名冊抓取 → raw.json
 python3 scripts/geocode.py       # 地址→座標 → geocoded.json
 python3 scripts/build_data.py    # 去重/合併/分類 → data/data.json
 python3 scripts/validate.py      # 資料校驗
