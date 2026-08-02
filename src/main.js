@@ -46,14 +46,14 @@ function isMobileLayout() {
  * 內容會一併搬移，避免旋轉螢幕或跨過 768px 後聊天紀錄消失。
  */
 function syncCopilotContainer() {
-  const sidebarContainer = document.querySelector('#desktop-search-backdrop .search-modal');
+  const sidebarContainer = document.getElementById('copilot-sidebar-container');
   const mobileContainer = document.getElementById('copilot-mobile-container');
   if (!sidebarContainer || !mobileContainer) return;
 
   const isMobile = isMobileLayout();
   const target = isMobile ? mobileContainer : sidebarContainer;
   const source = isMobile ? sidebarContainer : mobileContainer;
-  const activeContainer = document.getElementById('copilot-sidebar-container');
+  const activeContainer = document.querySelector('[data-copilot-active]');
 
   if (copilotIsMobile === isMobile && activeContainer === target) return;
 
@@ -62,12 +62,13 @@ function syncCopilotContainer() {
       target.appendChild(source.firstChild);
     }
   }
-  source.removeAttribute('id');
-  target.id = 'copilot-sidebar-container';
+  source.removeAttribute('data-copilot-active');
+  target.setAttribute('data-copilot-active', '');
 
   if (isMobile) {
     target.classList.add('search-ai');
     target.classList.remove('search-modal');
+    sidebarContainer.classList.remove('search-ai');
   } else {
     target.classList.add('search-modal', 'search-ai');
     mobileContainer.classList.remove('search-ai');
@@ -276,11 +277,15 @@ function applyDeepLink() {
   if (locId) {
     const loc = db.getLocationById(locId);
     if (loc) openLocation(loc, { updateHash: false });
-    else hideDetail();
+    else {
+      hideDetail();
+      closeInfoWindow();
+    }
     return;
   }
 
   hideDetail();
+  closeInfoWindow();
   suppressHashSync = true;
   try {
     const cat = params.get('cat');

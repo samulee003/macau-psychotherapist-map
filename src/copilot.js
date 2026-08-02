@@ -41,7 +41,7 @@ export function initCopilot(db, ctrlControl) {
 }
 
 function setupDom() {
-  const container = document.getElementById('copilot-sidebar-container');
+  const container = document.querySelector('[data-copilot-active]');
   if (!container) return;
 
   container.innerHTML = `
