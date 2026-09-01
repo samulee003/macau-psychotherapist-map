@@ -69,10 +69,23 @@ async def scrape_data():
             await page.wait_for_selector("#MainGrid", timeout=45000)
             print("[scrape] 成功繞過 Cloudflare，表格已加載！")
         except Exception as e:
-            # 失敗時截圖並報錯
-            screenshot_path = Path(__file__).resolve().parent / "cloudflare_timeout.png"
-            await page.screenshot(path=str(screenshot_path))
-            print(f"[scrape] ✗ 載入表格超時。已將偵錯截圖保存至 {screenshot_path}")
+            # 失敗時保存偵錯素材並報錯。
+            # 光看「timeout waiting for #MainGrid」無法分辨三種成因：
+            # Cloudflare 擋下、官網改版換了表格 id、或整頁 5xx。
+            # 截圖 + HTML + 標題/網址三者一起看才判斷得出來。
+            # CI 會把這些檔案上傳為 artifact（見 update_data.yml）。
+            debug_dir = Path(__file__).resolve().parent
+            screenshot_path = debug_dir / "cloudflare_timeout.png"
+            html_path = debug_dir / "cloudflare_timeout.html"
+            try:
+                await page.screenshot(path=str(screenshot_path), full_page=True)
+                html_path.write_text(await page.content(), encoding="utf-8")
+                print(f"[scrape] 頁面標題: {await page.title()!r}")
+                print(f"[scrape] 最終網址: {page.url}")
+            except Exception as dump_err:
+                # 偵錯素材存不下來不應蓋掉原始錯誤
+                print(f"[scrape] ⚠ 偵錯素材保存失敗: {dump_err}")
+            print(f"[scrape] ✗ 載入表格超時。偵錯素材: {screenshot_path}, {html_path}")
             await browser.close()
             raise e
 
