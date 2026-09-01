@@ -33,3 +33,11 @@ jobs:
       - name: Probe candidate sources
         run: |
           xvfb-run --server-args="-screen 0 1280x1024x24" python scripts/probe_sources.py
+
+      # 第一輪證實 data.gov.mo 是唯一沒被 Cloudflare 擋的來源，
+      # 這一步問它的目錄裡到底有沒有衛生局的專業人員名冊。
+      # if: always() —— 即使上一步出狀況，這輪偵察仍有價值。
+      - name: Probe open data catalog
+        if: always()
+        run: |
+          python scripts/probe_opendata.py
