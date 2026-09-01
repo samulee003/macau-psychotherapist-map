@@ -183,6 +183,11 @@ python3 scripts/import_roster_csv.py 名冊.csv
 - **繞過官方反爬蟲**：利用 Playwright 啟動參數 `--disable-blink-features=AutomationControlled` 與排除 `--enable-automation` 隱藏自動化特徵，結合 headed 模式與超時等待，成功自動繞過 Cloudflare Turnstile 驗證。
 - **Geocoding fallback**：對無地址的公立醫療機構或易產生偏移的地址在 `build_data.py` 設有手動精準坐標修正。
 
+### 📦 Service Worker 快取策略（public/sw.js）
+- **App shell（HTML 導覽）與 `data.json` 必須 network-first**，其餘同源資源（hashed JS/CSS、圖示）才用 stale-while-revalidate。
+- 曾發生的事故：整站一律 stale-while-revalidate，舊訪客回訪時 SW 先回舊的 `index.html`，而它引用的是同樣在快取裡的舊 hashed bundle —— 等於整個舊版 App 被端出來，改版要到「下一次」載入才生效（實測：部署後第一次載入仍是舊版）。
+- 改動快取策略時務必 bump `CACHE_NAME`，`activate` 會清掉其餘舊快取。
+
 ### Build 與部署
 - **data.json 打包**：Vite 預設只打包被 import 的資源，`data/data.json` 是 `fetch()` 動態載入的，**不會自動進 dist**。`vite.config.js` 用 `closeBundle` hook 在打包後 `cpSync('data','dist/data')` 修復此問題。修改 Vite 設定時勿移除此 hook。
 
