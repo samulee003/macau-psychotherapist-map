@@ -18,6 +18,7 @@
 .vscode/
 Thumbs.db
 dist/
+__pycache__/
 node_modules/
 scripts/cloudflare_timeout.html
 scripts/cloudflare_timeout.png
