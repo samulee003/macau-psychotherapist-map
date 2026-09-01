@@ -129,7 +129,7 @@ python3 scripts/import_roster_csv.py 名冊.csv
 - **行動端上下分屏設計**：在寬度小於或等於 `768px` 時，桌面版側欄 `.sidebar` 完全隱藏（`display:none`），改為「地圖固定上半屏（預設 40vh）+ 列表常駐下半屏」的分屏佈局。兩者同時可見、永不互相遮擋。中間有 `.split-handle` 拖曳把手，支援 mouse + touch 調整比例（限制 25%~70%）。
 - **行動端專屬 DOM**：手機版有獨立的 `#mobile-panel`（含 `#mobile-search-input`、`#mobile-filters`、`#mobile-location-list`），與桌面版側欄（`#location-list` 等）並存但互不影響。`main.js` 的 `renderAll()` 同時渲染兩套列表，`setActiveListItem` / `setActiveMobileListItem` 互相同步 active 狀態。
 - **行動端分類滑動**：手機版分類標籤設為單行橫向滑動（`.mobile-filters`），採「單選」模式。
-- **桌面版 Spotlight 搜尋**：側欄 `#desktop-search-trigger`（⌘K / Ctrl+K）開啟 `#desktop-search-backdrop` 模態框，內含 `#desktop-search-input` 關鍵字輸入與 `#modal-search-results` 結果預覽（↑↓ 選取、Enter 定位、Esc 關閉）。桌面與手機兩個輸入框互相同步 value，篩選狀態一律由 `search.js` 的 `setQuery` 掌管。
+- **桌面版 Spotlight 搜尋**：側欄 `#desktop-search-trigger`（⌘K / Ctrl+K）開啟 `#desktop-search-backdrop` 模態框，內含 `#desktop-search-input` 關鍵字輸入與 `#modal-search-results` 結果預覽（↑↓ 選取、Enter 定位、Esc 關閉）。結果分兩區：先列「符合的治療師」（`findMatchingTherapists`，單一執業點直接定位、多執業點以全名收斂搜尋），再列執業地點；桌機／手機列表項則以 `getMatchedTherapistsAt` 標示該處命中的治療師姓名。桌面與手機兩個輸入框互相同步 value，篩選狀態一律由 `search.js` 的 `setQuery` 掌管。
 
 ### 🚨 去 Slop 與 Emoji 絕對禁令 (Design Taste Guidelines)
 - **UI 絕對禁止裝飾性 Emoji**：除了使用者主動要求的特定情境，UI 界面（`index.html` 卡片、詳情抽屜、頁尾）**絕對禁止使用任何表情符號 (Emoji)**。

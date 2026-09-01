@@ -7,7 +7,7 @@
    ============================================================ */
 
 import { loadData } from './data-loader.js';
-import { initFilters, initTimeFilters, setQuery, selectCategoryProgrammatic, applyCategoriesProgrammatic, resetFiltersProgrammatic, getFilterSnapshot, applyTimeFiltersProgrammatic } from './search.js';
+import { initFilters, initTimeFilters, setQuery, selectCategoryProgrammatic, applyCategoriesProgrammatic, resetFiltersProgrammatic, getFilterSnapshot, applyTimeFiltersProgrammatic, findMatchingTherapists, getMatchedTherapistsAt } from './search.js';
 import { initDetail, showLocationDetail, hideDetail } from './detail.js';
 import { CATEGORIES } from './config.js';
 import { initInAppBrowserBanner } from './inapp-browser.js';
@@ -298,11 +298,27 @@ function renderLocationList(locations) {
       </div>
       <div class="list__item-address">${escapeHtml(loc.addressZh || t('detail_addr_unknown'))}</div>
       ${therapistCount ? `<div class="list__item-count">${t('therapist_count', { n: therapistCount })}${distanceLabel(loc)}</div>` : `<div class="list__item-count">${distanceLabel(loc, true)}</div>`}
+      ${matchedTherapistLabel(loc, 'list__item-count')}
       ${loc.lng == null ? `<div class="list__item-count" style="color:#9ca3af">${t('cannot_locate')}</div>` : ''}
     `;
     makeListItemInteractive(li, loc);
     ul.appendChild(li);
   }
+}
+
+/**
+ * 列表項的「符合關鍵字的治療師」標示。
+ * 打「林」時，各地點列出該處符合的林姓治療師姓名，
+ * 讓使用者一眼看出是誰命中，而不只是機構被列出來。
+ * 隱私約定：中英文姓名只擇一顯示（優先中文名）。
+ */
+function matchedTherapistLabel(loc, cls) {
+  const matched = getMatchedTherapistsAt(loc.id, db);
+  if (matched.length === 0) return '';
+  const names = matched.slice(0, 4).map((th) => th.nameZh || th.nameEn || '').filter(Boolean);
+  if (names.length === 0) return '';
+  const suffix = matched.length > names.length ? t('matched_more', { n: matched.length - names.length }) : '';
+  return `<div class="${cls} ${cls}--match">${escapeHtml(t('matched_therapists', { names: names.join('、') }) + suffix)}</div>`;
 }
 
 /**
@@ -363,6 +379,7 @@ function renderMobileLocationList(locations) {
       </div>
       <div class="mobile-list__item-address">${escapeHtml(loc.addressZh || t('detail_addr_unknown'))}</div>
       ${therapistCount ? `<div class="mobile-list__item-count">${t('therapist_count', { n: therapistCount })}${distanceLabel(loc)}</div>` : `<div class="mobile-list__item-count">${distanceLabel(loc, true)}</div>`}
+      ${matchedTherapistLabel(loc, 'mobile-list__item-count')}
       ${loc.lng == null ? `<div class="mobile-list__item-count" style="color:#9ca3af">${t('cannot_locate')}</div>` : ''}
     `;
     makeListItemInteractive(li, loc);
@@ -765,9 +782,7 @@ function bindDesktopSpotlight() {
     });
   };
 
-  const closeModal = () => {
-    backdrop.hidden = true;
-  };
+  const closeModal = closeDesktopSpotlight;
 
   trigger.addEventListener('click', openModal);
   trigger.addEventListener('keydown', (e) => {
@@ -887,33 +902,103 @@ function renderModalSearchResults(locations) {
 
   container.innerHTML = '';
   activeModalResultIndex = -1; // 每次重新輸入或搜尋時，重置鍵盤選取索引
-  
+
   // 沒有關鍵字時整區由 updateModalUiState 隱藏
   const queryInput = document.getElementById('desktop-search-input');
-  if (!queryInput || !queryInput.value.trim()) {
-    return;
+  const query = queryInput ? queryInput.value.trim() : '';
+  if (!query) return;
+
+  // 先列出「符合關鍵字的治療師本身」——打姓名關鍵字時，
+  // 使用者要看的是「有哪些林姓治療師」，而不只是他們所在的機構。
+  const therapists = findMatchingTherapists(db, query);
+  if (therapists.length > 0) {
+    container.appendChild(buildTherapistResults(therapists));
   }
 
   if (locations.length === 0) {
-    container.innerHTML = `
-      <div class="modal-results__empty">
-        ${t('modal_results_empty')}
-      </div>`;
+    const empty = document.createElement('div');
+    empty.className = 'modal-results__empty';
+    empty.textContent = t('modal_results_empty');
+    container.appendChild(empty);
     return;
   }
 
-  // 限制只顯示前 5 筆最相關結果，避免撐爆模態框
-  const displayLocations = locations.slice(0, 5);
+  container.appendChild(buildLocationResults(locations));
+}
+
+/**
+ * 治療師搜尋結果區塊。點擊 → 以其全名收斂搜尋，只留下他/她的執業地點；
+ * 若只有一個執業地點，直接開啟該地點詳情。
+ */
+function buildTherapistResults(therapists) {
+  const section = document.createElement('div');
+  section.className = 'modal-results__section';
 
   const title = document.createElement('div');
   title.className = 'modal-results__title';
-  title.textContent = t('modal_results_title', { n: locations.length });
-  container.appendChild(title);
+  title.textContent = t('modal_therapists_title', { n: therapists.length });
+  section.appendChild(title);
 
   const ul = document.createElement('ul');
   ul.className = 'modal-results__list';
 
-  for (const loc of displayLocations) {
+  // 限制顯示前 6 筆，避免撐爆模態框
+  for (const th of therapists.slice(0, 6)) {
+    // 隱私約定：中英文姓名只擇一顯示（優先中文名）
+    const displayName = th.nameZh || th.nameEn || '';
+    const locs = db.getLocationsByTherapist(th.id);
+    const li = document.createElement('li');
+    li.className = 'modal-results__item modal-results__item--therapist';
+    li.innerHTML = `
+      <div class="modal-results__item-left">
+        <span class="modal-results__avatar">${escapeHtml(displayName.slice(0, 1))}</span>
+        <div class="modal-results__name">${escapeHtml(displayName)}</div>
+        <div class="modal-results__address">${escapeHtml(locs.map((l) => l.name).join('、'))}</div>
+      </div>
+      <div class="modal-results__item-right">
+        <span class="modal-results__badge modal-results__badge--license">${escapeHtml(th.licenseNo || '')}</span>
+        <span class="modal-results__go">${locs.length === 1 ? t('modal_results_locate') : t('modal_results_filter')}</span>
+      </div>
+    `;
+
+    li.addEventListener('click', () => {
+      if (locs.length === 1) {
+        openLocation(locs[0]);
+        closeDesktopSpotlight();
+        return;
+      }
+      // 多個執業地點：以全名收斂搜尋，模態框留著讓使用者選地點
+      const name = th.nameZh || th.nameEn || '';
+      for (const id of ['desktop-search-input', 'mobile-search-input']) {
+        const input = document.getElementById(id);
+        if (input) input.value = name;
+      }
+      updateModalUiState(name);
+      setQuery(name, db);
+    });
+
+    ul.appendChild(li);
+  }
+
+  section.appendChild(ul);
+  return section;
+}
+
+/** 執業地點搜尋結果區塊 */
+function buildLocationResults(locations) {
+  const section = document.createElement('div');
+  section.className = 'modal-results__section';
+
+  const title = document.createElement('div');
+  title.className = 'modal-results__title';
+  title.textContent = t('modal_results_title', { n: locations.length });
+  section.appendChild(title);
+
+  const ul = document.createElement('ul');
+  ul.className = 'modal-results__list';
+
+  // 限制只顯示前 5 筆最相關結果，避免撐爆模態框
+  for (const loc of locations.slice(0, 5)) {
     const cat = CATEGORIES[loc.category] || CATEGORIES.other;
     const therapists = db.getTherapistsByLocation(loc.id);
     const li = document.createElement('li');
@@ -932,16 +1017,20 @@ function renderModalSearchResults(locations) {
 
     li.addEventListener('click', () => {
       openLocation(loc);
-
-      // 點擊後關閉 Spotlight 模態框
-      const backdrop = document.getElementById('desktop-search-backdrop');
-      if (backdrop) backdrop.hidden = true;
+      closeDesktopSpotlight();
     });
 
     ul.appendChild(li);
   }
 
-  container.appendChild(ul);
+  section.appendChild(ul);
+  return section;
+}
+
+/** 關閉桌面版 Spotlight 模態框 */
+function closeDesktopSpotlight() {
+  const backdrop = document.getElementById('desktop-search-backdrop');
+  if (backdrop) backdrop.hidden = true;
 }
 
 /* ---------- 載入狀態 ---------- */

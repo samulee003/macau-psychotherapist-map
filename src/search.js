@@ -158,18 +158,46 @@ export function applyFilters(db) {
       if (inLoc) return true;
 
       // 比對此地點關聯的治療師姓名
-      const therapists = db.getTherapistsByLocation(loc.id);
-      const inTherapist = therapists.some(
-        (t) =>
-          (t.nameZh || '').toLowerCase().includes(q) ||
-          (t.nameEn || '').toLowerCase().includes(q) ||
-          (t.licenseNo || '').toLowerCase().includes(q)
-      );
-      return inTherapist;
+      return db.getTherapistsByLocation(loc.id).some((t) => therapistMatches(t, q));
     }
 
     return true;
   });
+}
+
+/**
+ * 單一治療師是否符合關鍵字（中文名／英文名／牌照號）。
+ * @param {Object} therapist
+ * @param {string} q 已 trim + toLowerCase 的關鍵字
+ */
+function therapistMatches(therapist, q) {
+  return (
+    (therapist.nameZh || '').toLowerCase().includes(q) ||
+    (therapist.nameEn || '').toLowerCase().includes(q) ||
+    (therapist.licenseNo || '').toLowerCase().includes(q)
+  );
+}
+
+/**
+ * 找出符合關鍵字的治療師本身（供搜尋結果列出「有哪些林姓治療師」）。
+ * 未指定 query 時用目前的搜尋狀態；空關鍵字回傳空陣列。
+ * @returns {Array} 依中文姓名筆劃排序的治療師
+ */
+export function findMatchingTherapists(db, query) {
+  const q = (query == null ? state.query : String(query).trim().toLowerCase());
+  if (!q) return [];
+  return db.therapists
+    .filter((t) => therapistMatches(t, q))
+    .sort((a, b) => (a.nameZh || '').localeCompare(b.nameZh || '', 'zh-Hant'));
+}
+
+/**
+ * 某地點中符合目前關鍵字的治療師（供列表標示「誰符合」）。
+ */
+export function getMatchedTherapistsAt(locationId, db, query) {
+  const q = (query == null ? state.query : String(query).trim().toLowerCase());
+  if (!q) return [];
+  return db.getTherapistsByLocation(locationId).filter((t) => therapistMatches(t, q));
 }
 
 /** 觸發篩選結果回呼 */
@@ -179,7 +207,7 @@ function emit(db) {
 }
 
 /**
- * 程式化選擇分類（用於 Copilot 連動）
+ * 程式化選擇分類（深連結還原與手機版單選 chip 用）
  */
 export function selectCategoryProgrammatic(catKey, db) {
   state.activeCategories.clear();
@@ -230,14 +258,16 @@ export function applyTimeFiltersProgrammatic(keys, db) {
 }
 
 /**
- * 程式化重置篩選（用於 Copilot 連動）
+ * 程式化重置篩選（清空關鍵字與所有 chip）
  */
 export function resetFiltersProgrammatic(db) {
   state.query = '';
   state.activeCategories.clear();
   state.activeTimeFilters.clear();
-  const chatInput = document.getElementById('chat-input');
-  if (chatInput) chatInput.value = '';
+  for (const id of ['desktop-search-input', 'mobile-search-input']) {
+    const input = document.getElementById(id);
+    if (input) input.value = '';
+  }
   const chips = document.querySelectorAll('.filter-chip');
   chips.forEach((chip) => chip.classList.remove('is-active'));
   emit(db);
