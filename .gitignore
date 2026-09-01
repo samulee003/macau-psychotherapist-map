@@ -19,6 +19,8 @@
 Thumbs.db
 dist/
 node_modules/
+scripts/cloudflare_timeout.html
+scripts/cloudflare_timeout.png
 scripts/geocoded.json
 scripts/raw.json
 venv/

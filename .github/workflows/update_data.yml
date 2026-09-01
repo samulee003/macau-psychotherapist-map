@@ -63,6 +63,20 @@ jobs:
           # 使用 xvfb-run 模擬顯示器，繞過 Cloudflare Turnstile 驗證
           xvfb-run --server-args="-screen 0 1280x1024x24" python scripts/scrape.py
 
+      # 採集失敗時把 scrape.py 存下的截圖與 HTML 撈出來。
+      # 沒有這一步，偵錯素材會隨 runner 一起銷毀，
+      # 只剩一句 timeout 訊息，分不出是 Cloudflare 擋、官網改版還是 5xx。
+      - name: Upload scraper debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraper-debug
+          path: |
+            scripts/cloudflare_timeout.png
+            scripts/cloudflare_timeout.html
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Run Geocoder
         env:
           AMAP_WEB_KEY: ${{ secrets.AMAP_WEB_KEY }}
