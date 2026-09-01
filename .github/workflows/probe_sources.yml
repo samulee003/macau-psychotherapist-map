@@ -1,0 +1,35 @@
+name: Probe Data Sources
+
+# 偵察用，只能手動觸發：測試哪些資料來源路徑沒有被 Cloudflare 擋。
+# 不改動任何資料、不推送 commit，純粹產生一份報告到 log。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright requests
+          python -m playwright install chromium
+          sudo npx playwright install-deps chromium
+          sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: Probe candidate sources
+        run: |
+          xvfb-run --server-args="-screen 0 1280x1024x24" python scripts/probe_sources.py
