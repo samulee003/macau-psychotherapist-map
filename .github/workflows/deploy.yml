@@ -23,17 +23,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies and Build
         run: |
-          npm ci || npm install
+          # 嚴格 npm ci：lock file 不同步時必須失敗。先前的 `npm ci || npm install`
+          # 會讓 Deploy 靜默改用 npm install 而綠燈通過，導致 CI 已紅、
+          # 線上卻部署了未經 CI 驗證的依賴樹（2026-08-02 即發生過）。
+          npm ci
           npm run build
 
       - name: Setup Pages
