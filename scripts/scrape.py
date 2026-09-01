@@ -49,24 +49,64 @@ def clean_phone(raw: str) -> str:
     return raw.strip()
 
 
+async def launch_browser(p):
+    """
+    啟動瀏覽器。優先使用系統安裝的真・Google Chrome。
+
+    Cloudflare 會比對瀏覽器指紋，Playwright 內建的 Chromium 與真正的
+    Chrome 在建構標記、字型清單、codec 支援上都不同，較容易被判定為
+    自動化工具。GitHub Actions 的 runner 預裝了 Google Chrome，優先用它；
+    本機若沒裝則退回內建 Chromium。
+
+    注意：**不要**覆寫 User-Agent。Cloudflare 會交叉比對 UA 與
+    Client Hints（sec-ch-ua）等標頭，硬塞一個版本號不一致的 UA
+    反而是明確的機器人特徵。讓瀏覽器報自己真實的身分即可。
+    """
+    launch_kwargs = {
+        "headless": False,  # 搭配 workflow 的 xvfb-run 使用
+        "args": ["--disable-blink-features=AutomationControlled"],
+        "ignore_default_args": ["--enable-automation"],
+    }
+    try:
+        browser = await p.chromium.launch(channel="chrome", **launch_kwargs)
+        print("[scrape] 使用系統安裝的 Google Chrome")
+        return browser
+    except Exception as e:
+        print(f"[scrape] 找不到 Google Chrome（{e.__class__.__name__}），改用內建 Chromium")
+        return await p.chromium.launch(**launch_kwargs)
+
+
 async def scrape_data():
     async with async_playwright() as p:
         print("[scrape] 正在啟動隱身模式瀏覽器繞過 Cloudflare...")
-        browser = await p.chromium.launch(
-            headless=False,
-            args=["--disable-blink-features=AutomationControlled"],
-            ignore_default_args=["--enable-automation"]
+        browser = await launch_browser(p)
+        # 與 workflow 的 xvfb 螢幕（1280x1024）一致，並宣告澳門的
+        # 語言與時區 —— 預設的 en-US / UTC 與澳門政府網站的訪客不符。
+        context = await browser.new_context(
+            viewport={"width": 1280, "height": 1024},
+            locale="zh-HK",
+            timezone_id="Asia/Macau",
         )
-        context = await browser.new_context()
         page = await context.new_page()
-        
+
         print(f"[scrape] 正在加載 {URL}...")
         await page.goto(URL, timeout=60000)
-        
-        # 等待繞過 Cloudflare
+
+        # 等待繞過 Cloudflare。
+        # challenge 通常 5–10 秒放行；給到 90 秒是為了容忍機房 IP 被要求
+        # 做較重的運算挑戰。每 15 秒回報一次頁面標題，讓 log 看得出是
+        # 「一直卡在 challenge」還是「過了但表格沒出現」。
         print("[scrape] 等待繞過 Cloudflare 驗證與載入表格...")
         try:
-            await page.wait_for_selector("#MainGrid", timeout=45000)
+            deadline = time.monotonic() + 90
+            while True:
+                try:
+                    await page.wait_for_selector("#MainGrid", timeout=15000)
+                    break
+                except Exception:
+                    if time.monotonic() >= deadline:
+                        raise
+                    print(f"[scrape]   仍在等待… 目前標題: {await page.title()!r}")
             print("[scrape] 成功繞過 Cloudflare，表格已加載！")
         except Exception as e:
             # 失敗時保存偵錯素材並報錯。
