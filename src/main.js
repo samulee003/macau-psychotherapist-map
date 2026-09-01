@@ -3,14 +3,13 @@
    ============================================================
    版面設計：
    - 桌面版：左側欄（搜尋/篩選/列表）+ 右側地圖
-   - 手機版：上下分屏（地圖頂部 + 列表底部），AI 改為浮動按鈕 → 全螢幕覆蓋
+   - 手機版：上下分屏（地圖頂部 + 列表底部）
    ============================================================ */
 
 import { loadData } from './data-loader.js';
-import { initFilters, initTimeFilters, setQuery, selectCategoryProgrammatic, applyCategoriesProgrammatic, resetFiltersProgrammatic, getFilterSnapshot, applyTimeFiltersProgrammatic } from './search.js';
+import { initFilters, initTimeFilters, setQuery, selectCategoryProgrammatic, applyCategoriesProgrammatic, resetFiltersProgrammatic, getFilterSnapshot, applyTimeFiltersProgrammatic, findMatchingTherapists, getMatchedTherapistsAt } from './search.js';
 import { initDetail, showLocationDetail, hideDetail } from './detail.js';
 import { CATEGORIES } from './config.js';
-import { initCopilot, updateModalUiState } from './copilot.js';
 import { initInAppBrowserBanner } from './inapp-browser.js';
 import { isLocationOpenNow } from './hours.js';
 import { getWgsCoords, distanceMeters, formatDistance } from './geo.js';
@@ -22,7 +21,7 @@ let activeModalResultIndex = -1; // Spotlight 搜尋結果鍵盤選取索引
 let userPosition = null; // 「附近優先」的使用者座標（WGS-84，[lng, lat]），null = 未啟用
 
 // map.js（連同 maplibre-gl 這個大依賴）採動態載入，
-// 讓列表/篩選/AI 等 app shell 不被地圖庫的下載與解析阻塞。
+// 讓列表/搜尋/篩選等 app shell 不被地圖庫的下載與解析阻塞。
 // 載入完成前所有地圖操作都是 no-op。
 let mapApi = null;
 
@@ -32,56 +31,6 @@ function closeInfoWindow() { mapApi?.closeInfoWindow(); }
 function fitToMarkers(...args) { mapApi?.fitToMarkers(...args); }
 function showUserLocation(...args) { mapApi?.showUserLocation(...args); }
 function hideUserLocation() { mapApi?.hideUserLocation(); }
-
-const MOBILE_BREAKPOINT = 768;
-let copilotIsMobile = null;
-
-function isMobileLayout() {
-  const media = window.matchMedia?.(`(max-width: ${MOBILE_BREAKPOINT}px)`);
-  return media ? media.matches : window.innerWidth <= MOBILE_BREAKPOINT;
-}
-
-/**
- * 讓 Copilot 的實際掛載容器跟隨響應式版面切換。
- * 內容會一併搬移，避免旋轉螢幕或跨過 768px 後聊天紀錄消失。
- */
-function syncCopilotContainer() {
-  const sidebarContainer = document.getElementById('copilot-sidebar-container');
-  const mobileContainer = document.getElementById('copilot-mobile-container');
-  if (!sidebarContainer || !mobileContainer) return;
-
-  const isMobile = isMobileLayout();
-  const target = isMobile ? mobileContainer : sidebarContainer;
-  const source = isMobile ? sidebarContainer : mobileContainer;
-  const activeContainer = document.querySelector('[data-copilot-active]');
-
-  if (copilotIsMobile === isMobile && activeContainer === target) return;
-
-  if (source !== target) {
-    while (source.firstChild) {
-      target.appendChild(source.firstChild);
-    }
-  }
-  source.removeAttribute('data-copilot-active');
-  target.setAttribute('data-copilot-active', '');
-
-  if (isMobile) {
-    target.classList.add('search-ai');
-    target.classList.remove('search-modal');
-    sidebarContainer.classList.remove('search-ai');
-  } else {
-    target.classList.add('search-modal', 'search-ai');
-    mobileContainer.classList.remove('search-ai');
-  }
-
-  copilotIsMobile = isMobile;
-}
-
-function bindCopilotResponsive() {
-  syncCopilotContainer();
-  window.addEventListener('resize', syncCopilotContainer);
-  window.addEventListener('orientationchange', syncCopilotContainer);
-}
 
 async function main() {
   // 儘早偵測並提示 App 內置瀏覽器（不等待資料載入）
@@ -106,7 +55,7 @@ async function main() {
   hideLoader();
 
   // 地圖與 UI 並行初始化：map.js（含 maplibre-gl）動態載入，
-  // 列表、篩選、AI 一律不等待。底圖就緒後補渲染 marker、
+  // 列表、搜尋、篩選一律不等待。底圖就緒後補渲染 marker、
   // 綁定 marker 點擊，並重新聚焦深連結指定的地點（若有）。
   const mapContainer = document.getElementById('map-container');
   import('./map.js')
@@ -135,9 +84,6 @@ async function main() {
       showMapLoadError(mapContainer, msg);
     });
 
-  // Copilot 會掛載到目前版面可見的容器，並在旋轉或跨越斷點時搬移內容。
-  bindCopilotResponsive();
-
   // 初始化 UI 元件
   initDetail();
   initFilters(db, onFilterResult);
@@ -145,7 +91,6 @@ async function main() {
   renderMobileFilters(db);
   bindMobileSearch();
   bindSplitHandle();
-  bindAiFab();
   bindNearbyButtons();
 
   // 桌面版側欄開合與大小調整
@@ -169,38 +114,10 @@ async function main() {
   // 註冊 Service Worker（離線快取；不支援或失敗時靜默略過）
   registerServiceWorker();
 
-  // 初始化 Copilot 智能助理 (Agentic Chatbot)
-  initCopilot(db, {
-    showLocationDetail: (loc) => {
-      openLocation(loc);
-
-      // 點選地點後，自動關閉桌面版搜尋模態框
-      const backdrop = document.getElementById('desktop-search-backdrop');
-      if (backdrop) backdrop.hidden = true;
-    },
-    setQuery: (query) => {
-      const chatInput = document.getElementById('chat-input');
-      if (chatInput) chatInput.value = query;
-      // 同步手機版搜尋框
-      const mobileSearch = document.getElementById('mobile-search-input');
-      if (mobileSearch) mobileSearch.value = query;
-      setQuery(query, db);
-    },
-    selectCategory: (catKey) => {
-      selectCategoryProgrammatic(catKey, db);
-    },
-    resetFilters: () => {
-      // 同步手機版搜尋框
-      const mobileSearch = document.getElementById('mobile-search-input');
-      if (mobileSearch) mobileSearch.value = '';
-      resetFiltersProgrammatic(db);
-    },
-  });
-
-  // Copilot 建立 chat-input 後才綁定 Spotlight 鍵盤導航。
+  // 桌面版 Spotlight 關鍵字搜尋（⌘K / Ctrl+K）
   bindDesktopSpotlight();
 
-  // 深連結需要先有 chat-input，才能同步桌面與手機搜尋欄。
+  // 深連結需要先有搜尋欄 DOM，才能同步桌面與手機搜尋框。
   applyDeepLink();
 
   // 返回鍵 / 手動改 hash：重新套用深連結狀態（可用返回鍵關閉詳情抽屜）
@@ -224,7 +141,6 @@ function renderAll(locations) {
   renderMarkers(mappable, db);
   renderLocationList(display);
   renderMobileLocationList(display);
-  updateResultCount(display);
   fitToMarkers(mappable);
   renderModalSearchResults(display);
 }
@@ -296,8 +212,8 @@ function applyDeepLink() {
     applyTimeFiltersProgrammatic(tf ? tf.split(',') : [], db);
 
     const q = params.get('q') || '';
-    const chatInput = document.getElementById('chat-input');
-    if (chatInput) chatInput.value = q;
+    const desktopSearch = document.getElementById('desktop-search-input');
+    if (desktopSearch) desktopSearch.value = q;
     const mobileSearch = document.getElementById('mobile-search-input');
     if (mobileSearch) mobileSearch.value = q;
     setQuery(q, db);
@@ -382,11 +298,27 @@ function renderLocationList(locations) {
       </div>
       <div class="list__item-address">${escapeHtml(loc.addressZh || t('detail_addr_unknown'))}</div>
       ${therapistCount ? `<div class="list__item-count">${t('therapist_count', { n: therapistCount })}${distanceLabel(loc)}</div>` : `<div class="list__item-count">${distanceLabel(loc, true)}</div>`}
+      ${matchedTherapistLabel(loc, 'list__item-count')}
       ${loc.lng == null ? `<div class="list__item-count" style="color:#9ca3af">${t('cannot_locate')}</div>` : ''}
     `;
     makeListItemInteractive(li, loc);
     ul.appendChild(li);
   }
+}
+
+/**
+ * 列表項的「符合關鍵字的治療師」標示。
+ * 打「林」時，各地點列出該處符合的林姓治療師姓名，
+ * 讓使用者一眼看出是誰命中，而不只是機構被列出來。
+ * 隱私約定：中英文姓名只擇一顯示（優先中文名）。
+ */
+function matchedTherapistLabel(loc, cls) {
+  const matched = getMatchedTherapistsAt(loc.id, db);
+  if (matched.length === 0) return '';
+  const names = matched.slice(0, 4).map((th) => th.nameZh || th.nameEn || '').filter(Boolean);
+  if (names.length === 0) return '';
+  const suffix = matched.length > names.length ? t('matched_more', { n: matched.length - names.length }) : '';
+  return `<div class="${cls} ${cls}--match">${escapeHtml(t('matched_therapists', { names: names.join('、') }) + suffix)}</div>`;
 }
 
 /**
@@ -447,6 +379,7 @@ function renderMobileLocationList(locations) {
       </div>
       <div class="mobile-list__item-address">${escapeHtml(loc.addressZh || t('detail_addr_unknown'))}</div>
       ${therapistCount ? `<div class="mobile-list__item-count">${t('therapist_count', { n: therapistCount })}${distanceLabel(loc)}</div>` : `<div class="mobile-list__item-count">${distanceLabel(loc, true)}</div>`}
+      ${matchedTherapistLabel(loc, 'mobile-list__item-count')}
       ${loc.lng == null ? `<div class="mobile-list__item-count" style="color:#9ca3af">${t('cannot_locate')}</div>` : ''}
     `;
     makeListItemInteractive(li, loc);
@@ -489,14 +422,6 @@ function setActiveMobileListItem(locationId) {
   document.querySelectorAll('.list__item').forEach((li) => {
     li.classList.toggle('is-active', li.dataset.locationId === locationId);
   });
-}
-
-function updateResultCount(locations) {
-  const el = document.getElementById('search-results-count');
-  if (!el) return;
-  el.textContent = locations.length === 0
-    ? t('results_count_none')
-    : t('results_count', { n: locations.length });
 }
 
 /**
@@ -570,6 +495,9 @@ function bindMobileSearch() {
     setQuery(val, db);
   }, 250);
   input.addEventListener('input', (e) => {
+    // 同步桌面版 Spotlight 輸入框，讓兩個版面的關鍵字一致
+    const desktopSearch = document.getElementById('desktop-search-input');
+    if (desktopSearch) desktopSearch.value = e.target.value;
     debouncedSearch(e.target.value);
   });
 }
@@ -763,37 +691,6 @@ function bindNearbyButtons() {
 }
 
 /* ============================================================
-   AI 浮動按鈕與全螢幕覆蓋
-   ============================================================ */
-
-/**
- * 綁定 AI 浮動按鈕開啟 / 覆蓋層關閉。
- */
-function bindAiFab() {
-  const fab = document.getElementById('ai-fab');
-  const overlay = document.getElementById('ai-overlay');
-  const closeBtn = document.getElementById('ai-overlay-close');
-  if (!fab || !overlay) return;
-
-  const openOverlay = () => {
-    overlay.hidden = false;
-    document.body.style.overflow = 'hidden'; // 阻止背景滾動
-  };
-  const closeOverlay = () => {
-    overlay.hidden = true;
-    document.body.style.overflow = '';
-  };
-
-  fab.addEventListener('click', openOverlay);
-  closeBtn?.addEventListener('click', closeOverlay);
-
-  // 點擊覆蓋層背景（非內容區）也可關閉
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) closeOverlay();
-  });
-}
-
-/* ============================================================
    桌面版側欄開合（手機版不再使用此邏輯）
    ============================================================ */
 
@@ -863,31 +760,37 @@ function bindSidebarResizer() {
 }
 
 /**
- * 桌面版 Spotlight 搜尋與 AI 助理模態框控制邏輯。
+ * 桌面版 Spotlight 關鍵字搜尋模態框控制邏輯。
+ * ⌘K / Ctrl+K 開啟、Esc 關閉；輸入即時篩選（防抖 250ms），
+ * ↑↓ 選取預覽結果、Enter 定位。
  */
 function bindDesktopSpotlight() {
   const trigger = document.getElementById('desktop-search-trigger');
   const backdrop = document.getElementById('desktop-search-backdrop');
+  const input = document.getElementById('desktop-search-input');
+  const clearBtn = document.getElementById('desktop-search-clear');
   if (!trigger || !backdrop) return;
 
   const openModal = () => {
     backdrop.hidden = false;
     requestAnimationFrame(() => {
-      const input = document.getElementById('chat-input');
       if (input) {
         input.focus();
         input.select();
-        // 開啟時同步一次 UI 狀態，確保顯示正確
         updateModalUiState(input.value.trim());
       }
     });
   };
 
-  const closeModal = () => {
-    backdrop.hidden = true;
-  };
+  const closeModal = closeDesktopSpotlight;
 
   trigger.addEventListener('click', openModal);
+  trigger.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openModal();
+    }
+  });
 
   // 點擊背景關閉
   backdrop.addEventListener('click', (e) => {
@@ -907,16 +810,34 @@ function bindDesktopSpotlight() {
     }
   });
 
-  // 鍵盤導航：在 Spotlight 輸入框按 ArrowUp / ArrowDown 選取預覽結果，按 Enter 定位
-  const chatInput = document.getElementById('chat-input');
-  chatInput?.addEventListener('keydown', (e) => {
-    const resultsContainer = document.getElementById('modal-search-results');
-    if (!resultsContainer || resultsContainer.hidden) {
-      activeModalResultIndex = -1;
-      return;
-    }
+  // 輸入即時篩選（防抖，避免打字時頻繁重建 marker）
+  const debouncedSearch = debounce((val) => {
+    setQuery(val, db);
+  }, 250);
 
-    const items = resultsContainer.querySelectorAll('.modal-results__item');
+  input?.addEventListener('input', (e) => {
+    const val = e.target.value;
+    updateModalUiState(val.trim());
+    // 同步手機版搜尋框，讓兩個版面的關鍵字一致
+    const mobileSearch = document.getElementById('mobile-search-input');
+    if (mobileSearch) mobileSearch.value = val;
+    debouncedSearch(val);
+  });
+
+  clearBtn?.addEventListener('click', () => {
+    if (!input) return;
+    input.value = '';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.focus();
+  });
+
+  // 鍵盤導航：ArrowUp / ArrowDown 選取預覽結果，Enter 定位
+  input?.addEventListener('keydown', (e) => {
+    const resultsContainer = document.getElementById('modal-search-results');
+    const items = resultsContainer && !resultsContainer.hidden
+      ? resultsContainer.querySelectorAll('.modal-results__item')
+      : [];
+
     if (items.length === 0) {
       activeModalResultIndex = -1;
       return;
@@ -924,7 +845,6 @@ function bindDesktopSpotlight() {
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      e.stopImmediatePropagation();
       activeModalResultIndex++;
       if (activeModalResultIndex >= items.length) {
         activeModalResultIndex = 0; // 循環到第一個
@@ -932,22 +852,31 @@ function bindDesktopSpotlight() {
       updateSelectedModalResult(items, activeModalResultIndex);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      e.stopImmediatePropagation();
       activeModalResultIndex--;
-      if (activeModalResultIndex < -1) {
+      if (activeModalResultIndex < 0) {
         activeModalResultIndex = items.length - 1; // 循環到最後一個
       }
       updateSelectedModalResult(items, activeModalResultIndex);
     } else if (e.key === 'Enter') {
-      // 只有當選中了某個即時預覽結果時，才攔截 Enter 鍵並進行定位（否則放行給 AI 對話）
-      if (activeModalResultIndex >= 0 && activeModalResultIndex < items.length) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        items[activeModalResultIndex].click(); // 觸發定位點擊事件
-        activeModalResultIndex = -1;
-      }
+      e.preventDefault();
+      // 未選取時，Enter 直接定位第一筆結果
+      const index = activeModalResultIndex >= 0 ? activeModalResultIndex : 0;
+      items[index].click();
+      activeModalResultIndex = -1;
     }
-  }, true); // 使用 Capture 捕獲階段，以先於 copilot.js 的 Enter 對話發送事件進行攔截
+  });
+}
+
+/**
+ * 依目前關鍵字切換 Spotlight 內部區塊：
+ * 無關鍵字 → 顯示操作提示；有關鍵字 → 顯示結果預覽。
+ */
+function updateModalUiState(query) {
+  const hint = document.getElementById('search-modal-hint');
+  const results = document.getElementById('modal-search-results');
+  const hasQuery = Boolean(query);
+  if (hint) hint.hidden = hasQuery;
+  if (results) results.hidden = !hasQuery;
 }
 
 /**
@@ -973,33 +902,103 @@ function renderModalSearchResults(locations) {
 
   container.innerHTML = '';
   activeModalResultIndex = -1; // 每次重新輸入或搜尋時，重置鍵盤選取索引
-  
-  // 若沒有篩選關鍵字且對話尚未開始，由 updateModalUiState 控制隱藏
-  const queryInput = document.getElementById('chat-input');
-  if (!queryInput || !queryInput.value.trim()) {
-    return;
+
+  // 沒有關鍵字時整區由 updateModalUiState 隱藏
+  const queryInput = document.getElementById('desktop-search-input');
+  const query = queryInput ? queryInput.value.trim() : '';
+  if (!query) return;
+
+  // 先列出「符合關鍵字的治療師本身」——打姓名關鍵字時，
+  // 使用者要看的是「有哪些林姓治療師」，而不只是他們所在的機構。
+  const therapists = findMatchingTherapists(db, query);
+  if (therapists.length > 0) {
+    container.appendChild(buildTherapistResults(therapists));
   }
 
   if (locations.length === 0) {
-    container.innerHTML = `
-      <div class="modal-results__empty">
-        ${t('modal_results_empty')}
-      </div>`;
+    const empty = document.createElement('div');
+    empty.className = 'modal-results__empty';
+    empty.textContent = t('modal_results_empty');
+    container.appendChild(empty);
     return;
   }
 
-  // 限制只顯示前 5 筆最相關結果，避免撐爆模態框
-  const displayLocations = locations.slice(0, 5);
+  container.appendChild(buildLocationResults(locations));
+}
+
+/**
+ * 治療師搜尋結果區塊。點擊 → 以其全名收斂搜尋，只留下他/她的執業地點；
+ * 若只有一個執業地點，直接開啟該地點詳情。
+ */
+function buildTherapistResults(therapists) {
+  const section = document.createElement('div');
+  section.className = 'modal-results__section';
 
   const title = document.createElement('div');
   title.className = 'modal-results__title';
-  title.textContent = t('modal_results_title', { n: locations.length });
-  container.appendChild(title);
+  title.textContent = t('modal_therapists_title', { n: therapists.length });
+  section.appendChild(title);
 
   const ul = document.createElement('ul');
   ul.className = 'modal-results__list';
 
-  for (const loc of displayLocations) {
+  // 限制顯示前 6 筆，避免撐爆模態框
+  for (const th of therapists.slice(0, 6)) {
+    // 隱私約定：中英文姓名只擇一顯示（優先中文名）
+    const displayName = th.nameZh || th.nameEn || '';
+    const locs = db.getLocationsByTherapist(th.id);
+    const li = document.createElement('li');
+    li.className = 'modal-results__item modal-results__item--therapist';
+    li.innerHTML = `
+      <div class="modal-results__item-left">
+        <span class="modal-results__avatar">${escapeHtml(displayName.slice(0, 1))}</span>
+        <div class="modal-results__name">${escapeHtml(displayName)}</div>
+        <div class="modal-results__address">${escapeHtml(locs.map((l) => l.name).join('、'))}</div>
+      </div>
+      <div class="modal-results__item-right">
+        <span class="modal-results__badge modal-results__badge--license">${escapeHtml(th.licenseNo || '')}</span>
+        <span class="modal-results__go">${locs.length === 1 ? t('modal_results_locate') : t('modal_results_filter')}</span>
+      </div>
+    `;
+
+    li.addEventListener('click', () => {
+      if (locs.length === 1) {
+        openLocation(locs[0]);
+        closeDesktopSpotlight();
+        return;
+      }
+      // 多個執業地點：以全名收斂搜尋，模態框留著讓使用者選地點
+      const name = th.nameZh || th.nameEn || '';
+      for (const id of ['desktop-search-input', 'mobile-search-input']) {
+        const input = document.getElementById(id);
+        if (input) input.value = name;
+      }
+      updateModalUiState(name);
+      setQuery(name, db);
+    });
+
+    ul.appendChild(li);
+  }
+
+  section.appendChild(ul);
+  return section;
+}
+
+/** 執業地點搜尋結果區塊 */
+function buildLocationResults(locations) {
+  const section = document.createElement('div');
+  section.className = 'modal-results__section';
+
+  const title = document.createElement('div');
+  title.className = 'modal-results__title';
+  title.textContent = t('modal_results_title', { n: locations.length });
+  section.appendChild(title);
+
+  const ul = document.createElement('ul');
+  ul.className = 'modal-results__list';
+
+  // 限制只顯示前 5 筆最相關結果，避免撐爆模態框
+  for (const loc of locations.slice(0, 5)) {
     const cat = CATEGORIES[loc.category] || CATEGORIES.other;
     const therapists = db.getTherapistsByLocation(loc.id);
     const li = document.createElement('li');
@@ -1018,16 +1017,20 @@ function renderModalSearchResults(locations) {
 
     li.addEventListener('click', () => {
       openLocation(loc);
-
-      // 點擊後關閉 Spotlight 模態框
-      const backdrop = document.getElementById('desktop-search-backdrop');
-      if (backdrop) backdrop.hidden = true;
+      closeDesktopSpotlight();
     });
 
     ul.appendChild(li);
   }
 
-  container.appendChild(ul);
+  section.appendChild(ul);
+  return section;
+}
+
+/** 關閉桌面版 Spotlight 模態框 */
+function closeDesktopSpotlight() {
+  const backdrop = document.getElementById('desktop-search-backdrop');
+  if (backdrop) backdrop.hidden = true;
 }
 
 /* ---------- 載入狀態 ---------- */
@@ -1056,7 +1059,7 @@ function escapeHtml(s) {
 }
 
 /**
- * 當地圖加載失敗時，渲染精美的警告卡片替代空白，使系統其他列表與 AI 功能正常降級運行
+ * 當地圖加載失敗時，渲染警告卡片替代空白，讓列表與搜尋篩選仍可正常使用
  */
 function showMapLoadError(container, errorMsg) {
   if (!container) return;

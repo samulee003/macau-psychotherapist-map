@@ -1,6 +1,6 @@
 # v2 升級藍圖：後端代理 Copilot
 
-> **狀態**：已實作（`package.json` 版本 `2.0.0`，見 `src/copilot.js`、`api/copilot.js`、`vercel.json`）。本文保留 v2 的設計決策記錄，供後續維護參考。
+> **狀態**：**已於 v2.3 移除**。搜尋欄回歸純關鍵字搜尋與篩選，`src/copilot.js`、`api/copilot.js`、`lib/copilot-proxy.js` 與 `vercel.json` 的 function 設定皆已刪除，專案回到 100% 純靜態。本文僅保留 v2 的設計決策記錄，供日後如需重新評估時參考；除非使用者明確要求，勿據此重新引入 AI 功能。
 > **背景**：1.0（純靜態）為了避免「使用者自己貼 API Key」的不合理體驗，**完全移除了 Copilot 功能**。v2 透過後端代理重新引入 Agent，讓使用者免 Key 即可使用。
 
 ---

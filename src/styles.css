@@ -344,12 +344,11 @@ html, body {
   color: var(--color-primary);
 }
 
-.search__count {
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--color-text-muted);
-  min-height: 16px;
-  font-weight: 500;
+/* 搜尋命中的治療師姓名標示（列表項內） */
+.list__item-count--match,
+.mobile-list__item-count--match {
+  color: var(--color-primary-dark);
+  font-weight: 600;
 }
 
 /* 分類篩選區塊 */
@@ -957,13 +956,11 @@ html, body {
 
 /* ---------------------------------------------------------- */
 /* 手機版專屬元件基礎樣式（桌面版隱藏）                       */
-/* split-handle / mobile-panel / ai-fab / ai-overlay 僅於      */
+/* split-handle / mobile-panel 僅於                            */
 /* max-width:768px 時顯示，桌面版一律 display:none            */
 /* ---------------------------------------------------------- */
 .split-handle,
-.mobile-panel,
-.ai-fab,
-.ai-overlay {
+.mobile-panel {
   display: none;
 }
 
@@ -1192,101 +1189,7 @@ html, body {
     line-height: 1.4;
   }
 
-  /* ===== 6. 浮動 AI 按鈕 ===== */
-  .ai-fab {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    /* iPhone 底部橫條安全區 */
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-    right: 14px;
-    width: 48px;
-    height: 48px;
-    border: none;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-    color: #fff;
-    cursor: pointer;
-    box-shadow: 0 4px 16px rgba(44, 110, 127, 0.4);
-    z-index: 900;
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
-  }
-
-  .ai-fab:hover {
-    transform: scale(1.08);
-    box-shadow: 0 6px 20px rgba(44, 110, 127, 0.5);
-  }
-
-  .ai-fab:active {
-    transform: scale(0.95);
-  }
-
-  /* ===== 7. AI 全螢幕覆蓋層 ===== */
-  .ai-overlay {
-    display: flex;
-    flex-direction: column;
-    position: absolute;
-    inset: 0;
-    z-index: 2000;
-    background: var(--color-bg);
-  }
-
-  .ai-overlay[hidden] {
-    display: none !important;
-  }
-
-  .ai-overlay__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 14px 16px;
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-    color: #fff;
-    box-shadow: 0 4px 16px rgba(44, 110, 127, 0.12);
-    flex-shrink: 0;
-  }
-
-  .ai-overlay__header h2 {
-    font-family: var(--font-title);
-    font-size: 15px;
-    font-weight: 700;
-  }
-
-  .ai-overlay__close {
-    flex-shrink: 0;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #fff;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .ai-overlay__close:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: scale(1.05);
-  }
-
-  .ai-overlay__close:active {
-    transform: scale(0.95);
-  }
-
-  .ai-overlay__body {
-    flex: 1;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-
-  /* ===== 8. 詳情抽屜手機版（底部 Bottom Sheet） ===== */
+  /* ===== 6. 詳情抽屜手機版（底部 Bottom Sheet） ===== */
   .drawer {
     position: absolute;
     left: 0;
@@ -1331,9 +1234,9 @@ html, body {
 }
 
 /* ---------------------------------------------------------- */
-/* AI 智能助理 (Copilot Chatbot)                              */
+/* 桌面版 Spotlight 關鍵字搜尋                                */
 /* ---------------------------------------------------------- */
-/* 桌面版 Spotlight 搜尋背景遮罩 */
+/* 背景遮罩 */
 .search-backdrop {
   position: fixed;
   inset: 0;
@@ -1368,20 +1271,6 @@ html, body {
   animation: modalEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.search-modal.search-ai {
-  height: auto;
-  min-height: 0;
-  max-height: none;
-  border-bottom: none;
-  border-radius: var(--radius-lg);
-}
-
-.search-modal.search-ai.has-messages {
-  height: 480px; /* 在有訊息時提供足夠的滾動展示空間 */
-  max-height: 70vh;
-  min-height: 200px;
-}
-
 @keyframes modalEnter {
   from {
     opacity: 0;
@@ -1393,338 +1282,58 @@ html, body {
   }
 }
 
-.search-ai__input-row {
+.search-modal__input-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 12px 16px;
 }
 
-.search-ai__input-row .search__wrapper {
+.search-modal__input-row .search__wrapper {
   flex: 1;
 }
 
-.search-ai__sparkle {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 14px;
-}
-
-.search-ai__send-btn {
+.search-modal__clear-btn {
   position: absolute;
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: var(--color-primary);
-  cursor: pointer;
+  padding: 2px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 4px;
-  border-radius: 50%;
-  transition: all 0.2s;
-}
-
-.search-ai__send-btn:hover {
-  background: rgba(44, 110, 127, 0.1);
-  color: var(--color-primary-dark);
-}
-
-.search-ai__actions {
-  display: flex;
-  gap: 4px;
-}
-
-.search-ai__action-btn {
-  background: none;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  background-color: #fff;
-  transition: all 0.2s;
-}
-
-.search-ai__action-btn:hover {
-  background-color: var(--color-border);
-  border-color: #cbd5e1;
-}
-
-.search-ai__action-btn.is-active {
-  background-color: var(--color-primary);
-  color: #fff;
-  border-color: var(--color-primary);
-}
-
-
-
-.chat-settings {
-  padding: 14px 18px;
-  background: rgba(241, 245, 249, 0.95);
-  border-bottom: 1px solid var(--color-border);
-  font-size: 12px;
-  animation: slideDown 0.3s ease-out;
-}
-
-@keyframes slideDown {
-  from { transform: translateY(-10px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-.chat-settings__field {
-  margin-bottom: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.chat-settings__label {
-  font-weight: 600;
-  color: var(--color-text-muted);
-  font-size: 11px;
-}
-
-.chat-settings__select {
-  padding: 6px 10px;
-  font-size: 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: #fff;
-  outline: none;
-}
-
-.chat-settings__desc {
-  color: var(--color-text-muted);
-  line-height: 1.5;
-  margin-bottom: 8px;
-}
-
-.chat-settings__input-wrapper {
-  display: flex;
-  gap: 6px;
-}
-
-.chat-settings__input {
-  flex: 1;
-  padding: 6px 10px;
-  font-size: 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: #fff;
-}
-
-.chat-settings__hint {
-  font-size: 10px;
   color: var(--color-text-light);
-  margin-top: 6px;
+  cursor: pointer;
+  transition: color 0.2s;
 }
 
-.chat-messages {
-  display: none;
-}
-
-.search-ai.has-messages .chat-messages {
-  display: flex;
-  flex: 1;
-  padding: 12px 16px;
-  overflow-y: auto;
-  min-height: 0; /* 允許 flex 項目縮小，啟用滾動條 */
-  flex-direction: column;
-  gap: 12px;
-  scrollbar-width: thin;
-  --scrollbar-thumb: rgba(148, 163, 184, 0.2);
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-}
-
-.chat-messages::-webkit-scrollbar {
-  width: 4px;
-}
-.chat-messages::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 99px;
-}
-
-.chat-message {
-  max-width: 85%;
-  padding: 10px 14px;
-  font-size: 13px;
-  line-height: 1.5;
-  border-radius: var(--radius-md);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
-}
-
-.chat-message--user {
-  align-self: flex-end;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: #fff;
-  border-bottom-right-radius: 2px;
-}
-
-.chat-message--assistant {
-  align-self: flex-start;
-  background: #fff;
+.search-modal__clear-btn:hover {
   color: var(--color-text);
-  border: 1px solid var(--color-border);
-  border-bottom-left-radius: 2px;
 }
 
-.chat-message--system {
-  align-self: center;
-  max-width: 95%;
-  background: rgba(241, 245, 249, 0.8);
-  border: 1px dashed var(--color-border);
+/* 尚未輸入關鍵字時的操作提示 */
+.search-modal__hint {
+  padding: 12px 20px 16px;
+  font-size: 11.5px;
+  line-height: 1.6;
   color: var(--color-text-muted);
-  font-size: 12.5px;
-  border-radius: var(--radius-md);
+  border-top: 1px dashed var(--color-border);
+  margin: 0 4px;
 }
 
-.chat-suggestions {
-  display: flex;
-  gap: 6px;
-  padding: 6px 16px;
-  overflow-x: auto;
-  flex-shrink: 0;
-  border-top: 1px solid rgba(226, 232, 240, 0.4);
-  background: rgba(248, 250, 252, 0.5);
-}
-
-.chat-suggestions::-webkit-scrollbar {
-  display: none;
-}
-
-.chat-suggest-btn {
-  white-space: nowrap;
-  padding: 5px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: 99px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.chat-suggest-btn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  transform: translateY(-1px);
-}
-
-.chat-panel__input-area {
-  padding: 10px 16px 14px;
-  display: flex;
-  gap: 8px;
-  border-top: 1px solid var(--color-border);
-  background: #fff;
-  align-items: center;
-}
-
-.chat-input {
-  flex: 1;
-  padding: 10px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  outline: none;
-  background: var(--color-bg);
-  transition: all 0.2s;
-}
-
-.chat-input:focus {
-  border-color: var(--color-primary);
-  background: #fff;
-  box-shadow: 0 0 0 2px rgba(44, 110, 127, 0.1);
-}
-
-.chat-send-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  background: var(--color-primary);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.chat-send-btn:hover {
-  background: var(--color-primary-dark);
-  transform: scale(1.03);
-}
-
-.chat-send-btn:active {
-  transform: scale(0.97);
-}
-
-/* loading animation dots */
-.loading-dots span {
-  animation: blink 1.4s infinite both;
-}
-.loading-dots span:nth-child(2) { animation-delay: .2s; }
-.loading-dots span:nth-child(3) { animation-delay: .4s; }
-
-@keyframes blink {
-  0% { opacity: .2; }
-  20% { opacity: 1; }
-  100% { opacity: .2; }
+.search-modal__hint[hidden] {
+  display: none !important;
 }
 
 /* ============================================================
-   Spotlight 搜尋與 AI 助理進階樣式 (推薦提問 / 快速結果預覽)
+   Spotlight 快速結果預覽
    ============================================================ */
 
-/* 推薦提問提示 */
-.modal-tips {
-  padding: 12px 20px 16px;
-  border-top: 1px dashed var(--color-border);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.modal-results[hidden] {
+  display: none !important;
 }
 
-.modal-tips__title {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--color-text-muted);
-}
-
-.modal-tips__list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.modal-tips__item {
-  font-size: 12px;
-  color: var(--color-primary);
-  background: var(--color-primary-light);
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  font-weight: 500;
-  border: 1px solid transparent;
-}
-
-.modal-tips__item:hover {
-  background: #fff;
-  border-color: var(--color-primary);
-  transform: translateX(4px);
-}
-
-/* Spotlight 搜尋結果快速預覽 */
 .modal-results {
   padding: 12px 20px 16px;
   border-top: 1px dashed var(--color-border);
@@ -1780,6 +1389,39 @@ html, body {
   background: var(--color-primary-light);
   box-shadow: 0 0 0 2px rgba(44, 110, 127, 0.2);
   transform: translateY(-1px);
+}
+
+.modal-results__section + .modal-results__section {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-border);
+}
+
+.modal-results__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 治療師結果：以姓氏圓形標記與機構結果的色點區隔 */
+.modal-results__avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  background: var(--color-primary-light);
+  border: 1px solid var(--color-border);
+}
+
+.modal-results__badge--license {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
 }
 
 .modal-results__item-left {
@@ -1845,23 +1487,10 @@ html, body {
 }
 
 @media (max-width: 768px) {
-  /* 搜尋結果快速預覽為桌面 Spotlight 專用（手機下半屏列表已即時反映）；
-     推薦提問（.modal-tips）手機也要顯示，否則 AI 覆蓋層初始一片空白 */
+  /* 搜尋結果快速預覽為桌面 Spotlight 專用（手機下半屏列表已即時反映） */
   .modal-results {
     display: none !important;
   }
-}
-
-.search-ai__disclaimer {
-  padding: 8px 16px;
-  font-size: 10px;
-  color: var(--color-text-light);
-  background: var(--color-bg);
-  border-top: 1px solid var(--color-border);
-  text-align: center;
-  line-height: 1.45;
-  user-select: none;
-  flex-shrink: 0;
 }
 
 /* 地圖載入失敗降級卡片 */
