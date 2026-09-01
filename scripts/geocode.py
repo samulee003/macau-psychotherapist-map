@@ -195,7 +195,34 @@ def in_macao(lng: float, lat: float) -> bool:
 # 主流程
 # ----------------------------------------------------------------
 
+def load_existing_coords():
+    """
+    載入 geocoded.json 已有的座標。
+
+    import_roster_csv.py 會從現有 data.json 沿用座標預先填好 geocoded.json，
+    多數地址其實不必重打高德 API。--fill-gaps 只補真正查不到的那些，
+    既省額度，也讓「來源沒新增地址」的那幾輪完全不需要 AMAP_WEB_KEY。
+    """
+    if not OUTPUT.exists():
+        return {}
+    try:
+        data = json.loads(OUTPUT.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"[geocode] 既有 geocoded.json 讀取失敗，將全部重新查詢: {e}")
+        return {}
+    known = {}
+    for a in data.get("addresses", []):
+        if a.get("lng") is not None and a.get("lat") is not None:
+            known[a["address"]] = {k: a[k] for k in ("lng", "lat") if k in a}
+            for extra in ("formatted", "level"):
+                if a.get(extra):
+                    known[a["address"]][extra] = a[extra]
+    return known
+
+
 def main():
+    fill_gaps = "--fill-gaps" in sys.argv
+
     if AMAP_WEB_KEY == "YOUR_AMAP_WEB_SERVICE_KEY":
         print("[geocode] ⚠ 未設定 AMAP_WEB_KEY 環境變數。")
         print("[geocode]   請執行: export AMAP_WEB_KEY=你的高德Web服務key")
@@ -221,10 +248,21 @@ def main():
         if key not in unique_addrs:
             unique_addrs[key] = place
 
-    print(f"[geocode] 共 {len(unique_addrs)} 個不重複地址需要 geocode")
+    existing = load_existing_coords() if fill_gaps else {}
+    if fill_gaps:
+        reused = {a: existing[a] for a in unique_addrs if a in existing}
+        addr_to_coord.update(reused)
+        todo = {a: p for a, p in unique_addrs.items() if a not in existing}
+        print(f"[geocode] --fill-gaps：沿用 {len(reused)} 個既有座標，"
+              f"需查詢 {len(todo)} 個")
+        if not todo:
+            print("[geocode] 沒有新地址，不需呼叫高德 API。")
+    else:
+        todo = unique_addrs
+        print(f"[geocode] 共 {len(todo)} 個不重複地址需要 geocode")
 
-    for i, (addr, place) in enumerate(unique_addrs.items(), 1):
-        print(f"[{i}/{len(unique_addrs)}] {addr}  ({place})")
+    for i, (addr, place) in enumerate(todo.items(), 1):
+        print(f"[{i}/{len(todo)}] {addr}  ({place})")
         coord = geocode_address(addr)
         addr_to_coord[addr] = coord
         time.sleep(REQUEST_DELAY)

@@ -76,11 +76,22 @@ pip install playwright requests beautifulsoup4 lxml
 python -m playwright install chromium
 export AMAP_WEB_KEY=你的高德Web服務key      # geocoding 用
 python3 scripts/scrape.py        # 從衛生局官方名冊抓取 → raw.json
-python3 scripts/geocode.py       # 地址→座標 → geocoded.json
+python3 scripts/geocode.py --fill-gaps   # 只補新地址座標 → geocoded.json
 python3 scripts/build_data.py    # 去重/合併/分類 → data/data.json
-python3 scripts/validate.py      # 資料校驗
+python3 scripts/validate.py --baseline <更新前的 data.json>
 open scripts/preview.html        # 人工校驗座標
+
+# 或：直接匯入瀏覽器匯出的 CSV（不需 Playwright）
+python3 scripts/import_roster_csv.py 名冊.csv
 ```
+
+- **採集鐵律：只能在本機跑，不能在 CI。** `ssm.gov.mo` 對機房 IP 一律 403
+  Cloudflare challenge（五個頁面、兩個網域、純 HTTP 與真 Chrome 全數實測），
+  卡的是 IP 信譽而非瀏覽器指紋，調 stealth 無用。`update_data.yml` 已移除
+  每週排程。
+- **座標沿用鐵律：不要每輪重新 geocode。** `import_roster_csv.py` 從既有
+  `data.json` 沿用座標，`geocode.py --fill-gaps` 只補缺口。全量重跑會浪費
+  高德額度，也會讓管線無謂地硬相依於 `AMAP_WEB_KEY`。
 
 ## 資料模型（核心）
 

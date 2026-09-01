@@ -219,6 +219,42 @@ def main():
         if not any(p["therapistId"] == t_id and p["locationId"] == loc_id for p in practices):
             practices.append({"therapistId": t_id, "locationId": loc_id})
 
+    # 合併「同名且同座標」的地點。
+    #
+    # 地點以正規化地址去重，但同一棟樓的不同房號會產生不同地址，例如
+    # 澳門大學學生活動中心的 2009 室 / 2009-b / 2009-c / 2009-d，
+    # 在地圖上就是 5 個完全重疊、無法分辨也無法點選的圖釘。
+    #
+    # 僅在「機構名相同」且「座標完全相同」時合併 —— 真正的不同分店
+    # （如仁德醫療中心各分店）座標不同，不會被誤併。缺座標者不參與合併，
+    # 因為無法確認是否為同一實體地點。
+    merged_of = {}          # 被併掉的 loc_id -> 保留的 loc_id
+    keep_by_key = {}        # (name, lng, lat) -> 保留的 loc_id
+    for loc_id, loc in list(locations.items()):
+        if loc.get("lng") is None or loc.get("lat") is None:
+            continue
+        key = (loc["name"], loc["lng"], loc["lat"])
+        keep_id = keep_by_key.get(key)
+        if keep_id is None:
+            keep_by_key[key] = loc_id
+            continue
+        keeper = locations[keep_id]
+        keeper["phone"] = merge_text(keeper.get("phone"), loc.get("phone"), ", ")
+        keeper["hours"] = merge_text(keeper.get("hours"), loc.get("hours"), " / ")
+        merged_of[loc_id] = keep_id
+        del locations[loc_id]
+
+    if merged_of:
+        # 關聯改指向保留下來的地點，並重新去重
+        remapped = []
+        for p in practices:
+            lid = merged_of.get(p["locationId"], p["locationId"])
+            pair = (p["therapistId"], lid)
+            if pair not in {(x["therapistId"], x["locationId"]) for x in remapped}:
+                remapped.append({"therapistId": p["therapistId"], "locationId": lid})
+        practices = remapped
+        print(f"[build] 已合併 {len(merged_of)} 個同名同座標的重複地點")
+
     # 輸出。來源資訊從 raw.json 的 _meta 動態繼承（scrape.py 寫入），
     # 避免來源變更時 meta 與實際採集來源不一致。
     raw_meta = raw.get("_meta", {})
