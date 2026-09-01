@@ -60,13 +60,37 @@ pip install playwright requests beautifulsoup4 lxml
 python -m playwright install chromium
 export AMAP_WEB_KEY=你的key   # 高德 Web 服務 key，用於 geocoding
 
-# 一鍵採集流程
+# 一鍵採集流程（本機執行）
 python3 scripts/scrape.py        # 從衛生局官方名冊抓取 → raw.json
-python3 scripts/geocode.py       # 地址→座標 → geocoded.json
+python3 scripts/geocode.py --fill-gaps   # 只補新地址的座標 → geocoded.json
 python3 scripts/build_data.py    # 去重/合併 → data/data.json
-python3 scripts/validate.py      # 資料校驗
+python3 scripts/validate.py --baseline <更新前的 data.json>
 open scripts/preview.html        # 人工校驗座標
 ```
+
+### ⚠️ 採集只能在本機執行，不能在 CI
+
+衛生局網站（`ssm.gov.mo`）對機房 IP 一律回 403 Cloudflare challenge。實測涵蓋
+五個不同頁面、兩個網域（含 `cps.gov.mo`），純 HTTP 與真 Chrome 皆然；換用系統
+Chrome、補上 `zh-HK` locale 與澳門時區也無效 —— 卡的是 IP 信譽，不是瀏覽器指紋。
+家用網路 IP 則可正常存取。
+
+因此 `update_data.yml` 已移除每週排程（留下手動觸發），採集改為本機進行。
+
+### 從瀏覽器匯出的 CSV 匯入（不需 Playwright）
+
+若以瀏覽器取得名冊並匯出 CSV（欄序需為：序號／執照類別／執照編號／中文姓名／
+外文姓名／執業地點及地址／電話／診症時間／准照編號／批示日期）：
+
+```bash
+python3 scripts/import_roster_csv.py 名冊.csv   # → raw.json + geocoded.json
+python3 scripts/build_data.py
+python3 scripts/validate.py --baseline <更新前的 data.json>
+```
+
+`import_roster_csv.py` 會從現有 `data/data.json` 沿用座標（地址相同、或機構名
+相同且座標唯一），只有真正的新地址才需要再跑 `geocode.py --fill-gaps`。
+換言之，**來源沒有新增地址的那幾輪完全不需要 `AMAP_WEB_KEY`。**
 
 ## 🏗️ 技術棧
 

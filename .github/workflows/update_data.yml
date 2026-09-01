@@ -1,10 +1,14 @@
 name: Auto Update Data
 
 on:
-  schedule:
-    # 每個星期天早上 8:00 (澳門時間，即 UTC 0:00) 執行
-    - cron: '0 0 * * 0'
-  workflow_dispatch: # 支援手動觸發
+  # 每週排程已移除：衛生局網站對 GitHub 機房 IP 一律回 403 Cloudflare
+  # challenge（五個頁面、兩個網域、純 HTTP 與真 Chrome 全數實測皆然），
+  # 這個 job 在 CI 上不可能成功，留著只會每週失敗一次並灌爆通知 issue。
+  # 採集改為本機執行，見 README「採集只能在本機執行」。
+  # 若日後 Cloudflare 政策放寬，把下面兩行取消註解即可恢復：
+  #   schedule:
+  #     - cron: '0 0 * * 0'
+  workflow_dispatch: # 保留手動觸發，供本機環境或日後恢復時使用
 
 permissions:
   contents: write # 必須授予寫入權限以推送更新數據
