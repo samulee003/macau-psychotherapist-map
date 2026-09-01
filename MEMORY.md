@@ -98,6 +98,13 @@
 - **理由**：搜尋欄的主要用途是「找到某間機構或某位治療師」，關鍵字篩選即時、可預期且零成本；AI 對話讓最常用的操作多了一層延遲與不確定性。移除後專案回到 100% 純靜態（無 serverless function、無 `DEEPSEEK_API_KEY`），首屏 JS 由 72KB 降至 44KB（gzip 25.3KB → 14.8KB），也一併消除了「代理被當免費 LLM API 濫用」的攻擊面。
 - **後續**：Vercel 專案的 `DEEPSEEK_API_KEY` 環境變數已無用途，可自行刪除。v2 的設計記錄保留於 `docs/roadmap-v2.md`，僅供日後重新評估時參考。
 
+### 15. Service Worker：app shell 改為 network-first（2026-09-01）
+
+- **問題**：v2.3 上線後，手機仍看得到已移除的 AI 對話框。正式站 HTML 其實已是新版 —— 是 `public/sw.js` 對**所有**同源請求都用 stale-while-revalidate，舊訪客回訪時 SW 先回快取中的舊 `index.html`，而它引用的是同樣被快取的舊 hashed JS bundle，整個舊版 App 就這樣被端出來。
+- **決策**：HTML 導覽與 `data.json` 改走 network-first（離線才回退快取），hashed 資源維持 stale-while-revalidate（檔名帶內容 hash，內容不會變），並 bump `CACHE_NAME` 至 `mptm-cache-v2` 清掉舊快取。
+- **理由**：app shell 決定了會載入哪一版的 JS/CSS，它一旦過期，其他快取策略再正確也沒用；資料則是「名冊更新要即時反映」，同樣不能吃舊快取。hashed 資源沒有這個問題，維持快取優先以保住首屏速度與離線能力。
+- **實測**：以新舊兩份 sw.js 各跑一次「安裝 → 快取 → 部署新版 → 回訪」流程 —— 舊版部署後第一次載入仍是舊 App（第二次才更新），新版第一次載入即為新 App；離線重新載入仍可完整渲染 41 筆列表。
+
 ---
 
 ## 實測中發現並修復的關鍵 bug
