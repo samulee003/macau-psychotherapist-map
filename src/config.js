@@ -21,7 +21,7 @@ export const MACAO_VIEW = {
 export const CATEGORIES = {
   hospital: { label: '醫院', color: '#d64545' },
   med_center: { label: '醫療中心', color: '#e8893a' },
-  psych_center: { label: '心理治療中心', color: '#2c6e7f' },
+  psych_center: { label: '心理治療中心', color: '#3b6fb6' },
   social: { label: '社會服務機構', color: '#5b8c5a' },
   university: { label: '大學', color: '#7a5ca0' },
   gov: { label: '政府機構', color: '#6b7280' },

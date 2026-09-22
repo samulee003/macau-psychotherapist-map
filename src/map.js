@@ -1,18 +1,16 @@
 /* ============================================================
-   地圖模組：MapLibre GL + OSM/CARTO 光柵底圖
-   ─ 免 API key、無網域白名單、底圖為 WGS-84 無座標偏移。
-   ─ data.json 座標為 GCJ-02（高德 geocoding 產出），渲染前
-     一律經 getWgsCoords() 轉為 WGS-84（見 geo.js）。
-   ─ 對外介面與舊高德版完全相同：initMap / renderMarkers /
-     onMarkerClick / highlightMarker / closeInfoWindow /
-     fitToMarkers / showUserLocation / hideUserLocation。
+   地圖模組：MapLibre GL + OpenFreeMap Positron（OSM 向量底圖）
+   ─ 免 API key。CARTO 光柵磚現已強制 key，缺 key 會在每塊磚印上
+     「API KEY REQUIRED」，所以不再使用 basemaps.cartocdn.com。
+   ─ 底圖為 WGS-84。data.json 座標為 GCJ-02，渲染前一律經
+     getWgsCoords()（見 geo.js）。
+   ─ 地點詳情只走抽屜，地圖上不另開資訊窗。
    ============================================================ */
 
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { MACAO_VIEW, CATEGORIES } from './config.js';
 import { getWgsCoords } from './geo.js';
-import { t } from './i18n.js';
 
 let map = null;
 let markerLayer = null;        // 目前顯示的 DOM Marker 集合
@@ -30,26 +28,8 @@ let currentLocations = [];     // renderMarkers 傳入的地點（含座標）
 let currentDb = null;
 let locationById = new Map();
 
-// 底圖：CARTO Positron（基於 OSM 的淺色底圖，凸顯 marker；
-// 免 key，須保留 attribution）。CARTO 掛掉時瀏覽器只會缺磚，
-// 不影響 marker 與其他功能。
-const BASEMAP_STYLE = {
-  version: 8,
-  sources: {
-    carto: {
-      type: 'raster',
-      tiles: [
-        'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-        'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-        'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-      ],
-      tileSize: 256,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
-    },
-  },
-  layers: [{ id: 'carto', type: 'raster', source: 'carto' }],
-};
+// 淺色 OSM 底圖，免 key。樣式內已含 OSM / OpenFreeMap attribution。
+const BASEMAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
 /**
  * 初始化地圖。
@@ -66,6 +46,8 @@ export async function initMap(container) {
     center: MACAO_VIEW.center,
     zoom: MACAO_VIEW.zoom,
     attributionControl: { compact: true },
+    // 中日韓字形用系統字，不向字形伺服器要 CJK 圖塊
+    localIdeographFontFamily: '"PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif',
   });
 
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
@@ -238,7 +220,6 @@ function addPinMarker(loc, coords) {
 
   el.addEventListener('click', (e) => {
     e.stopPropagation();
-    showInfoWindow(loc, currentDb);
     if (onMarkerClickCb) onMarkerClickCb(loc.id);
   });
 
@@ -284,28 +265,6 @@ export function clearMarkers() {
 }
 
 /**
- * 顯示地點的資訊窗（彈窗）。點擊 marker 時觸發。
- * 手機版不顯示 — 底部詳情抽屜會同步開啟，popup 只會與抽屜
- * 資訊重複並遮擋上半屏地圖。
- */
-function showInfoWindow(loc, db) {
-  if (!map || !popup) return;
-  if (window.matchMedia('(max-width: 768px)').matches) return;
-  const coords = getWgsCoords(loc);
-  if (!coords) return;
-
-  const therapists = db.getTherapistsByLocation(loc.id);
-  const content = `
-    <div class="iw">
-      <div class="iw__title">${escapeHtml(loc.name)}</div>
-      <div class="iw__address">${escapeHtml(loc.addressZh || '')}</div>
-      <div class="iw__count">${t('iw_count', { n: therapists.length })}</div>
-    </div>`;
-
-  popup.setLngLat(coords).setHTML(content).addTo(map);
-}
-
-/**
  * 註冊 marker 點擊回呼（供 main.js 聯動側欄與詳情面板）。
  */
 export function onMarkerClick(cb) {
@@ -313,14 +272,13 @@ export function onMarkerClick(cb) {
 }
 
 /**
- * 聚焦到某地點：移動地圖、開啟資訊窗。
+ * 聚焦到某地點。詳情在抽屜裡，這裡只移動地圖。
  */
-export function focusLocation(loc, db) {
+export function focusLocation(loc) {
   if (!map) return;
   const coords = getWgsCoords(loc);
   if (!coords) return;
   map.flyTo({ center: coords, zoom: 15, duration: 700 });
-  showInfoWindow(loc, db);
 }
 
 /**
@@ -328,7 +286,7 @@ export function focusLocation(loc, db) {
  */
 export function highlightMarker(locationId, db) {
   const loc = db.getLocationById(locationId);
-  if (loc) focusLocation(loc, db);
+  if (loc) focusLocation(loc);
 }
 
 /** 關閉資訊窗 */
@@ -385,11 +343,3 @@ export function fitToMarkers(locations) {
   map.fitBounds(bounds, { padding: 60, maxZoom: 16, duration: 600 });
 }
 
-/** 基本HTML跳脫，避免資料含特殊字元 */
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}

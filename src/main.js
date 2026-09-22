@@ -17,7 +17,6 @@ import { t, getLang, setLang, onLangChange, applyI18nDom } from './i18n.js';
 
 let db = null;
 let currentLocations = []; // 目前篩選後顯示的地點
-let activeModalResultIndex = -1; // Spotlight 搜尋結果鍵盤選取索引
 let userPosition = null; // 「附近優先」的使用者座標（WGS-84，[lng, lat]），null = 未啟用
 
 // map.js（連同 maplibre-gl 這個大依賴）採動態載入，
@@ -89,7 +88,7 @@ async function main() {
   initFilters(db, onFilterResult);
   initTimeFilters(db, ['time-filter-list', 'mobile-time-filters']);
   renderMobileFilters(db);
-  bindMobileSearch();
+  bindSearchFields();
   bindSplitHandle();
   bindNearbyButtons();
 
@@ -113,9 +112,6 @@ async function main() {
 
   // 註冊 Service Worker（離線快取；不支援或失敗時靜默略過）
   registerServiceWorker();
-
-  // 桌面版 Spotlight 關鍵字搜尋（⌘K / Ctrl+K）
-  bindDesktopSpotlight();
 
   // 深連結需要先有搜尋欄 DOM，才能同步桌面與手機搜尋框。
   applyDeepLink();
@@ -142,7 +138,7 @@ function renderAll(locations) {
   renderLocationList(display);
   renderMobileLocationList(display);
   fitToMarkers(mappable);
-  renderModalSearchResults(display);
+  renderTherapistHits();
 }
 
 /**
@@ -486,20 +482,210 @@ function throttle(fn, limit) {
 }
 
 /**
- * 綁定手機版搜尋框 input 事件，加防抖避免打字時頻繁重建 Marker 導致地圖崩潰。
+ * 桌面與手機共用一個搜尋框：打字即篩下方名單，⌘K / Ctrl+K 聚焦。
+ * 41 個地點，防抖只留很短，避免每敲一鍵都重建 marker。
  */
-function bindMobileSearch() {
-  const input = document.getElementById('mobile-search-input');
-  if (!input) return;
-  const debouncedSearch = debounce((val) => {
-    setQuery(val, db);
-  }, 250);
-  input.addEventListener('input', (e) => {
-    // 同步桌面版 Spotlight 輸入框，讓兩個版面的關鍵字一致
-    const desktopSearch = document.getElementById('desktop-search-input');
-    if (desktopSearch) desktopSearch.value = e.target.value;
-    debouncedSearch(e.target.value);
+let queryTimer = null;
+
+function applyQueryNow(value) {
+  clearTimeout(queryTimer);
+  setQuery(value, db);
+}
+
+function scheduleQuery(value) {
+  clearTimeout(queryTimer);
+  queryTimer = setTimeout(() => setQuery(value, db), 60);
+}
+
+function bindSearchFields() {
+  const desktopInput = document.getElementById('desktop-search-input');
+  const mobileInput = document.getElementById('mobile-search-input');
+  const inputs = [desktopInput, mobileInput].filter(Boolean);
+
+  for (const input of inputs) {
+    input.addEventListener('input', () => {
+      const value = input.value;
+      for (const other of inputs) {
+        if (other !== input) other.value = value;
+      }
+      syncSearchChrome();
+      scheduleQuery(value);
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (input.value) {
+          e.preventDefault();
+          clearSearch(input);
+        }
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyQueryNow(input.value);
+        activateSearchEnter();
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        const target = firstTherapistHit() || visibleListItem();
+        if (target) {
+          e.preventDefault();
+          target.focus();
+        }
+      }
+    });
+  }
+
+  document.getElementById('desktop-search-clear')?.addEventListener('click', () => clearSearch(desktopInput));
+  document.getElementById('mobile-search-clear')?.addEventListener('click', () => clearSearch(mobileInput));
+
+  if (desktopInput) bindTherapistHitKeys(document.getElementById('desktop-therapist-hits'), desktopInput);
+  if (mobileInput) bindTherapistHitKeys(document.getElementById('mobile-therapist-hits'), mobileInput);
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      focusSearchInput();
+    }
   });
+}
+
+function focusSearchInput() {
+  const mobile = isMobileLayout();
+  if (!mobile) {
+    document.getElementById('sidebar')?.classList.remove('is-collapsed');
+    const openBtn = document.getElementById('sidebar-open');
+    if (openBtn) openBtn.hidden = true;
+  }
+  const input = document.getElementById(mobile ? 'mobile-search-input' : 'desktop-search-input');
+  if (!input) return;
+  input.focus();
+  input.select();
+}
+
+function clearSearch(focusInput) {
+  for (const id of ['desktop-search-input', 'mobile-search-input']) {
+    const input = document.getElementById(id);
+    if (input) input.value = '';
+  }
+  syncSearchChrome();
+  applyQueryNow('');
+  focusInput?.focus();
+}
+
+function syncSearchChrome() {
+  const value = (
+    document.getElementById('desktop-search-input')?.value
+    || document.getElementById('mobile-search-input')?.value
+    || ''
+  ).trim();
+  document.querySelectorAll('.search__clear').forEach((btn) => {
+    btn.hidden = value.length === 0;
+  });
+  document.querySelectorAll('.search__wrapper').forEach((wrap) => {
+    wrap.classList.toggle('has-value', value.length > 0);
+  });
+}
+
+function isMobileLayout() {
+  return window.matchMedia('(max-width: 768px)').matches;
+}
+
+function firstTherapistHit() {
+  const id = isMobileLayout() ? 'mobile-therapist-hits' : 'desktop-therapist-hits';
+  return document.querySelector(`#${id} .therapist-hits__item`);
+}
+
+function visibleListItem() {
+  const sel = isMobileLayout()
+    ? '#mobile-location-list .mobile-list__item'
+    : '#location-list .list__item';
+  return document.querySelector(sel);
+}
+
+/** 只有一筆地點時直接打開；否則先把焦點移到治療師快捷列，避免猜錯機構。 */
+function activateSearchEnter() {
+  const ordered = sortForDisplay(currentLocations);
+  if (ordered.length === 1) {
+    openLocation(ordered[0]);
+    return;
+  }
+  const hit = firstTherapistHit();
+  if (hit) {
+    hit.focus();
+    return;
+  }
+  visibleListItem()?.click();
+}
+
+function bindTherapistHitKeys(container, input) {
+  if (!container) return;
+  container.addEventListener('keydown', (e) => {
+    const items = [...container.querySelectorAll('.therapist-hits__item')];
+    const index = items.indexOf(document.activeElement);
+    if (index < 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (index < items.length - 1) items[index + 1].focus();
+      else visibleListItem()?.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (index > 0) items[index - 1].focus();
+      else input.focus();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      clearSearch(input);
+    }
+  });
+}
+
+/** 關鍵字命中的治療師，列在輸入框正下方。 */
+function renderTherapistHits() {
+  const { query } = getFilterSnapshot();
+  const therapists = query ? findMatchingTherapists(db, query) : [];
+  for (const id of ['desktop-therapist-hits', 'mobile-therapist-hits']) {
+    const container = document.getElementById(id);
+    if (!container) continue;
+    container.replaceChildren();
+    if (therapists.length === 0) {
+      container.hidden = true;
+      continue;
+    }
+    container.hidden = false;
+
+    const title = document.createElement('p');
+    title.className = 'therapist-hits__title';
+    title.textContent = t('modal_therapists_title', { n: therapists.length });
+    container.appendChild(title);
+
+    for (const th of therapists) {
+      const displayName = th.nameZh || th.nameEn || '';
+      const locs = db.getLocationsByTherapist(th.id);
+      const placeLabel = locs.map((l) => l.name).join('、');
+      const meta = [th.licenseNo, placeLabel].filter(Boolean).join(' · ');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'therapist-hits__item';
+      btn.innerHTML = `
+        <span class="therapist-hits__name">${escapeHtml(displayName)}</span>
+        <span class="therapist-hits__meta">${escapeHtml(meta)}</span>`;
+      btn.addEventListener('click', () => {
+        if (locs.length === 1) {
+          openLocation(locs[0]);
+          return;
+        }
+        const name = th.nameZh || th.nameEn || '';
+        for (const inputId of ['desktop-search-input', 'mobile-search-input']) {
+          const input = document.getElementById(inputId);
+          if (input) input.value = name;
+        }
+        syncSearchChrome();
+        applyQueryNow(name);
+        document.getElementById(isMobileLayout() ? 'mobile-search-input' : 'desktop-search-input')?.focus();
+      });
+      container.appendChild(btn);
+    }
+  }
+  syncSearchChrome();
 }
 
 /**
@@ -757,280 +943,6 @@ function bindSidebarResizer() {
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
   }
-}
-
-/**
- * 桌面版 Spotlight 關鍵字搜尋模態框控制邏輯。
- * ⌘K / Ctrl+K 開啟、Esc 關閉；輸入即時篩選（防抖 250ms），
- * ↑↓ 選取預覽結果、Enter 定位。
- */
-function bindDesktopSpotlight() {
-  const trigger = document.getElementById('desktop-search-trigger');
-  const backdrop = document.getElementById('desktop-search-backdrop');
-  const input = document.getElementById('desktop-search-input');
-  const clearBtn = document.getElementById('desktop-search-clear');
-  if (!trigger || !backdrop) return;
-
-  const openModal = () => {
-    backdrop.hidden = false;
-    requestAnimationFrame(() => {
-      if (input) {
-        input.focus();
-        input.select();
-        updateModalUiState(input.value.trim());
-      }
-    });
-  };
-
-  const closeModal = closeDesktopSpotlight;
-
-  trigger.addEventListener('click', openModal);
-  trigger.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      openModal();
-    }
-  });
-
-  // 點擊背景關閉
-  backdrop.addEventListener('click', (e) => {
-    if (e.target === backdrop) {
-      closeModal();
-    }
-  });
-
-  // 鍵盤快捷鍵：⌘K 或 Ctrl+K 開啟，Esc 關閉
-  document.addEventListener('keydown', (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-      e.preventDefault();
-      openModal();
-    }
-    if (e.key === 'Escape' && !backdrop.hidden) {
-      closeModal();
-    }
-  });
-
-  // 輸入即時篩選（防抖，避免打字時頻繁重建 marker）
-  const debouncedSearch = debounce((val) => {
-    setQuery(val, db);
-  }, 250);
-
-  input?.addEventListener('input', (e) => {
-    const val = e.target.value;
-    updateModalUiState(val.trim());
-    // 同步手機版搜尋框，讓兩個版面的關鍵字一致
-    const mobileSearch = document.getElementById('mobile-search-input');
-    if (mobileSearch) mobileSearch.value = val;
-    debouncedSearch(val);
-  });
-
-  clearBtn?.addEventListener('click', () => {
-    if (!input) return;
-    input.value = '';
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.focus();
-  });
-
-  // 鍵盤導航：ArrowUp / ArrowDown 選取預覽結果，Enter 定位
-  input?.addEventListener('keydown', (e) => {
-    const resultsContainer = document.getElementById('modal-search-results');
-    const items = resultsContainer && !resultsContainer.hidden
-      ? resultsContainer.querySelectorAll('.modal-results__item')
-      : [];
-
-    if (items.length === 0) {
-      activeModalResultIndex = -1;
-      return;
-    }
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      activeModalResultIndex++;
-      if (activeModalResultIndex >= items.length) {
-        activeModalResultIndex = 0; // 循環到第一個
-      }
-      updateSelectedModalResult(items, activeModalResultIndex);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      activeModalResultIndex--;
-      if (activeModalResultIndex < 0) {
-        activeModalResultIndex = items.length - 1; // 循環到最後一個
-      }
-      updateSelectedModalResult(items, activeModalResultIndex);
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      // 未選取時，Enter 直接定位第一筆結果
-      const index = activeModalResultIndex >= 0 ? activeModalResultIndex : 0;
-      items[index].click();
-      activeModalResultIndex = -1;
-    }
-  });
-}
-
-/**
- * 依目前關鍵字切換 Spotlight 內部區塊：
- * 無關鍵字 → 顯示操作提示；有關鍵字 → 顯示結果預覽。
- */
-function updateModalUiState(query) {
-  const hint = document.getElementById('search-modal-hint');
-  const results = document.getElementById('modal-search-results');
-  const hasQuery = Boolean(query);
-  if (hint) hint.hidden = hasQuery;
-  if (results) results.hidden = !hasQuery;
-}
-
-/**
- * 更新 Spotlight 搜尋結果的鍵盤選取樣式與滾動視角
- */
-function updateSelectedModalResult(items, index) {
-  items.forEach((item, i) => {
-    if (i === index) {
-      item.classList.add('modal-results__item--selected');
-      item.scrollIntoView({ block: 'nearest' });
-    } else {
-      item.classList.remove('modal-results__item--selected');
-    }
-  });
-}
-
-/**
- * 渲染 Spotlight 模態框內部的即時搜尋結果清單 (桌面版專用)。
- */
-function renderModalSearchResults(locations) {
-  const container = document.getElementById('modal-search-results');
-  if (!container) return;
-
-  container.innerHTML = '';
-  activeModalResultIndex = -1; // 每次重新輸入或搜尋時，重置鍵盤選取索引
-
-  // 沒有關鍵字時整區由 updateModalUiState 隱藏
-  const queryInput = document.getElementById('desktop-search-input');
-  const query = queryInput ? queryInput.value.trim() : '';
-  if (!query) return;
-
-  // 先列出「符合關鍵字的治療師本身」——打姓名關鍵字時，
-  // 使用者要看的是「有哪些林姓治療師」，而不只是他們所在的機構。
-  const therapists = findMatchingTherapists(db, query);
-  if (therapists.length > 0) {
-    container.appendChild(buildTherapistResults(therapists));
-  }
-
-  if (locations.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'modal-results__empty';
-    empty.textContent = t('modal_results_empty');
-    container.appendChild(empty);
-    return;
-  }
-
-  container.appendChild(buildLocationResults(locations));
-}
-
-/**
- * 治療師搜尋結果區塊。點擊 → 以其全名收斂搜尋，只留下他/她的執業地點；
- * 若只有一個執業地點，直接開啟該地點詳情。
- */
-function buildTherapistResults(therapists) {
-  const section = document.createElement('div');
-  section.className = 'modal-results__section';
-
-  const title = document.createElement('div');
-  title.className = 'modal-results__title';
-  title.textContent = t('modal_therapists_title', { n: therapists.length });
-  section.appendChild(title);
-
-  const ul = document.createElement('ul');
-  ul.className = 'modal-results__list';
-
-  // 限制顯示前 6 筆，避免撐爆模態框
-  for (const th of therapists.slice(0, 6)) {
-    // 隱私約定：中英文姓名只擇一顯示（優先中文名）
-    const displayName = th.nameZh || th.nameEn || '';
-    const locs = db.getLocationsByTherapist(th.id);
-    const li = document.createElement('li');
-    li.className = 'modal-results__item modal-results__item--therapist';
-    li.innerHTML = `
-      <div class="modal-results__item-left">
-        <span class="modal-results__avatar">${escapeHtml(displayName.slice(0, 1))}</span>
-        <div class="modal-results__name">${escapeHtml(displayName)}</div>
-        <div class="modal-results__address">${escapeHtml(locs.map((l) => l.name).join('、'))}</div>
-      </div>
-      <div class="modal-results__item-right">
-        <span class="modal-results__badge modal-results__badge--license">${escapeHtml(th.licenseNo || '')}</span>
-        <span class="modal-results__go">${locs.length === 1 ? t('modal_results_locate') : t('modal_results_filter')}</span>
-      </div>
-    `;
-
-    li.addEventListener('click', () => {
-      if (locs.length === 1) {
-        openLocation(locs[0]);
-        closeDesktopSpotlight();
-        return;
-      }
-      // 多個執業地點：以全名收斂搜尋，模態框留著讓使用者選地點
-      const name = th.nameZh || th.nameEn || '';
-      for (const id of ['desktop-search-input', 'mobile-search-input']) {
-        const input = document.getElementById(id);
-        if (input) input.value = name;
-      }
-      updateModalUiState(name);
-      setQuery(name, db);
-    });
-
-    ul.appendChild(li);
-  }
-
-  section.appendChild(ul);
-  return section;
-}
-
-/** 執業地點搜尋結果區塊 */
-function buildLocationResults(locations) {
-  const section = document.createElement('div');
-  section.className = 'modal-results__section';
-
-  const title = document.createElement('div');
-  title.className = 'modal-results__title';
-  title.textContent = t('modal_results_title', { n: locations.length });
-  section.appendChild(title);
-
-  const ul = document.createElement('ul');
-  ul.className = 'modal-results__list';
-
-  // 限制只顯示前 5 筆最相關結果，避免撐爆模態框
-  for (const loc of locations.slice(0, 5)) {
-    const cat = CATEGORIES[loc.category] || CATEGORIES.other;
-    const therapists = db.getTherapistsByLocation(loc.id);
-    const li = document.createElement('li');
-    li.className = 'modal-results__item';
-    li.innerHTML = `
-      <div class="modal-results__item-left">
-        <span class="modal-results__dot" style="background:${cat.color}"></span>
-        <div class="modal-results__name">${escapeHtml(loc.name)}</div>
-        <div class="modal-results__address">${escapeHtml(loc.addressZh || '')}</div>
-      </div>
-      <div class="modal-results__item-right">
-        <span class="modal-results__badge">${t('modal_results_badge', { n: therapists.length })}</span>
-        <span class="modal-results__go">${t('modal_results_locate')}</span>
-      </div>
-    `;
-
-    li.addEventListener('click', () => {
-      openLocation(loc);
-      closeDesktopSpotlight();
-    });
-
-    ul.appendChild(li);
-  }
-
-  section.appendChild(ul);
-  return section;
-}
-
-/** 關閉桌面版 Spotlight 模態框 */
-function closeDesktopSpotlight() {
-  const backdrop = document.getElementById('desktop-search-backdrop');
-  if (backdrop) backdrop.hidden = true;
 }
 
 /* ---------- 載入狀態 ---------- */

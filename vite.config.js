@@ -1,8 +1,12 @@
-import { defineConfig } from 'vite';
+import { defineConfig, configDefaults } from 'vitest/config';
 import { cpSync } from 'fs';
 
 export default defineConfig(() => {
   return {
+    test: {
+      // .agents 裡的缺陷重現測試不是產品測試，不納入 npm test
+      exclude: [...configDefaults.exclude, '**/.agents/**'],
+    },
     base: './',
     build: {
       outDir: 'dist',

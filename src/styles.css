@@ -13,7 +13,7 @@
   /* 機構分類配色 */
   --cat-hospital: #d64545;
   --cat-med_center: #e8893a;
-  --cat-psych_center: #2c6e7f;
+  --cat-psych_center: #3b6fb6;
   --cat-social: #5b8c5a;
   --cat-university: #7a5ca0;
   --cat-gov: #6b7280;
@@ -25,7 +25,7 @@
   --color-border: rgba(226, 232, 240, 0.8);
   --color-text: #0f172a;
   --color-text-muted: #475569;
-  --color-text-light: #94a3b8;
+  --color-text-light: #64748b;
 
   /* 尺寸與半徑 */
   --sidebar-width: 360px;
@@ -38,9 +38,9 @@
   --shadow-md: 0 4px 20px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 12px 36px rgba(15, 23, 42, 0.12);
 
-  /* 字體：標題使用 Outfit，內文使用 Inter */
-  --font-title: 'Outfit', -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei", sans-serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei", sans-serif;
+  /* 介面以繁中為主，直接用系統中文字；不再載入只有拉丁字形的 Outfit / Inter */
+  --font-title: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  --font-body: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
   --font: var(--font-body);
 }
 
@@ -180,45 +180,70 @@ html, body {
   border-right: 3px solid var(--color-primary);
 }
 
-/* 桌面版側欄搜尋觸發按鈕 */
-.sidebar__search-trigger {
-  margin: 12px 16px 8px;
-  padding: 8px 12px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  user-select: none;
+/* 側欄搜尋：就是輸入框，打字即篩選下方名單 */
+.sidebar__search {
+  padding: 8px 16px 4px;
   flex-shrink: 0;
 }
 
-.sidebar__search-trigger:hover {
-  border-color: var(--color-primary);
-  background: #fff;
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
+.search__clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
 }
 
-.search-trigger__icon {
-  font-size: 14px;
+.search__clear[hidden] {
+  display: none !important;
 }
 
-.search-trigger__placeholder {
-  font-size: 13px;
-  color: var(--color-text-light);
-  flex: 1;
+.search__clear:hover {
+  color: var(--color-text);
+  background: var(--color-bg);
 }
 
-.search-trigger__shortcut {
+.search__kbd {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-body);
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-light);
-  background: var(--color-border);
-  padding: 2px 6px;
+  color: var(--color-text-muted);
+  background: #fff;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
+  padding: 1px 5px;
+  pointer-events: none;
+}
+
+.search__wrapper.has-value .search__kbd,
+.search__wrapper:focus-within .search__kbd {
+  display: none;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .sidebar__header {
@@ -226,7 +251,7 @@ html, body {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 20px 24px 18px;
+  padding: 14px 16px 12px;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: #fff;
   box-shadow: 0 4px 16px rgba(44, 110, 127, 0.12);
@@ -234,7 +259,7 @@ html, body {
 
 .sidebar__title {
   font-family: var(--font-title);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   line-height: 1.35;
   letter-spacing: -0.4px;
@@ -323,24 +348,29 @@ html, body {
 
 .search__input {
   width: 100%;
-  padding: 11px 14px 11px 40px;
+  padding: 10px 36px 10px 38px;
   font-size: 14px;
   font-family: var(--font-body);
   color: var(--color-text);
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: rgba(248, 250, 252, 0.8);
+  background: #fff;
   outline: none;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search__input::placeholder {
+  color: var(--color-text-light);
+  opacity: 1;
 }
 
 .search__input:focus {
   border-color: var(--color-primary);
   background: #fff;
-  box-shadow: 0 0 0 4px var(--color-primary-glow);
+  box-shadow: 0 0 0 3px var(--color-primary-glow);
 }
 
-.search__input:focus + .search__icon {
+.search__wrapper:focus-within .search__icon {
   color: var(--color-primary);
 }
 
@@ -353,18 +383,18 @@ html, body {
 
 /* 分類篩選區塊 */
 .filters {
-  padding: 8px 16px 8px;
+  padding: 4px 16px 6px;
   border-bottom: 1px solid var(--color-border);
 }
 
 .filters__title, .list__title {
   font-family: var(--font-title);
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--color-text-muted);
-  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text);
+  margin-bottom: 6px;
 }
 
 .filters__list {
@@ -464,11 +494,10 @@ html, body {
 }
 
 .list__sorting-disclaimer {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--color-text-muted);
-  opacity: 0.8;
-  margin-top: -6px;
-  margin-bottom: 12px;
+  margin-top: 0;
+  margin-bottom: 8px;
   line-height: 1.4;
 }
 
@@ -577,15 +606,15 @@ html, body {
 }
 
 .sidebar__disclaimer {
-  color: var(--color-text-light);
-  font-size: 9.5px;
-  line-height: 1.35;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .sidebar__contact {
-  color: var(--color-text-light);
-  font-size: 9.5px;
-  line-height: 1.35;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
   margin-top: 4px;
 }
 
@@ -970,9 +999,7 @@ html, body {
 @media (max-width: 768px) {
   /* ===== 1. 隱藏所有桌面版元件 ===== */
   .sidebar,
-  .sidebar-open,
-  .sidebar__search-trigger,
-  .search-backdrop {
+  .sidebar-open {
     display: none !important;
   }
 
@@ -1047,8 +1074,8 @@ html, body {
   }
 
   .mobile-panel__search .search__input {
-    padding: 8px 12px 8px 34px;
-    font-size: 13px;
+    padding: 9px 36px 9px 34px;
+    font-size: 16px; /* 16px 避免 iOS 聚焦時自動放大頁面 */
   }
 
   .mobile-panel__search .search__icon {
@@ -1098,17 +1125,26 @@ html, body {
     border-radius: 999px;
   }
 
+  .mobile-panel__title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
   .mobile-panel__title {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
     font-family: var(--font-title);
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: var(--color-text-muted);
-    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--color-text);
+    margin-bottom: 0;
   }
 
   .mobile-panel__title span {
@@ -1123,9 +1159,8 @@ html, body {
   }
 
   .mobile-panel__sorting-disclaimer {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--color-text-muted);
-    opacity: 0.8;
     margin-top: 2px;
     margin-bottom: 8px;
     line-height: 1.4;
@@ -1233,264 +1268,61 @@ html, body {
   }
 }
 
-/* ---------------------------------------------------------- */
-/* 桌面版 Spotlight 關鍵字搜尋                                */
-/* ---------------------------------------------------------- */
-/* 背景遮罩 */
-.search-backdrop {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 3000;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding-top: 12vh;
-}
-
-.search-backdrop[hidden] {
+/* 搜尋命中的治療師，貼在輸入框下方，不另開視窗 */
+.therapist-hits[hidden] {
   display: none !important;
 }
 
-/* Spotlight 搜尋框主體 */
-.search-modal {
-  width: 100%;
-  max-width: 640px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+.therapist-hits {
+  margin-top: 6px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  max-height: 70vh;
-  overflow: hidden;
-  animation: modalEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes modalEnter {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.search-modal__input-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-}
-
-.search-modal__input-row .search__wrapper {
-  flex: 1;
-}
-
-.search-modal__clear-btn {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  padding: 2px;
-  display: flex;
-  align-items: center;
-  color: var(--color-text-light);
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.search-modal__clear-btn:hover {
-  color: var(--color-text);
-}
-
-/* 尚未輸入關鍵字時的操作提示 */
-.search-modal__hint {
-  padding: 12px 20px 16px;
-  font-size: 11.5px;
-  line-height: 1.6;
-  color: var(--color-text-muted);
-  border-top: 1px dashed var(--color-border);
-  margin: 0 4px;
-}
-
-.search-modal__hint[hidden] {
-  display: none !important;
-}
-
-/* ============================================================
-   Spotlight 快速結果預覽
-   ============================================================ */
-
-.modal-results[hidden] {
-  display: none !important;
-}
-
-.modal-results {
-  padding: 12px 20px 16px;
-  border-top: 1px dashed var(--color-border);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow-y: auto;
-  max-height: 280px;
-}
-
-.modal-results__empty {
-  font-size: 12px;
-  color: var(--color-text-light);
-  text-align: center;
-  padding: 16px 0;
-}
-
-.modal-results__title {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--color-text-muted);
-}
-
-.modal-results__list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.modal-results__item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 12px;
+  border-radius: var(--radius-sm);
   background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  max-height: 148px;
+  overflow: auto;
+}
+
+.therapist-hits__title {
+  margin: 0;
+  padding: 6px 10px 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.therapist-hits__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 8px;
+  align-items: baseline;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+  background: transparent;
+  text-align: left;
+  font: inherit;
   cursor: pointer;
-  transition: all 0.15s ease;
 }
 
-.modal-results__item:hover {
-  border-color: var(--color-primary);
+.therapist-hits__item:hover,
+.therapist-hits__item:focus-visible {
   background: var(--color-primary-light);
-  transform: translateY(-1px);
 }
 
-.modal-results__item.modal-results__item--selected {
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
-  box-shadow: 0 0 0 2px rgba(44, 110, 127, 0.2);
-  transform: translateY(-1px);
-}
-
-.modal-results__section + .modal-results__section {
-  margin-top: 4px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--color-border);
-}
-
-.modal-results__section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* 治療師結果：以姓氏圓形標記與機構結果的色點區隔 */
-.modal-results__avatar {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-primary-dark);
-  background: var(--color-primary-light);
-  border: 1px solid var(--color-border);
-}
-
-.modal-results__badge--license {
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.3px;
-}
-
-.modal-results__item-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-}
-
-.modal-results__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.modal-results__name {
+.therapist-hits__name {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text);
-  white-space: nowrap;
+}
+
+.therapist-hits__meta {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 220px;
-}
-
-.modal-results__address {
-  font-size: 11px;
-  color: var(--color-text-light);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 280px;
-  margin-left: 4px;
-}
-
-.modal-results__item-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.modal-results__badge {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--color-primary);
-  background: var(--color-primary-light);
-  padding: 2px 6px;
-  border-radius: 99px;
-  border: 1px solid rgba(44, 110, 127, 0.15);
-}
-
-.modal-results__go {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-light);
-}
-
-.modal-results__item:hover .modal-results__go {
-  color: var(--color-primary);
-}
-
-@media (max-width: 768px) {
-  /* 搜尋結果快速預覽為桌面 Spotlight 專用（手機下半屏列表已即時反映） */
-  .modal-results {
-    display: none !important;
-  }
+  font-size: 12px;
+  color: var(--color-text-muted);
 }
 
 /* 地圖載入失敗降級卡片 */
@@ -1550,54 +1382,76 @@ html, body {
   width: 100%;
 }
 
-/* ============================================================
-   心理健康資訊網整合樣式
-   ============================================================ */
-.mental-health-card {
-  background: var(--color-primary-light);
-  border: 1px solid rgba(44, 110, 127, 0.15);
-  border-radius: var(--radius-md);
-  padding: 10px 12px;
-  margin: 4px 16px 8px; /* 貼合側欄左右邊距 */
-  box-shadow: var(--shadow-sm);
+/* 求助熱線與篩選 chip 分開：熱線是可撥打的號碼，快測是文字連結 */
+.help-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 16px 6px;
   flex-shrink: 0;
 }
 
-.mh-card__header {
+.help-strip__hotline {
+  flex: 1 1 140px;
   display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e4c4c4;
+  text-decoration: none;
+  color: #7f1d1d;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.help-strip__hotline strong {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.help-strip__hotline:hover {
+  border-color: #c47a7a;
+  background: #fff7f7;
+}
+
+.help-strip__test {
+  flex: 1 1 100%;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary-dark);
+  text-decoration: none;
+  padding: 1px 2px 0;
+}
+
+.help-strip__test:hover {
+  text-decoration: underline;
+}
+
+.mobile-mh-card {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  margin-bottom: 6px;
+  padding: 8px 14px;
+  background: #fff;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
-.mh-card__icon {
-  font-size: 14px;
-}
-
-.mh-card__title {
-  font-family: var(--font-title);
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--color-primary-dark);
-}
-
-.mh-card__desc {
-  display: none; /* 隱藏贅餘描述以最大化節省高度空間，貫徹極簡無贅餘 */
-}
-
-.mh-card__actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.mobile-mh-card .help-strip__hotline {
+  flex: 1 1 42%;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
   gap: 6px;
 }
 
-.mental-health-card .btn {
-  padding: 6px 4px;
-  font-size: 10.5px;
-  height: 28px;
-  line-height: 16px;
-  text-align: center;
-  white-space: nowrap;
+.mobile-mh-card .help-strip__test {
+  flex: 1 1 auto;
 }
 
 .btn--sm {
@@ -1609,42 +1463,6 @@ html, body {
 
 .btn--full {
   width: 100%;
-}
-
-/* 手機版心理健康快捷條 */
-.mobile-mh-card {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-primary-light);
-  border-bottom: 1px solid var(--color-border);
-  padding: 8px 14px;
-  font-size: 11.5px;
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-  gap: 4px;
-}
-
-.mobile-mh-card__label {
-  font-weight: 600;
-  color: var(--color-primary-dark);
-}
-
-.mobile-mh-card a {
-  color: var(--color-primary);
-  text-decoration: none;
-  font-weight: 600;
-  transition: color 0.2s ease;
-}
-
-.mobile-mh-card a:hover {
-  color: var(--color-primary-dark);
-  text-decoration: underline;
-}
-
-.mobile-mh-card__divider {
-  margin: 0 4px;
-  color: rgba(44, 110, 127, 0.2);
 }
 
 /* 詳情面板中的轉介與就醫指引 */
@@ -1727,7 +1545,7 @@ html, body {
 
 /* 篩選區第二組標題的間距 */
 .filters__title--spaced {
-  margin-top: 14px;
+  margin-top: 8px;
 }
 
 /* 「營業中」徽章（列表項目名稱旁） */
@@ -1807,10 +1625,8 @@ html, body {
   pointer-events: none;
 }
 
-/* 手機版：按鈕嵌在搜尋列右側 */
 .nearby-btn--mobile {
   margin-bottom: 0;
-  margin-left: 8px;
   flex-shrink: 0;
 }
 
@@ -1911,31 +1727,18 @@ html, body {
 /* 鍵盤可及性：列表項可 Tab 聚焦，focus-visible 有明確外框 */
 .list__item:focus-visible,
 .mobile-list__item:focus-visible,
-.modal-results__item:focus-visible,
+.therapist-hits__item:focus-visible,
+.search__input:focus-visible,
 .filter-chip:focus-visible,
 .nearby-btn:focus-visible,
+.help-strip__hotline:focus-visible,
+.help-strip__test:focus-visible,
 .lang-switch__btn:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-/* 側欄密度：收緊列表與熱線卡間距，同屏多顯示約 1/3 內容 */
 .list__item {
   padding: 9px 12px;
   margin-bottom: 5px;
-}
-
-.mental-health-card {
-  padding: 8px 10px;
-}
-
-.mh-card__actions {
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 5px;
-}
-
-.mh-card__actions .btn--sm {
-  white-space: nowrap;
-  padding-left: 4px;
-  padding-right: 4px;
 }
