@@ -13,7 +13,7 @@ import { CATEGORIES } from './config.js';
 import { initInAppBrowserBanner } from './inapp-browser.js';
 import { isLocationOpenNow } from './hours.js';
 import { getWgsCoords, distanceMeters, formatDistance } from './geo.js';
-import { t, getLang, setLang, onLangChange, applyI18nDom } from './i18n.js';
+import { t, getLang, setLang, onLangChange, applyI18nDom, personName, placeName, placeAddress } from './i18n.js';
 
 let db = null;
 let currentLocations = []; // 目前篩選後顯示的地點
@@ -37,6 +37,7 @@ async function main() {
 
   // 套用已保存的語言（DOM 靜態文案）並綁定切換器
   applyI18nDom();
+  applyLanguageChrome();
   bindLangSwitch();
 
   showLoader(t('loading_data'));
@@ -102,6 +103,7 @@ async function main() {
 
   // 語言切換後重繪所有由 JS 產生的文案
   onLangChange(() => {
+    applyLanguageChrome();
     updateFooterMeta();
     initFilters(db, onFilterResult);
     initTimeFilters(db, ['time-filter-list', 'mobile-time-filters']);
@@ -146,6 +148,9 @@ function renderAll(locations) {
  * 預設維持 data-loader 的名稱筆劃排序；「附近優先」時依距離。
  */
 function sortForDisplay(locations) {
+  if (!userPosition && getLang() !== 'zh') {
+    return [...locations].sort((a, b) => placeName(a).localeCompare(placeName(b), 'en'));
+  }
   if (!userPosition) return locations;
   const [ulng, ulat] = userPosition;
   return [...locations].sort((a, b) => locDistance(a, ulng, ulat) - locDistance(b, ulng, ulat));
@@ -289,10 +294,10 @@ function renderLocationList(locations) {
     li.innerHTML = `
       <div class="list__item-name">
         <span class="list__item-dot" style="background:${cat.color}"></span>
-        ${escapeHtml(loc.name)}
+        ${escapeHtml(placeName(loc))}
         ${isLocationOpenNow(loc) ? `<span class="badge-open">${t('open_now_badge')}</span>` : ''}
       </div>
-      <div class="list__item-address">${escapeHtml(loc.addressZh || t('detail_addr_unknown'))}</div>
+      <div class="list__item-address">${escapeHtml(placeAddress(loc) || t('detail_addr_unknown'))}</div>
       ${therapistCount ? `<div class="list__item-count">${t('therapist_count', { n: therapistCount })}${distanceLabel(loc)}</div>` : `<div class="list__item-count">${distanceLabel(loc, true)}</div>`}
       ${matchedTherapistLabel(loc, 'list__item-count')}
       ${loc.lng == null ? `<div class="list__item-count" style="color:#9ca3af">${t('cannot_locate')}</div>` : ''}
@@ -311,7 +316,7 @@ function renderLocationList(locations) {
 function matchedTherapistLabel(loc, cls) {
   const matched = getMatchedTherapistsAt(loc.id, db);
   if (matched.length === 0) return '';
-  const names = matched.slice(0, 4).map((th) => th.nameZh || th.nameEn || '').filter(Boolean);
+  const names = matched.slice(0, 4).map((th) => personName(th)).filter(Boolean);
   if (names.length === 0) return '';
   const suffix = matched.length > names.length ? t('matched_more', { n: matched.length - names.length }) : '';
   return `<div class="${cls} ${cls}--match">${escapeHtml(t('matched_therapists', { names: names.join('、') }) + suffix)}</div>`;
@@ -323,7 +328,7 @@ function matchedTherapistLabel(loc, cls) {
 function makeListItemInteractive(li, loc) {
   li.tabIndex = 0;
   li.setAttribute('role', 'button');
-  li.setAttribute('aria-label', loc.name);
+  li.setAttribute('aria-label', placeName(loc));
   li.addEventListener('click', () => {
     openLocation(loc);
   });
@@ -370,10 +375,10 @@ function renderMobileLocationList(locations) {
     li.innerHTML = `
       <div class="mobile-list__item-name">
         <span class="mobile-list__item-dot" style="background:${cat.color}"></span>
-        ${escapeHtml(loc.name)}
+        ${escapeHtml(placeName(loc))}
         ${isLocationOpenNow(loc) ? `<span class="badge-open">${t('open_now_badge')}</span>` : ''}
       </div>
-      <div class="mobile-list__item-address">${escapeHtml(loc.addressZh || t('detail_addr_unknown'))}</div>
+      <div class="mobile-list__item-address">${escapeHtml(placeAddress(loc) || t('detail_addr_unknown'))}</div>
       ${therapistCount ? `<div class="mobile-list__item-count">${t('therapist_count', { n: therapistCount })}${distanceLabel(loc)}</div>` : `<div class="mobile-list__item-count">${distanceLabel(loc, true)}</div>`}
       ${matchedTherapistLabel(loc, 'mobile-list__item-count')}
       ${loc.lng == null ? `<div class="mobile-list__item-count" style="color:#9ca3af">${t('cannot_locate')}</div>` : ''}
@@ -442,6 +447,18 @@ function updateFooterMeta() {
   if (disclaimer) {
     disclaimer.textContent = (getLang() === 'zh' && db.meta.note) ? db.meta.note : t('disclaimer_generic');
   }
+}
+
+const SELFTEST_BASE = 'https://www.ssm.gov.mo/portal1/mentalhealth/kzJY9ECgaLx4vv83tK3eA?lang=';
+const SELFTEST_LANG = { zh: 'ch', pt: 'pt', en: 'en' };
+
+/** 分頁標題與快測連結跟著介面語言走。 */
+function applyLanguageChrome() {
+  document.title = t('app_title');
+  const code = SELFTEST_LANG[getLang()] || 'ch';
+  document.querySelectorAll('a.js-selftest').forEach((a) => {
+    a.href = SELFTEST_BASE + code;
+  });
 }
 
 /** 綁定語言切換器（桌面側欄 + 手機快捷條各一組，狀態互相同步） */
@@ -658,7 +675,7 @@ function renderTherapistHits() {
     container.appendChild(title);
 
     for (const th of therapists) {
-      const displayName = th.nameZh || th.nameEn || '';
+      const displayName = personName(th);
       const locs = db.getLocationsByTherapist(th.id);
       const placeLabel = locs.map((l) => l.name).join('、');
       const meta = [th.licenseNo, placeLabel].filter(Boolean).join(' · ');
@@ -673,7 +690,7 @@ function renderTherapistHits() {
           openLocation(locs[0]);
           return;
         }
-        const name = th.nameZh || th.nameEn || '';
+        const name = personName(th);
         for (const inputId of ['desktop-search-input', 'mobile-search-input']) {
           const input = document.getElementById(inputId);
           if (input) input.value = name;

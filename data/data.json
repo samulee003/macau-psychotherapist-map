@@ -663,7 +663,8 @@
       "phone": "",
       "hours": "暫未提供資料",
       "lng": 113.550801,
-      "lat": 22.19053
+      "lat": 22.19053,
+      "namePt": "Instituições de saúde públicos de Macau"
     },
     {
       "id": "loc_38b0d60d",
@@ -673,7 +674,9 @@
       "phone": "+853 2840 3637",
       "hours": "星期二 10:00-19:00 / 預約 / 星期二至星期六 10:00-13:00,14:00-19:00 / 星期一 10:00-17:00 / 星期一 10:00-19:00 / 星期五 10:00-19:00 / 星期六 14:00-19:00 / 星期日 10:00-19:00 / 星期日至星期二 10:00-19:00 / 星期四 10:00-19:00 / 星期六 10:00-19:00 / 星期三至星期六 14:00-19:00 / 星期二 16:00-19:00 / 星期三 10:00-19:00 / 星期四 14:00-19:00 / 星期五至星期日 10:00-19:00",
       "lng": 113.551245,
-      "lat": 22.193631
+      "lat": 22.193631,
+      "namePt": "CENTRO DE PSICOTERAPIA NURTURING NATURES",
+      "addressPt": "RUA DE ABREU NUNES N.O 6, IAO LUEN 1G, MACAU"
     },
     {
       "id": "loc_abf52428",
@@ -683,7 +686,9 @@
       "phone": "+853 8822 8833",
       "hours": "星期一至星期四 09:00-13:00,14:00-17:45 / 星期五 09:00-13:00,14:00-17:30 / 星期一 09:00-13:00,14:00-18:00 / 星期二 09:00-13:00 / 星期一至星期四 09:00-17:45 / 星期五 09:00-17:30 / 星期一至星期五 09:00-13:00,14:00-17:30 / 預約 / 星期一至星期五 09:00-17:30",
       "lng": 113.54694,
-      "lat": 22.12542
+      "lat": 22.12542,
+      "namePt": "UNIVERSIDADE DE MACAU",
+      "addressPt": "ROOM 2009, 2ND FLOOR, STUDENT ACTIVITY CENTRE (E31), UNIVERSITY OF MACAU, AVENIDA DA UNIVERSIDADE, TAIPA"
     },
     {
       "id": "loc_249ffe3d",
@@ -693,7 +698,9 @@
       "phone": "",
       "hours": "星期五 10:00-15:00",
       "lng": 113.548007,
-      "lat": 22.206194
+      "lat": 22.206194,
+      "namePt": "CENTRO MÉDICO WENXIN",
+      "addressPt": "RUA DO CONSELHEIRO BORJA N.OS 173-175, EDIFÍCIO RESIDENCIAL WANG KIN BLOCO VIII, R/C- A, MACAU"
     },
     {
       "id": "loc_3b801cdb",
@@ -703,7 +710,9 @@
       "phone": "+853 2837 1333",
       "hours": "由工作單位安排診症時間",
       "lng": 113.548762,
-      "lat": 22.198107
+      "lat": 22.198107,
+      "namePt": "HOSPITAL KIANG WU",
+      "addressPt": "ESTRADA DO REPOUSO, N.OS 33, 33A, 33B, 33C E 35, MACAU"
     },
     {
       "id": "loc_960ae886",
@@ -713,7 +722,9 @@
       "phone": "+853 2835 3748, +853 2821 6099",
       "hours": "星期一至星期六 12:30-19:30 / 星期一至星期六 12:00-19:30 / 預約 / 星期日及公眾假期休息 / 星期三 12:30-19:30 / 星期四 12:30-17:30 / 星期一至星期四 14:00-19:00 / 星期一 12:30-19:30 / 星期六 12:30-19:30",
       "lng": 113.548795,
-      "lat": 22.199564
+      "lat": 22.199564,
+      "namePt": "CENTRO DE PSICOTERAPIA DA ASSOCIAÇÃO GERAL DAS MULHERES DE MACAU",
+      "addressPt": "RUA DA BARCA, NO.27-C, EDF. SERVICOS COMPLEXOS DA ASSOCIACAO GERAL DAS MULHERES DE MACAU, C, 1 ANDAR, MACAU"
     },
     {
       "id": "loc_fce73103",
@@ -723,7 +734,9 @@
       "phone": "+853 2855 0558",
       "hours": "星期一至星期二 09:00-19:00 / 預約 / 星期日 14:00-19:00 / 星期一 09:00-19:00 / 星期日 09:00-19:00",
       "lng": 113.546499,
-      "lat": 22.188347
+      "lat": 22.188347,
+      "namePt": "CENTRO DE TERAPIA ACOMPANHANTE",
+      "addressPt": "AVENIDA DO INFANTE D. HENRIQUE N.O 47, THE MACAU SQUARE E21, MACAU"
     },
     {
       "id": "loc_0b387558",
@@ -733,7 +746,9 @@
       "phone": "+853 2884 3321",
       "hours": "星期一至星期六 09:00-10:00 / 預約 / 星期一至星期五 09:00-19:00 / 星期六 09:00-13:00,14:00-17:00",
       "lng": 113.54657,
-      "lat": 22.189314
+      "lat": 22.189314,
+      "namePt": "CENTRO MÉDICO MANTEC",
+      "addressPt": "AVENIDA DO INFANTE D.HENRIQUE N.O 62, CENTRO COMERCIAL CENTRAL A18, MACAU"
     },
     {
       "id": "loc_5711d3d6",
@@ -743,7 +758,9 @@
       "phone": "+853 2832 2229",
       "hours": "星期一至星期五 10:00-18:00 / 星期六 10:00-14:00 / 預約 / 星期一至星期二 10:00-13:00,14:30-18:00",
       "lng": 113.557245,
-      "lat": 22.184091
+      "lat": 22.184091,
+      "namePt": "CENTRO MÉDICO PEDDER",
+      "addressPt": "AVENIDA DR. SUN YAT-SEN NO 1567,THE CARAT (FINALIDADE COMERCIAL) RÉS-DO-CHÃO R MACAU"
     },
     {
       "id": "loc_5e184744",
@@ -753,7 +770,9 @@
       "phone": "+853 2871 9554",
       "hours": "星期一 09:00-19:00 / 星期二 09:00-15:00 / 星期三 09:00-19:00 / 星期五 16:00-19:00 / 星期五 15:00-19:00 / 星期六 09:00-14:30 / 星期二 15:00-19:00 / 星期四 15:00-19:00 / 星期四至星期五 09:00-15:00",
       "lng": 113.54405,
-      "lat": 22.188206
+      "lat": 22.188206,
+      "namePt": "POLICLÍNICA MINDMED",
+      "addressPt": "CALÇADA DE SANTO AGOSTINHO, N.O 19, NAN YUE COMMERCIAL CENTRE 8 ANDAR D, MACAU"
     },
     {
       "id": "loc_7528db64",
@@ -763,7 +782,9 @@
       "phone": "+853 2845 5576",
       "hours": "星期一至星期五 10:00-18:00 / 或預約",
       "lng": 113.554911,
-      "lat": 22.203607
+      "lat": 22.203607,
+      "namePt": "WE POINT DA CONFRATERNIDADE CRISTÃ VIDA NOVA DE MACAU",
+      "addressPt": "RUA DE FRANCISCO XAVIER PEREIRA N.OS 163-165B, MEI LAM GARDEN, BLOCO 1, 2 ANDAR, MACAU"
     },
     {
       "id": "loc_8dd2cc09",
@@ -773,7 +794,9 @@
       "phone": "+853 2842 1037",
       "hours": "星期一至星期日 10:00-21:00 / 預約",
       "lng": 113.546557,
-      "lat": 22.204354
+      "lat": 22.204354,
+      "namePt": "CENTRO MÉDICO SENG TAK",
+      "addressPt": "RUA DO COMANDANTE JOÃO BELO BAIRRO FAI CHI KEI Nº 367, LOK YEONG FA UN BL. 1 E 2 (LEI HONG, LEI TAI KOK) R/C J, MACAU"
     },
     {
       "id": "loc_a30ce79a",
@@ -783,7 +806,8 @@
       "phone": "",
       "hours": "星期二 09:00-12:30 / 預約",
       "lng": 113.556417,
-      "lat": 22.186299
+      "lat": 22.186299,
+      "addressPt": "ALA DR CARLOS D'ASSUMPCAO NO. 258, EDF. PRACA KIN HENG LONG, 5 ANDAR A, MACAU"
     },
     {
       "id": "loc_5a5ee82f",
@@ -793,7 +817,9 @@
       "phone": "+853 2876 3012",
       "hours": "星期一至星期六 10:00-20:00 / 預約",
       "lng": 113.549298,
-      "lat": 22.199105
+      "lat": 22.199105,
+      "namePt": "CENTRO MÉDICO EL-KEN",
+      "addressPt": "RUA DA MADRE TEREZINA NO. 35-A, EDF. CHIU LAI ON B, MACAU"
     },
     {
       "id": "loc_31a8d417",
@@ -803,7 +829,9 @@
       "phone": "+853 2835 3764",
       "hours": "星期五 10:30-12:00 / 預約 / 星期一至星期四 10:30-13:00 / 星期一至星期五 10:30-19:30 / 星期六 10:30-16:30",
       "lng": 113.549164,
-      "lat": 22.192837
+      "lat": 22.192837,
+      "namePt": "CENTRO DE PSICOTERAPIA YAT SUM",
+      "addressPt": "TRAVESSA DOS SANTOS NO. 14-A, EDF. KAI FU R/C A, MACAU"
     },
     {
       "id": "loc_ae98407b",
@@ -823,7 +851,9 @@
       "phone": "28870616,28870354",
       "hours": "星期二 09:00-13:00,14:00-18:00",
       "lng": 113.5855,
-      "lat": 22.1287
+      "lat": 22.1287,
+      "namePt": "CENTRO DE SANTA LÚCIA",
+      "addressPt": "ESTRADA DA NOSSA SENHORA DE KÁ-HÓ, COLOANE"
     },
     {
       "id": "loc_12bc587f",
@@ -833,7 +863,9 @@
       "phone": "28835957,28835935, +853 2883 0503",
       "hours": "星期三至星期四 09:00-13:00 / 星期四 14:00-18:00 / 星期五 09:00-13:00,14:00-18:00",
       "lng": 113.5594,
-      "lat": 22.1585
+      "lat": 22.1585,
+      "namePt": "CENTRO DE SANTA MARGARIDA / LAR SÃO LUÍS GONZAGA",
+      "addressPt": "RUA DE TIN CHON, POVOAÇAÕ DE CHEOK KA, TAIPA, MACAU / RUA DE TIN CHON, POVOAÇÃO DE CHEOK KA, TAIPA"
     },
     {
       "id": "loc_36676bc1",
@@ -843,7 +875,9 @@
       "phone": "+853 2857 3789",
       "hours": "星期六 09:00-13:00",
       "lng": 113.538269,
-      "lat": 22.183373
+      "lat": 22.183373,
+      "namePt": "LAR DE NOSSA SENHORA DA PENHA",
+      "addressPt": "ESTRADA D. JOAO PAULINO, 22, MACAU"
     },
     {
       "id": "loc_771d5e0d",
@@ -853,7 +887,9 @@
       "phone": "+853 2872 2832",
       "hours": "星期二 09:00-13:00,15:00-20:00 / 預約 / 星期六 15:00-18:00 / 星期二 09:00-13:00 / 星期一 09:00-13:00,15:00-20:00 / 星期三 09:00-13:00,15:00-20:00 / 星期五 09:00-13:00,15:00-20:00 / 星期六 09:00-13:00 / 星期六 15:00-20:00",
       "lng": 113.554234,
-      "lat": 22.200953
+      "lat": 22.200953,
+      "namePt": "CENTRO MÉDICO IAN SENG",
+      "addressPt": "TRAVESSA DE PEDRO COUTINHO, N.OS 31-33, WEALTHY GARDEN, R/C-N, MACAU"
     },
     {
       "id": "loc_a0cee104",
@@ -863,7 +899,9 @@
       "phone": "+853 2831 4825",
       "hours": "星期六 13:00-20:00 / 預約 / 星期六至星期日 09:00-20:00",
       "lng": 113.55925,
-      "lat": 22.191963
+      "lat": 22.191963,
+      "namePt": "CENTRO DE TERAPIA TEDDY",
+      "addressPt": "AVENIDA DE MARCIANO BAPTISTA, N.OS 26 - 54-B, CENTRO COMERCIAL CHONG FOK G16, MACAU"
     },
     {
       "id": "loc_2d1ca7e7",
@@ -873,7 +911,9 @@
       "phone": "",
       "hours": "暫未提供資料",
       "lng": 113.544213,
-      "lat": 22.19018
+      "lat": 22.19018,
+      "namePt": "INSTITUTO PARA OS ASSUNTOS MUNICIPAIS",
+      "addressPt": "CAL DO TRONCO VELHO NO. 12-14, EDF. CENTRO ORIENTAL, 3 ANDAR B, MACAU"
     },
     {
       "id": "loc_943a6d88",
@@ -883,7 +923,9 @@
       "phone": "+853 6682 8408",
       "hours": "星期一至星期二 10:00-19:00 / 預約",
       "lng": 113.554456,
-      "lat": 22.197615
+      "lat": 22.197615,
+      "namePt": "CENTRO MÉDICO IEONG KAM TOU",
+      "addressPt": "AVENIDA DE HORTA E COSTA Nº 3-C, KOU SI TAK GARDEN R/C M, MACAU"
     },
     {
       "id": "loc_73a98ab4",
@@ -893,7 +935,9 @@
       "phone": "+853 6386 1471",
       "hours": "星期四 09:00-13:00,14:30-19:00 / 預約",
       "lng": 113.546141,
-      "lat": 22.189966
+      "lat": 22.189966,
+      "namePt": "CENTRO MÉDICO CHENGFENG",
+      "addressPt": "AVENIDA DA PRAIA GRANDE N.O 599, COMERCIAL RODRIGUES, 13 ANDAR A, MACAU"
     },
     {
       "id": "loc_4b09d36b",
@@ -903,7 +947,9 @@
       "phone": "+853 2826 6292",
       "hours": "星期五 09:00-13:00,15:00-19:00 / 星期一至四及星期六 09:00-13:00 預約, 星期日休息",
       "lng": 113.546499,
-      "lat": 22.188347
+      "lat": 22.188347,
+      "namePt": "CENTRO MÉDICO DEXING",
+      "addressPt": "AVENIDA DO INFANTE D. HENRIQUE, N.O 47, THE MACAU SQUARE, C21, MACAU"
     },
     {
       "id": "loc_1ee10c01",
@@ -913,7 +959,9 @@
       "phone": "+853 2832 2283",
       "hours": "由工作單位安排診症時間",
       "lng": 113.546692,
-      "lat": 22.187398
+      "lat": 22.187398,
+      "namePt": "MACAU YIN KUI HOSPITAL",
+      "addressPt": "AVENIDA DOUTOR MARIO SOARES, N.O 320, FINANCE AND IT CENTER OF MACAU, 2 E 3 ANDAR, 4 ANDAR B E C, MACAU"
     },
     {
       "id": "loc_84079594",
@@ -923,7 +971,9 @@
       "phone": "+853 2828 2328",
       "hours": "星期一至星期二 14:00-20:00 / 預約",
       "lng": 113.5583,
-      "lat": 22.1537
+      "lat": 22.1537,
+      "namePt": "CENTRO MÉDICO GLOBALLMED",
+      "addressPt": "RUA DE TAI LIN, NO.389, EDF. POU LONG FA UN, R/C-I, TAIPA, MACAU"
     },
     {
       "id": "loc_c27c0cfc",
@@ -943,7 +993,9 @@
       "phone": "+853 2823 0231",
       "hours": "星期一至星期六 14:30-20:00",
       "lng": 113.5495,
-      "lat": 22.207642
+      "lat": 22.207642,
+      "namePt": "CENTRO POLICLÍNICO DE U.G.A.M.M.",
+      "addressPt": "AV. DO GENERAL CASTELO BRANCO, (EDF. DO SERVICO COMUNITARIO DA U.G.A.M.M., R/C, MACAU)"
     },
     {
       "id": "loc_34f33f95",
@@ -953,7 +1005,9 @@
       "phone": "+853 6338 3128",
       "hours": "星期六 09:00-20:00 / 預約",
       "lng": 113.555623,
-      "lat": 22.208319
+      "lat": 22.208319,
+      "namePt": "POLICLÍNICA PAK WO",
+      "addressPt": "RUA QUATRO BAIRRO IAO HON, N.O 73, CENTRO COMERCIAL VONG KAM, SOBRELOJA BG, MACAU"
     },
     {
       "id": "loc_cf3494b1",
@@ -963,7 +1017,9 @@
       "phone": "+853 2876 4576",
       "hours": "星期一至星期五 09:00-17:30 / 星期六 09:00-13:00",
       "lng": 113.562057,
-      "lat": 22.204049
+      "lat": 22.204049,
+      "namePt": "CENTRO DE DIA ALVORADA",
+      "addressPt": "RUA NOVA DA AREIA PRETA, EDIF. KUONG WA, BLOCO 15, 1 ANDAR, MACAU"
     },
     {
       "id": "loc_759806cf",
@@ -973,7 +1029,9 @@
       "phone": "+853 2826 1004",
       "hours": "星期一至星期六 09:00-18:30",
       "lng": 113.557974,
-      "lat": 22.208507
+      "lat": 22.208507,
+      "namePt": "ASSOCIAÇAO DE REABILITAÇAO \"FUNG HONG\" DE MACAU CENTRO I LOK",
+      "addressPt": "RUA DOS HORTELAOS NO. 458-C, BAIRRO ECONOMICO \"KEEP BEST\" BLOCO 2 R/C , MACAU"
     },
     {
       "id": "loc_a1e60e9a",
@@ -983,7 +1041,9 @@
       "phone": "+853 2826 1727",
       "hours": "星期四至星期五 18:00-19:00 / 星期六至星期日 09:00-13:00 / 星期一至星期五 09:00-13:00,15:00-22:00 / 預約 / 星期二至星期五 11:00-13:00,15:00-21:00",
       "lng": 113.547231,
-      "lat": 22.203415
+      "lat": 22.203415,
+      "namePt": "CENTRO MÉDICO SON VO DA ASSOCIAÇÃO DE NOVA JUVENTUDE CHINESA DE MACAU",
+      "addressPt": "PRACA DAS ORQUIDEAS, NOS.246 - 250, CHINO PLAZA(HARCEST COURT, CONCORDANCE COURT, PROSPERITY COURT) R/C W"
     },
     {
       "id": "loc_5409866d",
@@ -993,7 +1053,9 @@
       "phone": "",
       "hours": "星期一至星期五 10:00-20:00 / 預約",
       "lng": 113.546864,
-      "lat": 22.189616
+      "lat": 22.189616,
+      "namePt": "CENTRO MÉDICO FORESIGHT",
+      "addressPt": "AVENIDA DA PRAIA GRANDE NO.619, EDF. COMERCIAL SI TOI, G7, MACAU"
     },
     {
       "id": "loc_9a9cb14e",
@@ -1003,7 +1065,9 @@
       "phone": "+853 2856 5424",
       "hours": "星期四至星期五 14:00-18:00 / 預約",
       "lng": 113.551245,
-      "lat": 22.193631
+      "lat": 22.193631,
+      "namePt": "ACT CENTRO DE TERAPIA",
+      "addressPt": "RUA DE ABREU NUNES, NO.6, EDF. IAO LUN, 1 ANDAR E, MACAU"
     },
     {
       "id": "loc_e91b005c",
@@ -1013,7 +1077,9 @@
       "phone": "",
       "hours": "暫未提供資料",
       "lng": 113.552786,
-      "lat": 22.208034
+      "lat": 22.208034,
+      "namePt": "INSTITUTO DE ACÇÃO SOCIAL",
+      "addressPt": "ISTMO DE FERREIRA DO AMARAL, N.° 25, LEI TAT SAN CHUN, FASE 2, 2.° ANDAR"
     },
     {
       "id": "loc_3c71f1d5",
@@ -1023,7 +1089,9 @@
       "phone": "+853 2850 3114",
       "hours": "星期一至星期五 09:00-17:30 / 星期六 09:00-13:00 / 預約",
       "lng": 113.566937,
-      "lat": 22.126763
+      "lat": 22.126763,
+      "namePt": "CENTRE DE SERVIÇOS PARA A SAÚDE FÍSICA E MENTAL — «GENEROSIDADE E ALEGRIA»",
+      "addressPt": "HABITAÇÃO SOCIAL DE SEAC PAI VAN, EDF. LOK KUAN, BLOCO II, 1 ANDAR, LOJA E, COLOANE, MACAU"
     },
     {
       "id": "loc_21141842",
@@ -1033,7 +1101,9 @@
       "phone": "",
       "hours": "星期一至星期二 09:00-18:00 / 星期三 09:00-21:00 / 星期四 09:00-18:00 / 星期五 09:00-21:00 / 星期六 09:00-18:00 / 星期日 09:00-13:00",
       "lng": 113.545676,
-      "lat": 22.20785
+      "lat": 22.20785,
+      "namePt": "ASSOCIAÇÃO DE REABILITAÇÃO FU HONG DE MACAU CENTRO CHENG TOU",
+      "addressPt": "RUA NORTE PATANE NO. 367-D, EDF. CHENG TOU R/C D E 3-ANDAR, MACAU"
     },
     {
       "id": "loc_f2fd3fe1",
@@ -1043,7 +1113,9 @@
       "phone": "+853 2821 0132",
       "hours": "星期一至星期五 09:30-13:00,14:30-19:00 / 星期六 09:30-14:30 / 預約",
       "lng": 113.550026,
-      "lat": 22.201482
+      "lat": 22.201482,
+      "namePt": "CENTRO MÉDICO CONCÓRDIA DE MACAU",
+      "addressPt": "AV. DE HORTA E COSTA, EDF. CENTRO COMERCIAL COSTA, 2 ANDAR B, MACAU"
     },
     {
       "id": "loc_189fe1c5",
@@ -1053,7 +1125,9 @@
       "phone": "+853 2825 2932",
       "hours": "星期一至星期日 10:00-14:00,15:00-19:00 / 預約",
       "lng": 113.543613,
-      "lat": 22.198883
+      "lat": 22.198883,
+      "namePt": "CENTRO MÉDICO UNIVERSO",
+      "addressPt": "BECO DO PAGODE DO PATANE Nº3, R/C D3,MACAU"
     },
     {
       "id": "loc_140e79b4",
@@ -1063,7 +1137,8 @@
       "phone": "",
       "hours": "星期一至星期五 09:00-13:00,14:30-18:20",
       "lng": 113.57065,
-      "lat": 22.148938
+      "lat": 22.148938,
+      "namePt": "UNIVERSIDADE DE CIÊNCIA E TECNOLOGIA DE MACAU"
     }
   ],
   "practices": [

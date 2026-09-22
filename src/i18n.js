@@ -12,6 +12,7 @@ export const SUPPORTED_LANGS = ['zh', 'pt', 'en'];
 
 const DICT = {
   zh: {
+    app_title: '澳門註冊心理治療師執業地點地圖',
     app_title_html: '澳門註冊心理治療師<br>執業地點地圖',
     search_trigger_placeholder: '搜尋機構、地址或治療師…',
     mh_title: '官方心理健康服務',
@@ -91,6 +92,7 @@ const DICT = {
   },
 
   pt: {
+    app_title: 'Mapa dos Psicoterapeutas Registados de Macau',
     app_title_html: 'Mapa dos Psicoterapeutas<br>Registados de Macau',
     search_trigger_placeholder: 'Pesquisar instituição, morada ou terapeuta…',
     mh_title: 'Serviços oficiais de saúde mental',
@@ -170,6 +172,7 @@ const DICT = {
   },
 
   en: {
+    app_title: 'Macau Registered Psychotherapist Map',
     app_title_html: 'Macau Registered<br>Psychotherapist Map',
     search_trigger_placeholder: 'Search institution, address or therapist…',
     mh_title: 'Official mental health services',
@@ -302,6 +305,82 @@ export function onLangChange(cb) {
  * 取字串。缺譯回退繁中；{x} 佔位符以 params 替換。
  * 注意：params 值不做 HTML 跳脫，呼叫端負責先 escapeHtml。
  */
+/**
+ * 治療師只顯示一個名字。繁中用中文名；葡文／英文用名冊上的外文名。
+ */
+export function personName(therapist, lang = currentLang) {
+  if (!therapist) return '';
+  const zh = therapist.nameZh || '';
+  const foreign = therapist.nameEn || '';
+  if (lang === 'zh') return zh || foreign;
+  return foreign || zh;
+}
+
+/** 機構名。葡文／英文用名冊外文欄（官方葡文），沒有則維持中文。 */
+export function placeName(loc, lang = currentLang) {
+  if (!loc) return '';
+  if (lang === 'zh') return loc.name || '';
+  return loc.namePt || loc.name || '';
+}
+
+/** 地址。葡文／英文優先顯示名冊葡文地址。 */
+export function placeAddress(loc, lang = currentLang) {
+  if (!loc) return '';
+  if (lang === 'zh') return loc.addressZh || '';
+  return loc.addressPt || loc.addressZh || '';
+}
+
+const HOUR_REPLACEMENTS = {
+  en: [
+    ['由工作單位安排診症時間', 'Set by the workplace'],
+    ['暫未提供資料', 'Not provided'],
+    ['公眾假期休息', 'public holidays closed'],
+    ['公眾假期', 'public holidays'],
+    ['星期日', 'Sun'],
+    ['星期天', 'Sun'],
+    ['星期一', 'Mon'],
+    ['星期二', 'Tue'],
+    ['星期三', 'Wed'],
+    ['星期四', 'Thu'],
+    ['星期五', 'Fri'],
+    ['星期六', 'Sat'],
+    ['或預約', 'or by appointment'],
+    ['預約', 'by appointment'],
+    ['休息', 'closed'],
+    ['及', ' and '],
+    ['至', '–'],
+  ],
+  pt: [
+    ['由工作單位安排診症時間', 'Definido pelo local'],
+    ['暫未提供資料', 'Não indicado'],
+    ['公眾假期休息', 'encerrado nos feriados'],
+    ['公眾假期', 'feriados'],
+    ['星期日', 'Dom'],
+    ['星期天', 'Dom'],
+    ['星期一', 'Seg'],
+    ['星期二', 'Ter'],
+    ['星期三', 'Qua'],
+    ['星期四', 'Qui'],
+    ['星期五', 'Sex'],
+    ['星期六', 'Sáb'],
+    ['或預約', 'ou por marcação'],
+    ['預約', 'por marcação'],
+    ['休息', 'encerrado'],
+    ['及', ' e '],
+    ['至', ' a '],
+  ],
+};
+
+/** 診時原文是中文。切到葡文／英文時換成對應用詞，時間數字維持原樣。 */
+export function formatHours(text, lang = currentLang) {
+  if (!text || lang === 'zh' || !HOUR_REPLACEMENTS[lang]) return text || '';
+  let s = String(text);
+  for (const [from, to] of HOUR_REPLACEMENTS[lang]) {
+    s = s.split(from).join(to);
+  }
+  return s.replace(/[ \t]{2,}/g, ' ').trim();
+}
+
 export function t(key, params) {
   let s = DICT[currentLang]?.[key] ?? DICT.zh[key];
   if (s == null) return key;

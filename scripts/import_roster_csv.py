@@ -179,6 +179,28 @@ def build_coord_index(data_path: Path):
     return by_addr, by_name, name_addr
 
 
+def build_pt_index(data_path: Path):
+    """機構中文名 -> (葡文機構名, 葡文地址)，供 CSV 匯入時沿用。"""
+    if not data_path.exists():
+        return {}
+    data = json.loads(data_path.read_text(encoding="utf-8"))
+    out = {}
+    for loc in data.get("locations", []):
+        name_pt = (loc.get("namePt") or "").strip()
+        addr_pt = (loc.get("addressPt") or "").strip()
+        if not name_pt and not addr_pt:
+            continue
+        # 合併過的葡文名不要拆回每一個中文分店，只掛在完整名稱上
+        if " / " in name_pt:
+            out.setdefault(loc.get("name", ""), (name_pt, addr_pt))
+            continue
+        for part in (loc.get("name") or "").split(" / "):
+            part = part.strip()
+            if part:
+                out.setdefault(part, (name_pt, addr_pt))
+    return out
+
+
 def resolve_coords(records, by_addr, by_name):
     """回傳 (addr_to_coord, 統計)。addr_to_coord 供 geocoded.json 使用。"""
     seen = {}   # 正規化地址 -> placeName（取第一個）
@@ -224,6 +246,18 @@ def main():
     print(f"[import] 不重複執照編號: {len({r['licenseNo'] for r in records if r['licenseNo']})}")
 
     by_addr, by_name, name_addr = build_coord_index(args.data)
+    pt_index = build_pt_index(args.data)
+    for rec in records:
+        if rec.get("addressPt"):
+            continue
+        hit = pt_index.get(rec["placeName"])
+        if not hit:
+            continue
+        name_pt, addr_pt = hit
+        if name_pt and addr_pt:
+            rec["addressPt"] = f"{name_pt} - {addr_pt}"
+        elif name_pt:
+            rec["addressPt"] = name_pt
 
     # 來源未提供地址、但現有資料有的，沿用舊地址（否則會平白弄丟資訊）
     carried = []

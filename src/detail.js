@@ -4,7 +4,7 @@
 
 import { CATEGORIES } from './config.js';
 import { getParsedHours, isLocationOpenNow } from './hours.js';
-import { t } from './i18n.js';
+import { t, getLang, personName, placeName, placeAddress, formatHours } from './i18n.js';
 
 const drawer = () => document.getElementById('detail-drawer');
 const content = () => document.getElementById('detail-content');
@@ -17,7 +17,10 @@ const content = () => document.getElementById('detail-content');
 export function showLocationDetail(loc, db) {
   if (!loc) return;
   const cat = CATEGORIES[loc.category] || CATEGORIES.other;
-  const therapists = db.getTherapistsByLocation(loc.id);
+  const nameLocale = getLang() === 'zh' ? 'zh-Hant' : 'en';
+  const therapists = db.getTherapistsByLocation(loc.id)
+    .slice()
+    .sort((a, b) => personName(a).localeCompare(personName(b), nameLocale));
   const amapUrl = buildAmapNavUrl(loc);
   const googleUrl = buildGoogleNavUrl(loc);
 
@@ -33,11 +36,11 @@ export function showLocationDetail(loc, db) {
     <span class="detail__category" style="background:${cat.color}22;color:${cat.color}">
       ${t('cat_' + (CATEGORIES[loc.category] ? loc.category : 'other'))}
     </span>
-    <h2 class="detail__name">${escapeHtml(loc.name)}</h2>
-    <div class="detail__address">${escapeHtml(loc.addressZh || t('detail_addr_unknown'))}</div>
+    <h2 class="detail__name">${escapeHtml(placeName(loc))}</h2>
+    <div class="detail__address">${escapeHtml(placeAddress(loc) || t('detail_addr_unknown'))}</div>
 
     ${loc.phone ? row(t('detail_phone'), `<a href="tel:${escapeHtml(loc.phone.replace(/\s/g, ''))}" class="detail__tel-link">${escapeHtml(loc.phone)}</a>`) : ''}
-    ${loc.hours ? row(t('detail_hours'), `${escapeHtml(loc.hours)} ${openBadge}`) : ''}
+    ${loc.hours ? row(t('detail_hours'), `${escapeHtml(formatHours(loc.hours))} ${openBadge}`) : ''}
 
     <div class="detail__actions">
       ${amapUrl ? `<button class="btn btn--primary" id="nav-amap-btn">${t('detail_nav_amap')}</button>` : ''}
@@ -148,7 +151,7 @@ export function showLocationDetail(loc, db) {
   const copyBtn = document.getElementById('copy-addr-btn');
   if (copyBtn) {
     copyBtn.addEventListener('click', () => {
-      copyText(loc.addressZh || loc.name, copyBtn, t('detail_copy_addr'));
+      copyText(placeAddress(loc) || placeName(loc), copyBtn, t('detail_copy_addr'));
     });
   }
 
@@ -160,7 +163,7 @@ export function showLocationDetail(loc, db) {
       const shareUrl = `${window.location.origin}${window.location.pathname}#loc=${encodeURIComponent(loc.id)}`;
       // 行動端優先使用系統分享面板
       if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-        navigator.share({ title: loc.name, url: shareUrl }).catch(() => {
+        navigator.share({ title: placeName(loc), url: shareUrl }).catch(() => {
           copyText(shareUrl, shareBtn, t('detail_share'));
         });
       } else {
@@ -192,7 +195,7 @@ function copyText(text, btn, restoreLabel) {
 
 function renderTherapist(therapist) {
   // 優先使用中文名，無中文名則使用英文名，只保留其一以維護隱私；同時展示其執業牌照號碼
-  const name = therapist.nameZh || therapist.nameEn || t('detail_unnamed');
+  const name = personName(therapist) || t('detail_unnamed');
   return `
     <div class="therapist-card">
       <div class="therapist-card__name">

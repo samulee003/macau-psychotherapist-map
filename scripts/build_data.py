@@ -80,6 +80,37 @@ def normalize_addr(addr: str) -> str:
     return re.sub(r"\s+", "", addr.strip())
 
 
+def split_foreign_place(text: str):
+    """名冊外文欄多為「機構名 - 地址」。沒有分隔時整段當機構名。"""
+    text = re.sub(r"\s+", " ", (text or "").replace("\t", " ")).strip(" -")
+    if " - " in text:
+        name, addr = text.split(" - ", 1)
+        return name.strip(), addr.strip()
+    return text, ""
+
+
+def looks_like_address(text: str) -> bool:
+    """外文欄有時只剩門牌，不能把它當成機構名。"""
+    upper = (text or "").upper()
+    return upper.startswith((
+        "ROOM", "RUA", "AVENIDA", "ESTRADA", "ALA ", "NO.", "N.O",
+        "PÁTIO", "PATIO", "CAMINHO", "TRAVESSA", "CALCADA", "CALÇADA",
+        "ANDAR", "BAIRRO",
+    ))
+
+
+def apply_foreign_names(loc: dict, address_pt: str):
+    """把名冊葡文機構名／地址補進地點。已有的不覆蓋，不同值才合併。"""
+    name_pt, addr_pt = split_foreign_place(address_pt)
+    if name_pt and looks_like_address(name_pt) and not addr_pt:
+        addr_pt = name_pt
+        name_pt = ""
+    if name_pt:
+        loc["namePt"] = merge_text(loc.get("namePt", ""), name_pt, " / ")
+    if addr_pt:
+        loc["addressPt"] = merge_text(loc.get("addressPt", ""), addr_pt, " / ")
+
+
 def merge_text(existing: str, incoming: str, separator: str) -> str:
     """合併同一地址的文字欄位，保留不同機構提供的資訊且避免重複。"""
     values = []
@@ -173,6 +204,7 @@ def main():
             existing_loc["name"] = merge_text(existing_loc.get("name"), place_name, " / ")
             existing_loc["phone"] = merge_text(existing_loc.get("phone"), rec.get("phone"), ", ")
             existing_loc["hours"] = merge_text(existing_loc.get("hours"), rec.get("hours"), " / ")
+            apply_foreign_names(existing_loc, rec.get("addressPt") or "")
             if existing_loc.get("category") == "other":
                 existing_loc["category"] = classify(existing_loc["name"] + " " + addr_raw)
         else:
@@ -189,6 +221,7 @@ def main():
                 "phone": rec.get("phone", ""),
                 "hours": rec.get("hours", ""),
             }
+            apply_foreign_names(loc, rec.get("addressPt") or "")
             # 從 geocoding 結果查找坐標（使用此記錄的地址）
             coord = addr_to_coord.get(addr_norm)
             
@@ -243,6 +276,10 @@ def main():
         keeper = locations[keep_id]
         keeper["phone"] = merge_text(keeper.get("phone"), loc.get("phone"), ", ")
         keeper["hours"] = merge_text(keeper.get("hours"), loc.get("hours"), " / ")
+        if keeper.get("namePt") or loc.get("namePt"):
+            keeper["namePt"] = merge_text(keeper.get("namePt", ""), loc.get("namePt", ""), " / ")
+        if keeper.get("addressPt") or loc.get("addressPt"):
+            keeper["addressPt"] = merge_text(keeper.get("addressPt", ""), loc.get("addressPt", ""), " / ")
         merged_of[loc_id] = keep_id
         del locations[loc_id]
 

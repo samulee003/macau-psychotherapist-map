@@ -153,7 +153,9 @@ export function applyFilters(db) {
     if (q) {
       const inLoc =
         loc.name.toLowerCase().includes(q) ||
-        (loc.addressZh || '').toLowerCase().includes(q);
+        (loc.namePt || '').toLowerCase().includes(q) ||
+        (loc.addressZh || '').toLowerCase().includes(q) ||
+        (loc.addressPt || '').toLowerCase().includes(q);
 
       if (inLoc) return true;
 
